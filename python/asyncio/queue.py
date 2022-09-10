@@ -23,12 +23,13 @@ async def randsleep(caller=None) -> None:
 
 async def produce(name: int, q: asyncio.Queue) -> None:
     n = random.randint(0, 10)
-    for _ in it.repeat(None, n):  # Synchronous loop for each single producer
+    print(f"Producer {name} will put {n} items to queue.")
+    for _ in range(n):  # Synchronous loop for each single producer
         await randsleep(caller=f"Producer {name}")
         i = await makeitem()
         t = time.perf_counter()
         await q.put((i, t))
-        print(f"Producer {name} added <{i}> to queue.")
+        print(f"Producer {name} added <{i}> to queue. {_+1}/{n}")
 
 async def consume(name: int, q: asyncio.Queue) -> None:
     while True:
@@ -44,7 +45,11 @@ async def main(nprod: int, ncon: int):
     producers = [asyncio.create_task(produce(n, q)) for n in range(nprod)]
     consumers = [asyncio.create_task(consume(n, q)) for n in range(ncon)]
     await asyncio.gather(*producers)
-    await q.join()  # Implicitly awaits consumers, too
+    
+    # blocks until all items in the queue have been received and processed, 
+    # and then to cancel the consumer tasks, 
+    # which would otherwise hang up and wait endlessly for additional queue items to appear
+    await q.join()
     for c in consumers:
         c.cancel()
 
