@@ -15,6 +15,8 @@ type page struct {
     ptr uintptr
 }
 
+// data struct in disk: id-flags-count-overflow-ptr
+
 // There are 4 different kinds of pages
 const (
 	branchPageFlag   = 0x01 // branch node in b+ tree, serving as an index node, store pgid and key.

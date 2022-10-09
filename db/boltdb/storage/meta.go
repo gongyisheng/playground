@@ -12,6 +12,8 @@ type meta struct {
     checksum uint64 // for checking purpose
 }
 
+// struct in disk: <magic>-<version>-<pagesize>-<flags>-<root(bucket)>-<freelist_id>-<pgid>-<txid>-<checksum>
+
 // meta function - page.go
 // meta returns a pointer to the metadata section of the page.
 func (p *page) meta() *meta {
