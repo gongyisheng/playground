@@ -15,7 +15,7 @@ type page struct {
     ptr uintptr
 }
 
-// data struct in disk: id-flags-count-overflow-ptr
+// data struct in disk: <id>-<flags>-<count>-<overflow>-<ptr>
 
 // There are 4 different kinds of pages
 const (
