@@ -32,3 +32,6 @@
 *.app
 *.dSYM/*
 [^\.]*
+
+# Add cpp files
+!*.cpp
