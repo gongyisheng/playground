@@ -23,13 +23,21 @@ void swapNums(int &x, int &y) {
     y = z;
 }
 
-// FIXME: not working 
-// Need a better understanding of references, pointers and variable
-void swapNums2(int &x, int &y) {
-    // x and y are references
-    int* z = &x;
-    x = *(&y);
-    y = *z;
+// This function doesn't work
+void swapNums2(int x, int y) {
+    // x and y are new copies of the original variables
+    int z = x;
+    x = y;
+    y = z;
+}
+
+// function overloading
+int plusFuncInt(int x, int y) {
+  return x + y;
+}
+
+double plusFuncDouble(double x, double y) {
+  return x + y;
 }
 
 int main() {
@@ -42,5 +50,10 @@ int main() {
     cout << "a=" << a << ", b=" << b << endl;
     swapNums2(a, b);
     cout << "a=" << a << ", b=" << b << endl;
+
+    int myNum1 = plusFuncInt(8, 5);
+    double myNum2 = plusFuncDouble(4.3, 6.26);
+    cout << "Int: " << myNum1 << endl;
+    cout << "Double: " << myNum2 << endl;
     return 0;
 }
