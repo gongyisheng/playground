@@ -22,5 +22,23 @@ int main() {
         cout << i << " ";
     }
     cout << endl;
+
+    // break
+    for (int i = 0; i < 5; i++) {
+        if (i == 3) {
+            break;
+        }
+        cout << i << " ";
+    }
+    cout << endl;
+
+    // continue
+    for (int i = 0; i < 5; i++) {
+        if (i == 3) {
+            continue;
+        }
+        cout << i << " ";
+    }
+
     return 0;
 }
