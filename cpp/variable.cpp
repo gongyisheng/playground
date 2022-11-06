@@ -1,5 +1,4 @@
 #include <iostream>
-#include <string>
 using namespace std;
 
 int main() {
@@ -10,8 +9,6 @@ int main() {
     cout << "myDouble is: " << myDouble << endl;
     char myChar = 'a';
     cout << "myChar is: " << myChar << endl;
-    string myString = "Hello World!";
-    cout << "myString is: " << myString << endl;
     bool myBool = true;
     cout << "myBool is: " << myBool << endl;
 
