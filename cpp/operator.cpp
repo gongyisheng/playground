@@ -24,5 +24,10 @@ int main() {
     cout << "x is: " << x << " after x <<= 3" << endl;
     x >>= 3;// bitwise right shift
     cout << "x is: " << x << " after x >>= 3" << endl;
+
+    // && logical AND
+    // || logical OR
+    // ! logical NOT
+    
     return 0;
 }
