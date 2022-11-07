@@ -33,5 +33,6 @@
 *.dSYM/*
 [^\.]*
 
-# Add cpp files
+# Add cpp files and header files
 !*.cpp
+!*.h
