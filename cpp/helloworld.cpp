@@ -12,5 +12,6 @@ int main() {
   /n only moves the cursor to the next line
   perfer /n over endl
   */
-  return 0;
+  return 0; // Your main function should return the value 0 if the program ran normally.
+  // The return number is so called "status code" or "exit code".
 }
