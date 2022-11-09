@@ -14,4 +14,5 @@ int main() {
   */
   return 0; // Your main function should return the value 0 if the program ran normally.
   // The return number is so called "status code" or "exit code".
+  // You can also include <cstdlib> and return 0, EXIT_SUCCESS or EXIT_FAILURE to maximize portability
 }
