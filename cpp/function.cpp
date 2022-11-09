@@ -1,6 +1,10 @@
 #include <iostream>
 using namespace std;
 
+// Best Practice:
+// Make sure your functions with non-void return types return a value in all cases.
+// Failure to return a value from a value-returning function will cause undefined behavior.
+
 void myFunction() {
     cout << "I just got executed!" << endl;
 }
