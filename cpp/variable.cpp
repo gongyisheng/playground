@@ -5,7 +5,16 @@ int main() {
     // initialize a variable
     int a1, a2, a3; // Default initialization
     int a4 = 10;    // Copy initialization
-    int a5 = {10};  // Brace initialization
+    int a5 = {10};  // Brace initialization    
+    int a6(10);     // Direct initialization
+ 
+    /* Unlike some programming languages, 
+    C/C++ does not initialize most variables 
+    to a given value (such as zero) automatically.
+    Thus when a variable is given a memory address 
+    to use to store data, the default value of 
+    that variable is whatever (garbage) value 
+    happens to already be in that memory address! */
 
     // type variableName = value;
     int myInt = 10;
