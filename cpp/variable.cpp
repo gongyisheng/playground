@@ -16,6 +16,8 @@ int main() {
     that variable is whatever (garbage) value 
     happens to already be in that memory address! */
 
+    // best practice: always initialize your variables
+
     // type variableName = value;
     int myInt = 10;
     cout << "myInt is: " << myInt << endl;
