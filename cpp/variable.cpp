@@ -42,4 +42,12 @@ int main() {
     - Your program works on some compilers but not others.
     - Your program works until you change some other seemingly unrelated code.
     */
+   /*
+   Identifier naming:
+   1. best practice: identifier names for variable start with a lowercase letter
+   2. best practice: identifier names for class start with an uppercase letter
+   3. best practice: identifier names for constant start with an uppercase letter
+   4. best practice: identifier names for function start with a lowercase letter
+   5. multiple words in identifier names are separated by an underscore or use camelCase
+   */
 }
