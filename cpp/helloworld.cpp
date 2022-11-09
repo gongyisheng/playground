@@ -10,6 +10,7 @@ int main() {
   1. move the cursor to the next line
   2. flush the buffer (print out cached output immediately)
   /n only moves the cursor to the next line
+  perfer /n over endl
   */
   return 0;
 }
