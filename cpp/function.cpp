@@ -44,6 +44,12 @@ double plusFuncDouble(double x, double y) {
   return x + y;
 }
 
+void earlyReturn() {
+    int x = 20;
+    return; // early return
+    int y = 30; // unreachable code
+}
+
 int main() {
     myFunction();
     myFunctionWithParam(); // default value
