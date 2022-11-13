@@ -16,6 +16,14 @@ class MyClass {           // The class
             cout << "Hello World!" << endl;
         }
         void myMethodOut(); // Method/function defined outside the class
+
+        void bark() const { // Functions that do not modify the state of the object should be marked as const.
+            cout << "Barks!\n"; 
+        }
+
+        virtual void speak() const { // Virtual functions can be overridden in derived classes.
+            cout << "MyClass speaks!\n";
+        }
         
     protected:            // Protected access specifier (can be accessed by derived classes, can't be accessed outside class)
         int protectedNum;       // Attribute (int variable)
