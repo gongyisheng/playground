@@ -3,6 +3,7 @@
 // they should both have the same base name (add).
 // 2. Header files should generally not contain function and variable definitions, 
 // so as not to violate the one definition rule. An exception is made for symbolic constants
+// 3. The primary purpose of a header file is to propagate declarations to code files.
 
 // define a function in a namespace
 namespace gongyisheng{
