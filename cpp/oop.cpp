@@ -24,6 +24,10 @@ class MyClass {           // The class
         virtual void speak() const { // Virtual functions can be overridden in derived classes.
             cout << "MyClass speaks!\n";
         }
+
+        virtual ~MyClass() { // Destructor, It is called when an object is deleted or falls out of scope
+            cout << "This is Destructor!" << endl;
+        }
         
     protected:            // Protected access specifier (can be accessed by derived classes, can't be accessed outside class)
         int protectedNum;       // Attribute (int variable)
