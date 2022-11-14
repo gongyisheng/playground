@@ -1,4 +1,8 @@
 #include <iostream>
+// std lib of exception handling
+#include <exception>
+#include <stdexcept>
+
 using namespace std;
 
 int main() {
@@ -24,5 +28,16 @@ int main() {
     }
     catch (...) { // catch all exceptions
         cout << "Access denied - You must be at least 18 years old." << endl;
+    }
+
+    try {
+        throw runtime_error("A runtime error occurred");
+    }
+    catch (runtime_error &error) {
+        cout << error.what() << endl;
+    }
+    catch (...) {
+        cout << "Some other exception occurred" << endl;
+        throw; // rethrow exception
     }
 }
