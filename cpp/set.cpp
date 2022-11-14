@@ -19,4 +19,12 @@ int main(){
     for(it=ST.begin();it!=ST.end();it++) {
         cout << *it << endl;
     }
+    // To clear the complete container we use Container_name.clear()
+    ST.clear();
+    cout << ST.size();  // will print the size of set ST
+    // Output: 0
+
+    // NOTE: for duplicate elements we can use multiset
+    // NOTE: For hash sets, use unordered_set. They are more efficient but
+    // do not preserve order. unordered_set is available since C++11
 }
