@@ -17,11 +17,11 @@ class TimedSelector(selectors.DefaultSelector):
     def select(self, timeout=None):
         if timeout <= 0:
             return super().select(timeout)
-        start = time.time()
+        start = time.perf_counter()
         try:
             return super().select(timeout)
         finally:
-            self.select_time += time.time() - start
+            self.select_time += time.perf_counter() - start
 
 
 class TimedEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
