@@ -33,10 +33,10 @@ class TimedEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
 @contextlib.contextmanager
 def print_timing():
     asyncio.get_event_loop()._selector.reset_select_time()
-    real_time = time.time()
+    real_time = time.perf_counter()
     process_time = time.process_time()
     yield
-    real_time = time.time() - real_time
+    real_time = time.perf_counter() - real_time
     cpu_time = time.process_time() - process_time
     select_time = asyncio.get_event_loop()._selector.select_time
     other_io_time = max(0., real_time - cpu_time - select_time)
@@ -49,12 +49,12 @@ def print_timing():
 def log_timing(func):
     async def wrapper(*args, **kwargs):
         asyncio.get_event_loop()._selector.reset_select_time()
-        real_time = time.time()
+        real_time = time.perf_counter()
         process_time = time.process_time()
 
         result = await func(*args, **kwargs)
 
-        real_time = time.time() - real_time
+        real_time = time.perf_counter() - real_time
         cpu_time = time.process_time() - process_time
         select_time = asyncio.get_event_loop()._selector.select_time
         other_io_time = max(0., real_time - cpu_time - select_time)
