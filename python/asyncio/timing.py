@@ -68,8 +68,8 @@ def log_timing(func):
 
 @log_timing
 async def doSomething():
-    time.sleep(1)
-    await asyncio.sleep(1)
+    time.sleep(0.2)
+    await asyncio.sleep(0.8)
     return sum(range(10**6))
 
 # Testing
