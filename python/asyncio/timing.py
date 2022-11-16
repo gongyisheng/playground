@@ -29,7 +29,7 @@ class TimedEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
         selector = TimedSelector()
         return asyncio.DefaultEventLoopPolicy._loop_factory(selector)
 
-
+# Method 1: Using a context manager
 @contextlib.contextmanager
 def print_timing():
     asyncio.get_event_loop()._selector.reset_select_time()
@@ -45,14 +45,14 @@ def print_timing():
     print(f"Other IO time: {other_io_time:.3f} s")
     print(f"Real time:     {real_time:.3f} s")
 
-
+# Method 2: Using a decorator
 def log_timing(func):
-    def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs):
         asyncio.get_event_loop()._selector.reset_select_time()
         real_time = time.time()
         process_time = time.process_time()
 
-        result = func(*args, **kwargs)
+        result = await func(*args, **kwargs)
 
         real_time = time.time() - real_time
         cpu_time = time.process_time() - process_time
