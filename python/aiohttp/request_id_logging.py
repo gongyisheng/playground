@@ -1,9 +1,10 @@
 import aiohttp
 import asyncio
-from contextvars import ContextVar
-import os
+import time
+
 import uuid
 import logging
+from contextvars import ContextVar
 
 request = ContextVar("request")
 
@@ -36,39 +37,38 @@ def request_tracer(results_collector):
     >>> asyncio.get_event_loop().run_until_complete(func())
     {'dns_lookup_and_dial': 43.3, 'connect': 334.29, 'transfer': 148.48, 'total': 526.08, 'is_redirect': False}
     """
-
     async def on_request_start(session, context, params):
         request.set(str(uuid.uuid4()).split('-')[0])
-        context.on_request_start = session.loop.time()
+        context.on_request_start = time.perf_counter()
         context.is_redirect = False
 
     async def on_connection_create_start(session, context, params):
-        since_start = session.loop.time() - context.on_request_start
+        since_start = time.perf_counter() - context.on_request_start
         context.on_connection_create_start = since_start
 
     async def on_request_redirect(session, context, params):
-        since_start = session.loop.time() - context.on_request_start
+        since_start = time.perf_counter() - context.on_request_start
         context.on_request_redirect = since_start
         context.is_redirect = True
 
     async def on_dns_resolvehost_start(session, context, params):
-        since_start = session.loop.time() - context.on_request_start
+        since_start = time.perf_counter() - context.on_request_start
         context.on_dns_resolvehost_start = since_start
 
     async def on_dns_resolvehost_end(session, context, params):
-        since_start = session.loop.time() - context.on_request_start
+        since_start = time.perf_counter() - context.on_request_start
         context.on_dns_resolvehost_end = since_start
 
     async def on_connection_create_end(session, context, params):
-        since_start = session.loop.time() - context.on_request_start
+        since_start = time.perf_counter() - context.on_request_start
         context.on_connection_create_end = since_start
     
     async def on_request_chunk_sent(session, context, params):
-        since_start = session.loop.time() - context.on_request_start
+        since_start = time.perf_counter() - context.on_request_start
         context.on_request_chunk_sent = since_start
 
     async def on_request_end(session, context, params):
-        total = session.loop.time() - context.on_request_start
+        total = time.perf_counter() - context.on_request_start
         context.on_request_end = total
 
         dns_lookup_and_dial = context.on_dns_resolvehost_end - context.on_dns_resolvehost_start
@@ -99,8 +99,7 @@ async def fetch(url):
     trace = {}
     async with aiohttp.ClientSession(trace_configs=[request_tracer(trace)]) as client:
         async with client.get(url) as response:
-            print(trace)
-            logging.info(f"URL: {url}", extra={"request": request.get()})
+            logging.info(f"URL={url}, trace={trace}", extra={"request": request.get()})
 
 if __name__ == "__main__":
     urls = [
