@@ -23,8 +23,13 @@ int main(){
     // Z->26
 
     // To find the value corresponding to a key
-    it = mymap.find('Z');
-    cout << it->second;
+    auto it = mymap.find('Z');
+    if (it != mymap.end()){
+        cout << it->second << endl;
+    } else {
+        cout << "Key not found" << endl;
+    }
+    
 }
 
 // Output: 26
