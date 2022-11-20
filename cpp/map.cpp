@@ -1,14 +1,18 @@
 #include<map>
 #include<iostream>
+#include<unordered_map>
 using namespace std;
 
 int main(){
     map<char, int> mymap;  // Will initialize the map with key as char and value as int
+    unordered_map<char, int> mymap2;  // Will initialize the map with key as char and value as int
 
     mymap.insert(pair<char,int>('A',1));
     // Will insert value 1 for key A
     mymap.insert(pair<char,int>('Z',26));
     // Will insert value 26 for key Z
+    mymap['B'] = 2;
+    // Will insert value 2 for key B
 
     // To iterate
     map<char,int>::iterator it;
