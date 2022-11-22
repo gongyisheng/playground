@@ -1,6 +1,19 @@
 #include<iostream>
 #include<string>
 using namespace std;
+typedef void (*f_ptr)(); 
+
+int func1(){
+    return 0;
+}
+
+void aaa(){
+    cout << "aaa" << endl ;
+}
+
+f_ptr f(){ // return a function pointer
+    return aaa;
+}
 
 int main() {
     // pointer <--> address <--> variable
@@ -24,5 +37,14 @@ int main() {
     *foodptr = "Hamburger"; // Change value of food through pointer
     cout << foodptr << endl;  // Outputs new `food` address
     cout << *foodptr << endl; // Outputs Hamburger
+
+    // function pointer
+    int (*funcptr)() = func1;
+    // call function through pointer
+    funcptr();
+
+    f_ptr (*ff)() = f; // ff is a function pointer, return a function pointer
+    ff()(); // call ff()
+
     return 0;
 }
