@@ -8,6 +8,8 @@ int main() {
     // Allow us to Define the Array or list of objects at run time
     string val;
     vector<string> my_vector; // initialize the vector
+    vector<int> my_vector2(5); // initialize the vector with 5 elements
+    vector<int> my_vector3(5, 10); // initialize the vector with 5 elements and each element is 10
     cin >> val;
     
     my_vector.push_back(val); // will push the value of 'val' into vector ("array") my_vector
