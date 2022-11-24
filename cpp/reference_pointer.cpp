@@ -46,5 +46,14 @@ int main() {
     f_ptr (*ff)() = f; // ff is a function pointer, return a function pointer
     ff()(); // call ff()
 
+    //() > [] > anything else
+    int arr[128] = {0};  // arr is an array with int
+    int (*arrptr)[128] = &arr; // arrptr is a pointer to array with int
+    int *ptr = arr; // ptr is a pointer to array, but it doesn't know it's an array
+    cout << arr << endl; // Get memory address of arr.
+    cout << &arr << endl; // Get memory address of arr.
+    cout << arrptr << endl; // Get memory address of arrptr.
+    cout << ptr << endl; // Get memory address of ptr.
+
     return 0;
 }
