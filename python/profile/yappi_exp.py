@@ -21,4 +21,6 @@ if __name__ == "__main__":
         #asyncio.run(foo())
         #asyncio.run(bar())
         asyncio.run(main())
-    yappi.get_func_stats().print_all()
+    stat = yappi.get_func_stats()
+    stat.save("output.prof", type="pstat")
+    # visualize : pip install snakeviz, snakeviz result.out
