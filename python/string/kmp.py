@@ -1,8 +1,8 @@
 # kmp algorithm
-def getNext(p):
+def getNext(p: str)-> list:
     """
     p为模式串
-    返回next数组，即部分匹配表
+    返回next数组, 即部分匹配表
     """
     nex = [0] * (len(p) + 1)
     nex[0] = -1
@@ -18,7 +18,7 @@ def getNext(p):
 
     return nex
 
-def search(s, p):
+def search(s: str, p: str)-> int:
     """
     s为主串
     p为模式串
