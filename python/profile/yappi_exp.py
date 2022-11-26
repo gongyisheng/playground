@@ -1,5 +1,6 @@
 import asyncio
 import yappi
+# yappi supports for asyncio better
 
 async def foo():
     await asyncio.sleep(1.0)
