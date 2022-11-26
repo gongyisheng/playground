@@ -6,16 +6,20 @@ def getNext(p: str)-> list:
     """
     nex = [0] * (len(p) + 1)
     nex[0] = -1
-    i = 0
-    j = -1
+    i = 0 # index of pattern
+    j = -1 # index of next
     while i < len(p):
+        # j == -1: nothing matched
+        # p[i] == p[j]: matched
         if j == -1 or p[i] == p[j]:
             i += 1
             j += 1
+            # set next[i]
             nex[i] = j     # 这是最大的不同：记录next[i]
         else:
+            # j != -1 and p[i] != p[j], set 
             j = nex[j]
-
+    print(nex)
     return nex
 
 def search(s: str, p: str)-> int:
@@ -40,6 +44,6 @@ def search(s: str, p: str)-> int:
         return -1
 
 if __name__ == '__main__':
-    pattern = "foobar"
+    pattern = "foobarfoo"
     text = "foofoobar"
     print(search(text, pattern))
