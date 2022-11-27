@@ -32,5 +32,5 @@ if __name__ == "__main__":
         per_call_1 = 0 if nc==0 else float(tt) / nc
         per_call_2 = 0 if cc==0 else float(ct) / cc
         # the output will not be sorted because it's from dict
-        print("[cProfile STATS] file: %s, line: %s, func: %s, direct_call: %s, total_call: %s, total_time: %s, tt_per_call: %s, cum_time: %s, ct_per_call, %s" % (k[0], k[1], k[2], str(cc), str(nc), str(tt), str(per_call_1), str(ct), str(per_call_2)))
+        print("[cProfile STATS] file: %s, line: %s, func: %s, direct_call: %s, total_call: %s, total_time: %s, tt_per_call: %s, cum_time: %s, ct_per_call: %s" % (k[0], k[1], k[2], str(cc), str(nc), str(tt), str(per_call_1), str(ct), str(per_call_2)))
     stream.close()
