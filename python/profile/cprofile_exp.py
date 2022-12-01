@@ -19,8 +19,9 @@ def fib_seq(n):
 
 
 if __name__ == "__main__":
-    p = cProfile.Profile()
-    p.run('fib_seq(30),fib_seq(35)')
+    import time
+    p = cProfile.Profile(timer=time.process_time) # you can set up your custom timer
+    p.run('fib_seq(30)')
     p.dump_stats('output.prof')
 
     stream = open('output.txt', 'w')
