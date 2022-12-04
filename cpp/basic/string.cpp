@@ -31,6 +31,30 @@ int main() {
     myString2[0] = 'J';
     cout << myString2 << endl;
 
+    // traverse
+    // string
+    string myString3 = "Hello";
+    cout << "for loop traverse of string: ";
+    for (int i = 0; i < myString3.length(); i++) {
+        cout << myString3[i];
+    }
+    cout << endl;
+    // char []
+    char myString4[] = "Hello";
+    cout << "for loop traverse of char []: ";
+    for (int i = 0; i < strlen(myString4); i++) {
+        cout << myString4[i];
+    }
+    cout << endl;
+    // char *
+    char *p4 = (char *)"Hello";
+    cout << "for loop traverse of char *: ";
+    for (int i=0; p4[i]; i++) {
+        cout << p4[i];
+    }
+    cout << endl;
+
+
     // special characters
     string txt2 = "It\'s alright.";
     cout << txt2 << endl;
