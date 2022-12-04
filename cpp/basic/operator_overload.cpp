@@ -28,13 +28,22 @@ class Box
       {
           height = hei;
       }
-      // operator overload
+      // operator overload +
       Box operator+(const Box& b)
       {
          Box box;
          box.length = this->length + b.length;
          box.breadth = this->breadth + b.breadth;
          box.height = this->height + b.height;
+         return box;
+      }
+      // operator overload ()
+      Box operator()(int a, int b, int c)
+      {
+         Box box;
+         box.length = a*this->length;
+         box.breadth = b*this->breadth;
+         box.height = c*this->height;
          return box;
       }
    private:
@@ -47,7 +56,8 @@ int main()
 {
    Box Box1;
    Box Box2;
-   Box Box3;     
+   Box Box3;    
+   Box Box4; 
    double volume = 0.0;
  
    // Box1
@@ -74,6 +84,11 @@ int main()
    // Box3
    volume = Box3.getVolume();
    cout << "Volume of Box3 : " << volume <<endl;
+
+   // Box4
+   Box4 = Box1(2, 3, 4);
+   volume = Box4.getVolume();
+   cout << "Volume of Box4 : " << volume <<endl;
  
    return 0;
 }
