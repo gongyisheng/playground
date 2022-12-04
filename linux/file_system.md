@@ -46,3 +46,6 @@ common device files:
 - /dev/par: a special file that represents the parallel port
 - /dev/radio: a special file that represents the radio
 - /dev/vedio: a special file that represents the video
+
+files in /tmp are managed by OS, can be deleted after reboot  
+files in /var/tmp are managed by user programs, cannot be deleted after reboot
