@@ -49,3 +49,13 @@ common device files:
 
 files in /tmp are managed by OS, can be deleted after reboot  
 files in /var/tmp are managed by user programs, cannot be deleted after reboot
+
+ls -l: list the files in the current directory, with the details  
+ls -a: list the files in the current directory, including the hidden files  
+ls -t: list the files in the current directory, sorted by the time of the last modification
+ls -r: list the files in the current directory, in reverse order
+
+find `<path>` -name `<pattern>`: find the files in the specified path that match the specified pattern  
+find `<path>` -type `<type>`: find the files in the specified path that match the specified type  
+find `<path>` -size `<size>`: find the files in the specified path that match the specified size  
+find -exec `<command>` {}: execute the specified command for each file found
