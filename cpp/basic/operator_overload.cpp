@@ -1,5 +1,10 @@
 #include <iostream>
 using namespace std;
+
+// operators can be overloaded:
+// +, -, *, /, %, ^, &, |, ~, !, =, <, >, +=, -=, *=, /=, %=, ^=, &=, |=, <<=, >>=, ==, !=, <=, >=, &&, ||, ++, --, <<, >>, [], (), ->, new, delete, new[], delete[]
+// operators cannot be overloaded:
+// ::, .*, ., ?:, sizeof, typeid, const_cast, dynamic_cast, reinterpret_cast, static_cast
  
 class Box
 {
