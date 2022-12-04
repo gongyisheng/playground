@@ -16,3 +16,8 @@ linux file system:
 - /tmp: contains the temporary files
 - /usr: contains the user binaries, libraries and other data
 - /var: contains the variable data
+
+environment variables:
+- $HOME: the home directory of the current user
+- $PATH: the list of directories where the shell looks for commands  
+ls, pwd, cat, these are all executable files, and the shell looks for them in the directories listed in the PATH variable
