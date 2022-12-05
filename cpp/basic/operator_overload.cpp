@@ -46,6 +46,11 @@ class Box
          box.height = c*this->height;
          return box;
       }
+      // operator overload =
+      // make it not copyable
+      // Box operator=(Box&) = delete;
+      // make it not movable
+      // Box operator=(Box&&) = delete;
    private:
       double length;
       double breadth;
