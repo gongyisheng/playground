@@ -40,6 +40,7 @@ int main() {
 
     // function pointer
     int (*funcptr)() = func1;
+    void (*fn)(void); // a function pointer that does not accept any parameters
     // call function through pointer
     funcptr();
 
