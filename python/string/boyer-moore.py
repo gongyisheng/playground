@@ -20,7 +20,7 @@ def search(s: str, p: str)-> int:
         if s[i] in badMatch.keys():
             j = 0
             while j<len(p):
-                if s[i-j] != p[len(p)-j-1]:
+                if i-j<0 or s[i-j] != p[len(p)-j-1]:
                     i += badMatch[s[i]]
                     break
                 else:
@@ -32,6 +32,6 @@ def search(s: str, p: str)-> int:
     return -1
 
 if __name__ == '__main__':
-    pattern = "9"
-    text = "foofoobar"
+    pattern = "jasd"
+    text = "dddddddddkjasdddddddddd"
     print(search(text, pattern))
