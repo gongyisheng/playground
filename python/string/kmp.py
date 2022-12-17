@@ -44,6 +44,6 @@ def search(s: str, p: str)-> int:
         return -1
 
 if __name__ == '__main__':
-    pattern = "foobarfoo"
-    text = "foofoobar"
+    pattern = "transaction details"
+    text = "your transaction details is here"
     print(search(text, pattern))
