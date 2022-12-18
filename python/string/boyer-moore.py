@@ -32,6 +32,6 @@ def search(s: str, p: str)-> int:
     return -1
 
 if __name__ == '__main__':
-    pattern = "jasd"
-    text = "dddddddddkjasdddddddddd"
+    pattern = "jasdw"
+    text = "jasda"
     print(search(text, pattern))
