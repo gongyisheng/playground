@@ -4,5 +4,7 @@
 `git reset --soft HEAD~`
 - revert commit from github  
 `git push origin HEAD --force`
+- force push  
+`git push --force`
 - edit commit message  
 `git commit --amend`
