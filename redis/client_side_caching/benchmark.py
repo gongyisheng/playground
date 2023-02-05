@@ -7,6 +7,14 @@ from manager import Manager
 
 # A global for holding time measurements
 timings = defaultdict(list)
+redis_config = {
+    "timeout": None,
+    "port": 6379,
+    "max_connections": 5,
+    "db": 0,
+    "socket_timeout": 300,
+    "socket_connect_timeout": 5,
+}
 
 def timeit(fn):
     ' Wraps a function call and times it '
@@ -61,7 +69,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Set up Redis connections
-    pool = redis.ConnectionPool.from_url(args.url)
+    pool = redis.BlockingConnectionPool.from_url(args.url, **redis_config)
     manager = Manager(pool, capacity=args.capacity)
     writer = redis.Redis(connection_pool=pool)
     normal = redis.Redis(connection_pool=pool)
