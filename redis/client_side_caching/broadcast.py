@@ -43,7 +43,7 @@ class ClientSideCache(object):
             key = message["data"][0]
             del self._local_cache[key]
 
-async def main():
+async def test():
     client = await ClientSideCache("localhost")
     await client.set("my_key", "my_value")
     for i in range(100):
@@ -51,4 +51,4 @@ async def main():
         await asyncio.sleep(1)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(test())
