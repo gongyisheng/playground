@@ -19,9 +19,6 @@ class ClientSideCache(object):
 
     async def get(self, key):
         return await self._redis.get(key)
-    
-    def foo(self):
-        return "foo"
 
 async def main():
     client = await ClientSideCache("localhost")
