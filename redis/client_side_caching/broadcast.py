@@ -46,7 +46,7 @@ class ClientSideCache(object):
 async def test():
     client = await ClientSideCache("localhost")
     await client.set("my_key", "my_value")
-    for i in range(100):
+    for i in range(1000):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
 
