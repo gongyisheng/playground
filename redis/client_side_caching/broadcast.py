@@ -158,6 +158,8 @@ class ClientSideCache(object):
     async def _listen_invalidate_check_health(self):
         """
         check if the current listen invalidate connection is healthy
+        By default, the connections in the pool does not has health_check_interval
+        But we do need health check for THIS, EXACTLY THIS listen invalidate connection
         """
         if self._pubsub is not None:
             try:
