@@ -48,6 +48,9 @@ class ClientSideCache(object):
         """
         Get value from redis server or client side cache.
         """
+        if self._pubsub is None:
+            value, _ = await self._get_from_redis(key, only_value=True)
+            return value
         # Get value from local cache
         # 1. check if key exist in local cache
         # 2. check if key expire time is not reached
@@ -55,6 +58,8 @@ class ClientSideCache(object):
             if int(time.time()) < self._local_cache_expire_time[key]:
                 print(f"Get key from client-side cache: {key}")
                 return self._local_cache[key]
+            else:
+                print(f"Key exists in clien-side cache but expired: {key}")
         
         # Get value from redis server and set to cache
         # 1. set value to local cache to avoid race condition
@@ -64,9 +69,7 @@ class ClientSideCache(object):
         # 5. set expire time to local cache
 
         self._local_cache[key] = CACHING_PLACEHOLDER
-        value = await self._redis.get(key)
-        ttl = await self._redis.ttl(key)
-        print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
+        value, ttl = await self._get_from_redis(key)
 
         if value is not None: # Key exist
             if ttl >= 0: # Integer expire time
@@ -88,12 +91,21 @@ class ClientSideCache(object):
             return None
         return value
     
+    async def _get_from_redis(self, key, only_value=False):
+        value = ttl = None
+        value = await self._redis.get(key)
+        if not only_value:
+            ttl = await self._redis.ttl(key)
+        print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
+        return value, ttl
+    
     def flush_cache(self):
         """
         clean whole cache
         """
         self._local_cache = {}
-        self._local_cache_update_time = {}
+        self._local_cache_expire_time = {}
+        print("Flush client-side cache")
     
     def flush_key(self, key):
         """
@@ -101,8 +113,9 @@ class ClientSideCache(object):
         """
         if key in self._local_cache:
             del self._local_cache[key]
-        if key in self._local_cache_update_time:
-            del self._local_cache_update_time[key]
+        if key in self._local_cache_expire_time:
+            del self._local_cache_expire_time[key]
+        print(f"Flush key from client-side cache: {key}")
     
     async def _background_listen_invalidate(self):
         """
@@ -114,6 +127,7 @@ class ClientSideCache(object):
             else:
                 await asyncio.gather(self._listen_invalidate())
             await asyncio.sleep(5)
+        await self.stop()
     
     async def _listen_invalidate_on_open(self):
         """
@@ -178,9 +192,8 @@ class ClientSideCache(object):
         """
         if self._pubsub is not None:
             try:
-                resp = await self._pubsub.ping()
-                if resp != "PONG":
-                    raise Exception(f"Listen invalidate connection is broken. resp={resp}")
+                await self._pubsub.ping()
+                print(f"Listen invalidate connection is healthy. client_id={self._pubsub_client_id}")
                 return True
             except Exception as e:
                 print(f"Listen invalidate connection is broken. error={e}, traceback={traceback.format_exc()}")
@@ -234,15 +247,6 @@ class ClientSideCache(object):
         except Exception as e:
             print(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
 
-    def __del__(self):
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(self.stop())
-            else:
-                loop.run_until_complete(self.stop())
-        except Exception:
-            pass
 
 async def test():
     client = await ClientSideCache("localhost")
@@ -250,7 +254,30 @@ async def test():
     for i in range(50):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
-    await client.stop()
+
+async def short_expire_time_test():
+    client = await ClientSideCache("localhost", expire_threshold=5)
+    await client.set("my_key", "my_value")
+    for i in range(50):
+        print(await client.get("my_key"))
+        await asyncio.sleep(1)
+
+async def short_check_health_test():
+    client = await ClientSideCache("localhost", check_health_interval=5)
+    await client.set("my_key", "my_value")
+    for i in range(50):
+        print(await client.get("my_key"))
+        await asyncio.sleep(1)
+
+async def stop_test():
+    client = await ClientSideCache("localhost")
+    await client.set("my_key", "my_value")
+    for i in range(5):
+        print(await client.get("my_key"))
+        await asyncio.sleep(1)
 
 if __name__ == "__main__":
-    asyncio.run(test())
+    # asyncio.run(test())
+    # asyncio.run(short_expire_time_test())
+    # asyncio.run(short_check_health_test())
+    asyncio.run(stop_test())
