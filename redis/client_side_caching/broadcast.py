@@ -84,6 +84,7 @@ class ClientSideCache(object):
             if self._local_cache.get(key, None) == CACHING_PLACEHOLDER:
                 self._local_cache[key] = value
                 self._local_cache_expire_time[key] = int(time.time())+ttl
+                print(f"Set key to client-side cache: {key}, value={value}, ttl={ttl}")
             else:
                 self.flush_key(key)
                 return None
