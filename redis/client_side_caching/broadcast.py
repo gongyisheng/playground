@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Union, Tuple
 import traceback
 from redis.asyncio import BlockingConnectionPool, Redis
 
@@ -10,7 +11,7 @@ CACHING_PLACEHOLDER = "__in_progress__"
 # todo: use while signal_state.ALIVE to replace while True
 
 class ClientSideCache(object):
-    def __init__(self, redis_host, perfix=[], expire_threshold=86400, check_health_interval=60):
+    def __init__(self, redis_host: str, perfix: list=[], expire_threshold: int=86400, check_health_interval: int=60) -> None:
         self._pool = BlockingConnectionPool(host=redis_host, decode_responses=True, max_connections=10)
 
         self._local_cache = {}
@@ -25,15 +26,15 @@ class ClientSideCache(object):
 
         self.perfix_command = "".join([f"PREFIX {p} " for p in set(perfix) if len(p)>0])
 
-    def __await__(self):
+    def __await__(self) -> "ClientSideCache":
         return self.init().__await__()
 
-    async def init(self):
+    async def init(self) -> "ClientSideCache":
         self._redis = await Redis(connection_pool=self._pool)
         asyncio.create_task(self._background_listen_invalidate())
         return self
 
-    async def set(self, key, value):
+    async def set(self, key: str, value: Union[None, str, int, float]) -> None:
         """
         Set kv pair to redis server, nothing different from redis.set()
         TODO: add optional parameter to set expire time
@@ -45,7 +46,7 @@ class ClientSideCache(object):
         # client don't want to receive invalidation messages 
         # for this keys that it modified.
 
-    async def get(self, key):
+    async def get(self, key: str) -> Union[None, str, int, float]:
         """
         Get value from redis server or client side cache.
         """
@@ -93,7 +94,7 @@ class ClientSideCache(object):
             return None
         return value
     
-    async def _get_from_redis(self, key, only_value=False):
+    async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
         value = ttl = None
         value = await self._redis.get(key)
         if not only_value:
@@ -101,7 +102,7 @@ class ClientSideCache(object):
         print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
         return value, ttl
     
-    def flush_cache(self):
+    def flush_cache(self) -> None:
         """
         clean whole cache
         """
@@ -109,7 +110,7 @@ class ClientSideCache(object):
         self._local_cache_expire_time = {}
         print("Flush client-side cache")
     
-    def flush_key(self, key):
+    def flush_key(self, key: str) -> None:
         """
         delete key from local cache
         """
@@ -119,7 +120,7 @@ class ClientSideCache(object):
             del self._local_cache_expire_time[key]
         print(f"Flush key from client-side cache: {key}")
     
-    async def _background_listen_invalidate(self):
+    async def _background_listen_invalidate(self) -> None:
         """
         create another listen invalidate coroutine in case the current connection is broken
         """
@@ -131,7 +132,7 @@ class ClientSideCache(object):
             await asyncio.sleep(5)
         await self.stop()
     
-    async def _listen_invalidate_on_open(self):
+    async def _listen_invalidate_on_open(self) -> None:
         """
         Steps to open listen invalidate coroutine
         1. get client id
@@ -164,7 +165,7 @@ class ClientSideCache(object):
             self._pubsub = None
             self._pubsub_client_id = None
     
-    async def _listen_invalidate_on_close(self):
+    async def _listen_invalidate_on_close(self) -> None:
         """
         Steps to close listen invalidate coroutine
         1. flush whole client side cache
@@ -186,7 +187,7 @@ class ClientSideCache(object):
             self._pubsub = None
             self._pubsub_client_id = None
     
-    async def _listen_invalidate_check_health(self):
+    async def _listen_invalidate_check_health(self) -> bool:
         """
         check if the current listen invalidate connection is healthy
         By default, the connections in the pool does not has health_check_interval
@@ -203,7 +204,7 @@ class ClientSideCache(object):
             print(f"Listen invalidate connection is broken. self._pubsub=None")
         return False
 
-    async def _listen_invalidate(self):
+    async def _listen_invalidate(self) -> None:
         """
         listen invalidate message from redis server
         TODO: discuss a better timeout value
@@ -229,7 +230,7 @@ class ClientSideCache(object):
             print(f"Invalidate key: {key}")
         await self._listen_invalidate_on_close()
 
-    async def stop(self):
+    async def stop(self) -> None:
         """
         Steps to stop client side cache
         1. unsubscribe __redis__:invalidate channel
