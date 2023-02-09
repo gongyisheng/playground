@@ -3,19 +3,25 @@ import time
 import traceback
 from redis.asyncio import BlockingConnectionPool, Redis
 
+CACHING_PLACEHOLDER = "__in_progress__"
+
 # todo: limit cache size
 # todo: use logging to replace print
 
 class ClientSideCache(object):
     def __init__(self, redis_host, perfix=[], expire_threshold=86400, check_health_interval=60):
         self._pool = BlockingConnectionPool(host=redis_host, decode_responses=True, max_connections=10)
+
         self._local_cache = {}
         self._local_cache_expire_time = {}
+
         self._pubsub = None
         self._pubsub_client_id = None
+
         self.expire_threshold = expire_threshold
         self.check_health_interval = check_health_interval
         self._next_check_heath_time = 0
+
         self.perfix_command = "".join([f"PREFIX {p} " for p in set(perfix) if len(p)>0])
 
     def __await__(self):
@@ -51,10 +57,13 @@ class ClientSideCache(object):
                 return self._local_cache[key]
         
         # Get value from redis server and set to cache
-        # 1. get value from redis server
-        # 2. get expire time from redis server
-        # 3. set value to local cache
-        # 4. set expire time to local cache
+        # 1. set value to local cache to avoid race condition
+        # 2. get value from redis server
+        # 3. get expire time from redis server
+        # 4. set value to local cache
+        # 5. set expire time to local cache
+
+        self._local_cache[key] = CACHING_PLACEHOLDER
         value = await self._redis.get(key)
         ttl = await self._redis.ttl(key)
         print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
@@ -67,10 +76,16 @@ class ClientSideCache(object):
             elif ttl == -2: # Key not exist
                 self.flush_key(key)
                 return None
-            self._local_cache[key] = value
-            self._local_cache_expire_time[key] = int(time.time())+ttl
+            # check if the value is deleted by _listen_invalidate
+            if self._local_cache.get(key, None) == CACHING_PLACEHOLDER:
+                self._local_cache[key] = value
+                self._local_cache_expire_time[key] = int(time.time())+ttl
+            else:
+                self.flush_key(key)
+                return None
         else: # Key not exist
             self.flush_key(key)
+            return None
         return value
     
     def flush_cache(self):
