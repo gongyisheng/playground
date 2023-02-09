@@ -3,12 +3,14 @@ import time
 import traceback
 from redis.asyncio import BlockingConnectionPool, Redis
 
+# todo: limit cache size
+# todo: use logging to replace print
 
 class ClientSideCache(object):
     def __init__(self, redis_host, perfix=[], expire_threshold=86400):
         self._pool = BlockingConnectionPool(host=redis_host, decode_responses=True, max_connections=10)
         self._local_cache = {}
-        self._local_cache_update_time = {}
+        self._local_cache_expire_time = {}
         self._pubsub = None
         self._pubsub_client_id = None
         self.expire_threshold = expire_threshold
@@ -31,19 +33,35 @@ class ClientSideCache(object):
 
     async def get(self, key):
         if key in self._local_cache:
-            if int(time.time()) - self._local_cache_update_time[key] < self.expire_threshold:
+            if int(time.time()) < self._local_cache_expire_time[key]:
                 print(f"Get key from client-side cache: {key}")
                 return self._local_cache[key]
-        print(f"Get key from redis server: {key}")
         value = await self._redis.get(key)
-        if value is not None:
+        ttl = await self._redis.ttl(key)
+        print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
+        if value is not None: # Key exist
+            if ttl >= 0: # Integer expire time
+                ttl = min(ttl, self.expire_threshold)
+            elif ttl == -1: # No expire time or integer expire time
+                ttl = self.expire_threshold
+            elif ttl == -2: # Key not exist
+                self.flush_key(key)
+                return None
             self._local_cache[key] = value
-            self._local_cache_update_time[key] = int(time.time())
+            self._local_cache_expire_time[key] = int(time.time())+ttl
+        else: # Key not exist
+            self.flush_key(key)
         return value
     
     def flush_cache(self):
         self._local_cache = {}
         self._local_cache_update_time = {}
+    
+    def flush_key(self, key):
+        if key in self._local_cache:
+            del self._local_cache[key]
+        if key in self._local_cache_update_time:
+            del self._local_cache_update_time[key]
     
     async def _background_listen_invalidate(self):
         while True:
@@ -103,9 +121,8 @@ class ClientSideCache(object):
                 await asyncio.sleep(1)
                 continue
             key = message["data"][0]
-            if key in self._local_cache:
-                del self._local_cache[key]
-                print(f"Invalidate key: {key}")
+            self.flush_key(key)
+            print(f"Invalidate key: {key}")
         await self._listen_invalidate_on_close()
 
     async def stop(self):
