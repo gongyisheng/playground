@@ -7,13 +7,15 @@ from redis.asyncio import BlockingConnectionPool, Redis
 # todo: use logging to replace print
 
 class ClientSideCache(object):
-    def __init__(self, redis_host, perfix=[], expire_threshold=86400):
+    def __init__(self, redis_host, perfix=[], expire_threshold=86400, check_health_interval=60):
         self._pool = BlockingConnectionPool(host=redis_host, decode_responses=True, max_connections=10)
         self._local_cache = {}
         self._local_cache_expire_time = {}
         self._pubsub = None
         self._pubsub_client_id = None
         self.expire_threshold = expire_threshold
+        self.check_health_interval = check_health_interval
+        self._next_check_heath_time = 0
         self.perfix_command = "".join([f"PREFIX {p} " for p in set(perfix) if len(p)>0])
 
     def __await__(self):
@@ -152,6 +154,22 @@ class ClientSideCache(object):
             print(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
             self._pubsub = None
             self._pubsub_client_id = None
+    
+    async def _listen_invalidate_check_health(self):
+        """
+        check if the current listen invalidate connection is healthy
+        """
+        if self._pubsub is not None:
+            try:
+                resp = await self._pubsub.ping()
+                if resp != "PONG":
+                    raise Exception(f"Listen invalidate connection is broken. resp={resp}")
+                return True
+            except Exception as e:
+                print(f"Listen invalidate connection is broken. error={e}, traceback={traceback.format_exc()}")
+        else:
+            print(f"Listen invalidate connection is broken. self._pubsub=None")
+        return False
 
     async def _listen_invalidate(self):
         """
@@ -160,6 +178,12 @@ class ClientSideCache(object):
         """
         await self._listen_invalidate_on_open()
         while self._pubsub is not None:
+            now = int(time.time())
+            if self._next_check_heath_time < now:
+                if not await self._listen_invalidate_check_health():
+                    break
+                else:
+                    self._next_check_heath_time = now + self.check_health_interval
             try:
                 message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=0.2)
             except Exception as e:
