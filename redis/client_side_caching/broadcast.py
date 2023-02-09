@@ -25,6 +25,11 @@ class ClientSideCache(object):
         return self
 
     async def set(self, key, value):
+        """
+        Set kv pair to redis server, nothing different from redis.set()
+        TODO: add optional parameter to set expire time
+        TODO(optional): add optional parameter to set NOLOOP
+        """
         await self._redis.set(key, value)
         # optional: cache writes to local cache
         # optional: use NOLOOP option to tell the server 
@@ -32,13 +37,26 @@ class ClientSideCache(object):
         # for this keys that it modified.
 
     async def get(self, key):
+        """
+        Get value from redis server or client side cache.
+        """
+        # Get value from local cache
+        # 1. check if key exist in local cache
+        # 2. check if key expire time is not reached
         if key in self._local_cache:
             if int(time.time()) < self._local_cache_expire_time[key]:
                 print(f"Get key from client-side cache: {key}")
                 return self._local_cache[key]
+        
+        # Get value from redis server and set to cache
+        # 1. get value from redis server
+        # 2. get expire time from redis server
+        # 3. set value to local cache
+        # 4. set expire time to local cache
         value = await self._redis.get(key)
         ttl = await self._redis.ttl(key)
         print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
+
         if value is not None: # Key exist
             if ttl >= 0: # Integer expire time
                 ttl = min(ttl, self.expire_threshold)
@@ -54,16 +72,25 @@ class ClientSideCache(object):
         return value
     
     def flush_cache(self):
+        """
+        clean whole cache
+        """
         self._local_cache = {}
         self._local_cache_update_time = {}
     
     def flush_key(self, key):
+        """
+        delete key from local cache
+        """
         if key in self._local_cache:
             del self._local_cache[key]
         if key in self._local_cache_update_time:
             del self._local_cache_update_time[key]
     
     async def _background_listen_invalidate(self):
+        """
+        create another listen invalidate coroutine in case the current connection is broken
+        """
         while True:
             if self._pubsub is not None:
                 continue
@@ -72,6 +99,13 @@ class ClientSideCache(object):
             await asyncio.sleep(5)
     
     async def _listen_invalidate_on_open(self):
+        """
+        Steps to open listen invalidate coroutine
+        1. get client id
+        2. enable client tracking, redirect invalidate message to this connection
+        3. subscribe __redis__:invalidate channel
+        If any step failed, set self._pubsub to None to trigger a new listen invalidate coroutine
+        """
         try:
             self._pubsub = self._redis.pubsub()
             # get client id
@@ -98,6 +132,16 @@ class ClientSideCache(object):
             self._pubsub_client_id = None
     
     async def _listen_invalidate_on_close(self):
+        """
+        Steps to close listen invalidate coroutine
+        1. flush whole client side cache
+        2. close pubsub and release connection
+
+        This function is called when:
+        1. the connection is broken
+        2. redis server failed
+        3. the client is closed
+        """
         try:
             self.flush_cache()
             # release connection
@@ -110,6 +154,10 @@ class ClientSideCache(object):
             self._pubsub_client_id = None
 
     async def _listen_invalidate(self):
+        """
+        listen invalidate message from redis server
+        TODO: discuss a better timeout value
+        """
         await self._listen_invalidate_on_open()
         while self._pubsub is not None:
             try:
@@ -126,6 +174,13 @@ class ClientSideCache(object):
         await self._listen_invalidate_on_close()
 
     async def stop(self):
+        """
+        Steps to stop client side cache
+        1. unsubscribe __redis__:invalidate channel
+        2. disable client tracking
+
+        This function is called when the client is closed or the object is about to delete
+        """
         try:
             # unsubscribe __redis__:invalidate
             resp = await self._redis.execute_command("UNSUBSCRIBE __redis__:invalidate")
@@ -138,9 +193,19 @@ class ClientSideCache(object):
         except Exception as e:
             print(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
 
+    def __del__(self):
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(self.stop())
+            else:
+                loop.run_until_complete(self.stop())
+        except Exception:
+            pass
+
 async def test():
     client = await ClientSideCache("localhost")
-    #await client.set("my_key", "my_value")
+    await client.set("my_key", "my_value")
     for i in range(50):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
