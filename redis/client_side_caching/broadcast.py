@@ -7,6 +7,7 @@ CACHING_PLACEHOLDER = "__in_progress__"
 
 # todo: limit cache size
 # todo: use logging to replace print
+# todo: use while signal_state.ALIVE to replace while True
 
 class ClientSideCache(object):
     def __init__(self, redis_host, perfix=[], expire_threshold=86400, check_health_interval=60):
