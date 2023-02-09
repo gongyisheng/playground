@@ -275,6 +275,7 @@ async def stop_test():
     for i in range(5):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
+    await client.stop()
 
 if __name__ == "__main__":
     # asyncio.run(test())
