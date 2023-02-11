@@ -13,8 +13,8 @@ def printer():
 def main():
     f = open('channel-data.txt')
     prt = printer()
-    next(prt)
-    follow(f, prt)
+    next(prt) # initialize the couroutine
+    follow(f, prt) # start the event loop
 
 if __name__ == '__main__':
     main()
