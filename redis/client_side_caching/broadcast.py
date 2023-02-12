@@ -6,10 +6,11 @@ from redis.asyncio import BlockingConnectionPool, Redis
 
 CACHING_PLACEHOLDER = "__in_progress__"
 
-# todo: limit cache size
-# todo: use logging to replace print
-# todo: use while signal_state.ALIVE to replace while True
-# todo: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
+# TODO: limit cache size
+# TODO: use logging to replace print
+# TODO: use while signal_state.ALIVE to replace while True
+# TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
+# TODO: put get key and ttl two commands in one pipeline?
 
 class ClientSideCache(object):
     def __init__(self, redis_host: str, perfix: list=[], expire_threshold: int=86400, check_health_interval: int=60) -> None:
@@ -95,7 +96,6 @@ class ClientSideCache(object):
             return None
         return value
     
-    # todo: put two commands in one pipeline?
     async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
         value = ttl = None
         value = await self._redis.get(key)
