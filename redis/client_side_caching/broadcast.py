@@ -95,6 +95,7 @@ class ClientSideCache(object):
             return None
         return value
     
+    # todo: put two commands in one pipeline?
     async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
         value = ttl = None
         value = await self._redis.get(key)
