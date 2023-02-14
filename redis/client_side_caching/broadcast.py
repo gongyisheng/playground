@@ -261,30 +261,30 @@ async def test():
         print(await client.get("my_key"))
         await asyncio.sleep(1)
 
-async def short_expire_time_test():
-    client = await ClientSideCache("localhost", expire_threshold=5)
+async def test_short_expire_time():
+    client = await ClientSideCache("localhost", expire_threshold=2)
     await client.set("my_key", "my_value")
     for i in range(50):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
 
-async def short_check_health_test():
-    client = await ClientSideCache("localhost", check_health_interval=5)
+async def test_short_check_health():
+    client = await ClientSideCache("localhost", check_health_interval=2)
     await client.set("my_key", "my_value")
     for i in range(50):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
 
-async def stop_test():
+async def test_stop():
     client = await ClientSideCache("localhost")
     await client.set("my_key", "my_value")
-    for i in range(5):
+    for i in range(2):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
     await client.stop()
 
 if __name__ == "__main__":
     # asyncio.run(test())
-    # asyncio.run(short_expire_time_test())
-    # asyncio.run(short_check_health_test())
-    asyncio.run(stop_test())
+    # asyncio.run(test_short_expire_time())
+    # asyncio.run(test_short_check_health())
+    asyncio.run(test_stop())
