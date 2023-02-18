@@ -1,3 +1,5 @@
+# Long Term
+Small notes here, not cases.
 ### 20230216
 Everything has a limit. Consider the qps and network I/O will bring before you use redis.
 
