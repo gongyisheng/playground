@@ -5,7 +5,7 @@ Observation:
 - Network output limit at 300 Mbps
 
 Analysis:
-- redis-cli, MEMORY STATS, shows that `clients.normal` is too big
+- redis-cli, MEMORY STATS, shows that `clients.normal` is too big (about 1G), `dataset.percentage` is only 14%, not caused by a burst of newly added data.
 - redis-cli, CLIENT LIST, shows that there are too many clients with tot-mem=7M/5M, oll=1
 
 Root Cause:
