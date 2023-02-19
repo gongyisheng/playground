@@ -1,6 +1,6 @@
-Problem:
+### Problem:
 One product, Several providers.
-Steps:
+### Steps:
 1. Declare interfaces for each distinct product of the product family (e.g. Database, Logger, Cache, EmailProtocol, etc.)
 2. Declare an abstract factory interface that declares a factory method for each product interface (e.g. createDatabase(), createLogger(), createCache(), createEmailProtocol(), etc.)
 3. For each concrete product, declare a class that implements the corresponding product interface (e.g. Database->(MySQL, MongoDB, Postgre, etc), Logger->(FileLogger, etc), Cache->(MemoryCache, RedisCache, DiskCache), EmailProtocol->(IMPA, SMTP, POP, etc))
