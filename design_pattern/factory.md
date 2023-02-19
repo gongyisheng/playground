@@ -1,5 +1,9 @@
 ### Problem:
-One product, Several providers.
+One product, Several providers, Which one to use?
+### Solution:
+Create a factory that will provide different product for you. You choose the product.
+### When to use:
+Complex object creation
 ### Steps:
 1. Declare interfaces for each distinct product of the product family (e.g. Database, Logger, Cache, EmailProtocol, etc.)
 2. Declare an abstract factory interface that declares a factory method for each product interface (e.g. createDatabase(), createLogger(), createCache(), createEmailProtocol(), etc.)
