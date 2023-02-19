@@ -9,7 +9,7 @@ Complex object creation
 2. Declare an abstract factory interface that declares a factory method for each product interface (e.g. createDatabase(), createLogger(), createCache(), createEmailProtocol(), etc.)
 3. For each concrete product, declare a class that implements the corresponding product interface (e.g. Database->(MySQL, MongoDB, Postgre, etc), Logger->(FileLogger, etc), Cache->(MemoryCache, RedisCache, DiskCache), EmailProtocol->(IMPA, SMTP, POP, etc))
 
-Example:
+### Example:
 ```
 Cache():
     get(key)->str
