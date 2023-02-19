@@ -19,12 +19,26 @@ class ConcretePrototype(Prototype):
         self.name = name
         self.dependent_ref = dependent_ref
 
-    def clone(self):
+    def __copy__(self):
+        # shallow copy
         copy_of_name = copy.copy(self.name)
         copy_of_dependent_ref = copy.copy(self.dependent_ref)
 
         new = self.__class__(copy_of_name, copy_of_dependent_ref)
         new.__dict__.update(self.__dict__)
+
+        return new
+    
+    def __deepcopy__(self):
+        # deep copy
+        if memo is None:
+            memo = {}
+        
+        copy_of_name = copy.deepcopy(self.name, memo)
+        copy_of_dependent_ref = copy.deepcopy(self.dependent_ref, memo)
+
+        new = self.__class__(copy_of_name, copy_of_dependent_ref)
+        new.__dict__ = copy.deepcopy(self.__dict__, memo)
 
         return new
 ```
