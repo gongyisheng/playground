@@ -28,10 +28,12 @@ class FooCorrect(object):
 # raise error: RuntimeWarning: coroutine 'FooWrong.__init__' was never awaited
 class FooWrong(object):
     async def __init__(self, name="Bar"):
+        print("FooWrong.__init__")
         self.name = name
         await self.init()
     
     async def init(self):
+        print("FooWrong.init")
         await asyncio.sleep(1)
         print(f"FooWrong.init: {self.name}")
 
