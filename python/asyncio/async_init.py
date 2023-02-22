@@ -13,7 +13,7 @@ class FooCorrect(object):
         self.name = name
     
     def __await__(self):
-        # return a Generator. 
+        # override FooCorrect.__await__ func, will return a Generator 
         # ref: https://docs.python.org/3/reference/datamodel.html#awaitable-objects
         print("FooCorrect.__await__")
         return self.init().__await__()
