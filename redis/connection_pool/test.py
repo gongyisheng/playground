@@ -3,6 +3,10 @@ import logging
 import random
 from redis import asyncio as aioredis
 import time
+import uuid
+
+from contextvars import ContextVar
+request = ContextVar("request")
 
 # add following code to redis/asyncio/client.py L475
 # logging.debug("execute_command: %s", args)
@@ -27,43 +31,49 @@ semaphore = asyncio.Semaphore(concurrent_coro_num)
 def setup_logger():
     logger = logging.getLogger()
     fh = logging.FileHandler('redis_test.log')
-    fh.setFormatter(logging.Formatter('%(levelname)s: [%(asctime)s]%(message)s'))
+    fh.setFormatter(logging.Formatter('%(levelname)s: [%(asctime)s][%(request)s]%(message)s'))
+    filter = logging.Filter()
+    def _filter(record):
+        if not request.get(None):
+            request.set(str(uuid.uuid4()).split('-')[0])
+        record.request = request.get()
+        return True
+    filter.filter = _filter
+    fh.addFilter(filter)
     logger.addHandler(fh)
     logger.setLevel(logging.DEBUG)
 
-def get_log_id():
-    return random.randint(0, 1000000)
-
-def cpu_work(log_id):
+def cpu_work():
     start = time.time()
-    logging.info(f"[{log_id}]cpu work start")
+    logging.info(f"cpu work start")
     sum = 0
     for i in range(500000):
         sum += i
-    logging.info(f"[{log_id}]cpu work end")
+    logging.info(f"cpu work end")
     end = time.time()
-    logging.info(f"[{log_id}]cpu work time: {(end - start)*1000}ms")
+    logging.info(f"cpu work time: {(end - start)*1000}ms")
 
-async def io_work(log_id):
+async def io_work():
     start = time.time()
-    logging.info(f"[{log_id}]io work start")
+    logging.info(f"io work start")
     data = await node.get('foo')
-    logging.info(f"[{log_id}]io work redis get end")
+    logging.info(f"io work redis get end")
     await asyncio.sleep(0.03)
-    logging.info(f"[{log_id}]io work end")
+    logging.info(f"io work end")
     end = time.time()
-    logging.info(f"[{log_id}]io work time: {(end - start)*1000}ms")
+    logging.info(f"io work time: {(end - start)*1000}ms")
 
-async def comb_work(log_id, round=7):
+async def comb_work(round=7):
+    request.set(str(uuid.uuid4()).split('-')[0])
     start = time.time()
-    logging.info(f"[{log_id}]comb work start")
+    logging.info(f"comb work start")
     for i in range(round):
-        await io_work(log_id)
-        cpu_work(log_id)
+        await io_work()
+        cpu_work()
     semaphore.release()
-    logging.info(f"[{log_id}]comb work end")
+    logging.info(f"comb work end")
     end = time.time()
-    logging.info(f"[{log_id}]comb work time: {(end - start)*1000}ms")
+    logging.info(f"comb work time: {(end - start)*1000}ms")
 
 async def main():
     setup_logger()
@@ -83,9 +93,8 @@ async def main():
         start = time.time()
         while spawn < round:
             try:
-                log_id = get_log_id()
                 await asyncio.wait_for(semaphore.acquire(), timeout=1)
-                asyncio.create_task(comb_work(log_id))
+                asyncio.create_task(comb_work())
                 spawn += 1
             except asyncio.TimeoutError:
                 logging.info("Pool is full")
