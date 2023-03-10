@@ -26,7 +26,7 @@ def cpu_work(log_id):
     start = time.time()
     print(f"[{log_id}]cpu work start")
     sum = 0
-    for i in range(1000000):
+    for i in range(500000):
         sum += i
     print(f"[{log_id}]cpu work end")
     end = time.time()
