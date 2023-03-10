@@ -8,9 +8,15 @@ import uuid
 from contextvars import ContextVar
 request = ContextVar("request")
 
-# add following code to redis/asyncio/client.py L475
-# logging.debug("execute_command: %s", args)
-# await asyncio.sleep(0.01)
+# add following code to redis/asyncio/client.py L474-476
+# logging.info("[get conn]available connection: %s", pool.pool.qsize())
+# conn = self.connection or await pool.get_connection(command_name, **options)
+# await asyncio.sleep(0.005)
+
+# add following code to redis/asyncio/client.py L486-488
+# if not self.connection:
+#     await pool.release(conn)
+#     logging.info("[release conn]available connection: %s", pool.pool.qsize())
 
 redis_conf = {
     'host': 'localhost',
@@ -25,7 +31,7 @@ pool = aioredis.BlockingConnectionPool(**redis_conf)
 node = aioredis.Redis(connection_pool=pool)
 # node.set('foo', 'bar')
 
-concurrent_coro_num = 16
+concurrent_coro_num = 24
 semaphore = asyncio.Semaphore(concurrent_coro_num)
 
 def get_log_formatter():
@@ -76,7 +82,7 @@ async def io_work():
     logging.debug(f"io work start")
     data = await node.get('foo')
     logging.debug(f"io work redis get end")
-    await asyncio.sleep(0.03)
+    await asyncio.sleep(0.01)
     logging.debug(f"io work end")
     end = time.time()
     logging.info(f"io work time: {(end - start)*1000}ms")
@@ -89,6 +95,7 @@ async def comb_work(round=7):
         await io_work()
         cpu_work()
     semaphore.release()
+    logging.info(f"release semaphore, value: {semaphore._value}")
     logging.debug(f"comb work end")
     end = time.time()
     logging.info(f"comb work time: {(end - start)*1000}ms")
@@ -111,6 +118,7 @@ async def main():
         start = time.time()
         while spawn < round:
             try:
+                logging.info(f"acquire semaphore, value: {semaphore._value}")
                 await asyncio.wait_for(semaphore.acquire(), timeout=1)
                 asyncio.create_task(comb_work())
                 spawn += 1
@@ -119,7 +127,6 @@ async def main():
                 continue
             logging.info(f"spawn {spawn} tasks")
         while semaphore._value != concurrent_coro_num:
-            logging.info(f"semaphore_value = {semaphore._value}")
             await asyncio.sleep(0.1)
             continue
         end = time.time()
