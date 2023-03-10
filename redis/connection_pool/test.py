@@ -1,6 +1,6 @@
 import asyncio
 import random
-import redis
+import aioredis
 import time
 
 redis_conf = {
@@ -12,9 +12,9 @@ redis_conf = {
     'socket_connect_timeout': 5,
     'timeout': None
 }
-pool = redis.BlockingConnectionPool(**redis_conf)
-node = redis.Redis(connection_pool=pool)
-node.set(b'foo', b'bar')
+pool = aioredis.BlockingConnectionPool(**redis_conf)
+node = aioredis.Redis(connection_pool=pool)
+node.set('foo', 'bar')
 
 concurrent_coro_num = 16
 semaphore = asyncio.Semaphore(concurrent_coro_num)
