@@ -4,6 +4,10 @@ import random
 from redis import asyncio as aioredis
 import time
 
+# add following code to redis/asyncio/client.py L475
+# logging.debug("execute_command: %s", args)
+# await asyncio.sleep(0.01)
+
 redis_conf = {
     'host': 'localhost',
     'port': 6379,
