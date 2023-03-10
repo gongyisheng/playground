@@ -1,6 +1,6 @@
 import asyncio
 import random
-import aioredis
+from redis import asyncio as aioredis
 import time
 
 redis_conf = {
@@ -14,7 +14,7 @@ redis_conf = {
 }
 pool = aioredis.BlockingConnectionPool(**redis_conf)
 node = aioredis.Redis(connection_pool=pool)
-node.set('foo', 'bar')
+# node.set('foo', 'bar')
 
 concurrent_coro_num = 16
 semaphore = asyncio.Semaphore(concurrent_coro_num)
@@ -35,7 +35,7 @@ def cpu_work(log_id):
 async def io_work(log_id):
     start = time.time()
     print(f"[{log_id}]io work start")
-    data = node.get('foo')
+    data = await node.get('foo')
     print(f"[{log_id}]io work redis get end")
     await asyncio.sleep(0.03)
     print(f"[{log_id}]io work end")
