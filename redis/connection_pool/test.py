@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import random
 from redis import asyncio as aioredis
 import time
@@ -19,41 +20,49 @@ node = aioredis.Redis(connection_pool=pool)
 concurrent_coro_num = 16
 semaphore = asyncio.Semaphore(concurrent_coro_num)
 
+def setup_logger():
+    logger = logging.getLogger()
+    fh = logging.FileHandler('redis_test.log')
+    fh.setFormatter(logging.Formatter('%(levelname)s: [%(asctime)s]%(message)s'))
+    logger.addHandler(fh)
+    logger.setLevel(logging.DEBUG)
+
 def get_log_id():
     return random.randint(0, 1000000)
 
 def cpu_work(log_id):
     start = time.time()
-    print(f"[{log_id}]cpu work start")
+    logging.info(f"[{log_id}]cpu work start")
     sum = 0
     for i in range(500000):
         sum += i
-    print(f"[{log_id}]cpu work end")
+    logging.info(f"[{log_id}]cpu work end")
     end = time.time()
-    print(f"[{log_id}]cpu work time: {(end - start)*1000}ms")
+    logging.info(f"[{log_id}]cpu work time: {(end - start)*1000}ms")
 
 async def io_work(log_id):
     start = time.time()
-    print(f"[{log_id}]io work start")
+    logging.info(f"[{log_id}]io work start")
     data = await node.get('foo')
-    print(f"[{log_id}]io work redis get end")
+    logging.info(f"[{log_id}]io work redis get end")
     await asyncio.sleep(0.03)
-    print(f"[{log_id}]io work end")
+    logging.info(f"[{log_id}]io work end")
     end = time.time()
-    print(f"[{log_id}]io work time: {(end - start)*1000}ms")
+    logging.info(f"[{log_id}]io work time: {(end - start)*1000}ms")
 
 async def comb_work(log_id, round=7):
     start = time.time()
-    print(f"[{log_id}]comb work start")
+    logging.info(f"[{log_id}]comb work start")
     for i in range(round):
         await io_work(log_id)
         cpu_work(log_id)
     semaphore.release()
-    print(f"[{log_id}]comb work end")
+    logging.info(f"[{log_id}]comb work end")
     end = time.time()
-    print(f"[{log_id}]comb work time: {(end - start)*1000}ms")
+    logging.info(f"[{log_id}]comb work time: {(end - start)*1000}ms")
 
 async def main():
+    setup_logger()
     fd = open('operation.txt', 'r')
     while True:
         line = fd.readline()
@@ -62,8 +71,8 @@ async def main():
             continue
         try:
             round = int(line)
-            if round == 0:
-                raise ValueError()
+            if round <= 0:
+                break
         except:
             continue
         spawn = 0
@@ -75,15 +84,15 @@ async def main():
                 asyncio.create_task(comb_work(log_id))
                 spawn += 1
             except asyncio.TimeoutError:
-                print("Pool is full")
+                logging.info("Pool is full")
                 continue
-            print(f"spawn {spawn} tasks")
+            logging.info(f"spawn {spawn} tasks")
         while semaphore._value != concurrent_coro_num:
-            print(f"semaphore_value = {semaphore._value}")
+            logging.info(f"semaphore_value = {semaphore._value}")
             await asyncio.sleep(0.1)
             continue
         end = time.time()
-        print(f"spawn {round} tasks, time: {(end - start)*1000}ms, each task time: {(end - start)*1000/round}ms")
+        logging.info(f"spawn {round} tasks, time: {(end - start)*1000}ms, each task time: {(end - start)*1000/round}ms")
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
