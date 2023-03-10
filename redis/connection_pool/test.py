@@ -62,6 +62,8 @@ async def main():
             continue
         try:
             round = int(line)
+            if round == 0:
+                raise ValueError()
         except:
             continue
         spawn = 0
