@@ -28,10 +28,11 @@ node = aioredis.Redis(connection_pool=pool)
 concurrent_coro_num = 16
 semaphore = asyncio.Semaphore(concurrent_coro_num)
 
-def setup_logger():
-    logger = logging.getLogger()
-    fh = logging.FileHandler('redis_test.log')
-    fh.setFormatter(logging.Formatter('%(levelname)s: [%(asctime)s][%(request)s]%(message)s'))
+def get_log_formatter():
+    formatter = logging.Formatter('%(levelname)s: [%(asctime)s][%(request)s]%(message)s')
+    return formatter
+
+def get_log_filter():
     filter = logging.Filter()
     def _filter(record):
         if not request.get(None):
@@ -39,39 +40,56 @@ def setup_logger():
         record.request = request.get()
         return True
     filter.filter = _filter
+    return filter
+
+def setup_logger():
+    logger = logging.getLogger()
+    formatter = get_log_formatter()
+    filter = get_log_filter()
+
+    fh = logging.FileHandler('redis_test.log')
+    fh.setFormatter(formatter)
     fh.addFilter(filter)
+    fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
+
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    sh.addFilter(filter)
+    sh.setLevel(logging.INFO)
+    logger.addHandler(sh)
+
     logger.setLevel(logging.DEBUG)
 
 def cpu_work():
     start = time.time()
-    logging.info(f"cpu work start")
+    logging.debug(f"cpu work start")
     sum = 0
     for i in range(500000):
         sum += i
-    logging.info(f"cpu work end")
+    logging.debug(f"cpu work end")
     end = time.time()
-    logging.info(f"cpu work time: {(end - start)*1000}ms")
+    logging.debug(f"cpu work time: {(end - start)*1000}ms")
 
 async def io_work():
     start = time.time()
-    logging.info(f"io work start")
+    logging.debug(f"io work start")
     data = await node.get('foo')
-    logging.info(f"io work redis get end")
+    logging.debug(f"io work redis get end")
     await asyncio.sleep(0.03)
-    logging.info(f"io work end")
+    logging.debug(f"io work end")
     end = time.time()
     logging.info(f"io work time: {(end - start)*1000}ms")
 
 async def comb_work(round=7):
     request.set(str(uuid.uuid4()).split('-')[0])
     start = time.time()
-    logging.info(f"comb work start")
+    logging.debug(f"comb work start")
     for i in range(round):
         await io_work()
         cpu_work()
     semaphore.release()
-    logging.info(f"comb work end")
+    logging.debug(f"comb work end")
     end = time.time()
     logging.info(f"comb work time: {(end - start)*1000}ms")
 
@@ -97,7 +115,7 @@ async def main():
                 asyncio.create_task(comb_work())
                 spawn += 1
             except asyncio.TimeoutError:
-                logging.info("Pool is full")
+                logging.warning("Pool is full")
                 continue
             logging.info(f"spawn {spawn} tasks")
         while semaphore._value != concurrent_coro_num:
