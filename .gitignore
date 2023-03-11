@@ -7,3 +7,9 @@
 # pycache
 __pycache__
 .python-version
+
+# log
+*.log
+
+# profile
+*.prof
