@@ -70,7 +70,7 @@ def setup_logger():
 
 async def init_redis():
     data = "a"*1024*1024*7 # 7MB
-    logging.info("data size:" % (sys.getsizeof(data)))
+    logging.info("data size: %d" % (sys.getsizeof(data)))
     await node.set('foo',data)
 
 def cpu_work():
