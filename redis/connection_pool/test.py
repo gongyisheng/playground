@@ -4,14 +4,16 @@ import random
 from redis import asyncio as aioredis
 import time
 import uuid
+import sys
 
 from contextvars import ContextVar
 request = ContextVar("request")
 
 # add following code to redis/asyncio/client.py L474-476
-# logging.info("[get conn]available connection: %s", pool.pool.qsize())
+# logging.info("[get conn 1]available connection: %s", pool.pool.qsize())
 # conn = self.connection or await pool.get_connection(command_name, **options)
-# await asyncio.sleep(0.005)
+# logging.info("[get conn 2]available connection: %s", pool.pool.qsize())
+# time.sleep(random.randint(0,10)/1000)
 
 # add following code to redis/asyncio/client.py L486-488
 # if not self.connection:
@@ -29,7 +31,6 @@ redis_conf = {
 }
 pool = aioredis.BlockingConnectionPool(**redis_conf)
 node = aioredis.Redis(connection_pool=pool)
-# node.set('foo', 'bar')
 
 concurrent_coro_num = 24
 semaphore = asyncio.Semaphore(concurrent_coro_num)
@@ -67,11 +68,17 @@ def setup_logger():
 
     logger.setLevel(logging.DEBUG)
 
+async def init_redis():
+    data = "a"*1024*1024*7 # 7MB
+    logging.info("data size:" % (sys.getsizeof(data)))
+    await node.set('foo',data)
+
 def cpu_work():
     start = time.time()
     logging.debug(f"cpu work start")
     sum = 0
-    for i in range(500000):
+    round = random.randint(1, 500000)
+    for i in range(round):
         sum += i
     logging.debug(f"cpu work end")
     end = time.time()
@@ -91,18 +98,23 @@ async def comb_work(round=7):
     request.set(str(uuid.uuid4()).split('-')[0])
     start = time.time()
     logging.debug(f"comb work start")
-    for i in range(round):
-        await io_work()
-        cpu_work()
-    semaphore.release()
-    logging.info(f"release semaphore, value: {semaphore._value}")
-    logging.debug(f"comb work end")
-    end = time.time()
-    logging.info(f"comb work time: {(end - start)*1000}ms")
+    try:
+        for i in range(round):
+            await io_work()
+            cpu_work()
+    except Exception as e:
+        logging.error(e)
+    finally:
+        semaphore.release()
+        logging.info(f"release semaphore, value: {semaphore._value}")
+        logging.debug(f"comb work end")
+        end = time.time()
+        logging.info(f"comb work time: {(end - start)*1000}ms")
 
 async def main():
     setup_logger()
     fd = open('operation.txt', 'r')
+    await init_redis()
     while True:
         line = fd.readline()
         if not line:
@@ -118,8 +130,9 @@ async def main():
         start = time.time()
         while spawn < round:
             try:
-                logging.info(f"acquire semaphore, value: {semaphore._value}")
+                logging.info(f"acquiring semaphore, value: {semaphore._value}")
                 await asyncio.wait_for(semaphore.acquire(), timeout=1)
+                logging.info(f"acquired semaphore, value: {semaphore._value}")
                 asyncio.create_task(comb_work())
                 spawn += 1
             except asyncio.TimeoutError:
@@ -133,6 +146,18 @@ async def main():
         logging.info(f"spawn {round} tasks, time: {(end - start)*1000}ms, each task time: {(end - start)*1000/round}ms")
 
 if __name__ == '__main__':
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(main())
+    # loop.close()
+
+    # profile the code:
+    import cProfile, pstats
     loop = asyncio.get_event_loop()
+    profiler = cProfile.Profile()
+    profiler.enable()
     loop.run_until_complete(main())
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('tottime')
+    stats.dump_stats('redis_test.prof')
     loop.close()
+
