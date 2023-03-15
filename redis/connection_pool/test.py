@@ -24,7 +24,7 @@ redis_conf = {
     'host': 'localhost',
     'port': 6379,
     'db': 0,
-    'max_connections': 50,
+    'max_connections': 5,
     'socket_timeout': 300,
     'socket_connect_timeout': 5,
     'timeout': None
@@ -32,7 +32,7 @@ redis_conf = {
 pool = aioredis.BlockingConnectionPool(**redis_conf)
 node = aioredis.Redis(connection_pool=pool)
 
-concurrent_coro_num = 50
+concurrent_coro_num = 16
 semaphore = asyncio.Semaphore(concurrent_coro_num)
 
 def get_log_formatter():
@@ -69,7 +69,7 @@ def setup_logger():
     logger.setLevel(logging.DEBUG)
 
 async def init_redis():
-    data = "a"*1024*1024*100 # 100MB
+    data = "a"*1024 # 1KB
     logging.info("data size: %d" % (sys.getsizeof(data)))
     await node.set('foo',data)
 
@@ -111,7 +111,7 @@ async def comb_work(round=7):
         end = time.time()
         logging.info(f"comb work time: {(end - start)*1000}ms")
 
-async def main():
+async def main(start_trigger=None):
     setup_logger()
     fd = open('operation.txt', 'r')
     await init_redis()
@@ -126,6 +126,18 @@ async def main():
                 break
         except:
             continue
+
+        # redis start trigger
+        if start_trigger:
+            start = time.time()
+            while time.time() - start < 60:
+                trigger = await node.get(start_trigger)
+                if trigger == b'y':
+                    break
+                else:
+                    await asyncio.sleep(1)
+        
+        # run tasks
         spawn = 0
         start = time.time()
         while spawn < round:
