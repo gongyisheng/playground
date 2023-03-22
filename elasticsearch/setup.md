@@ -13,7 +13,10 @@ es: `bin/elasticsearch-create-enrollment-token --scope kibana`
 kibana: `bin/kibana-verification-code`
 
 create user  
-`bin/elasticsearch-users useradd <user_name> -p <pwd> -r kibana_admin`
+`bin/elasticsearch-users useradd <user_name> -p <pwd> -r superuser`
+
+disable security check
+`xpack.security.enabled: false`
 
 ref:  
 `https://medium.com/@teeppiphat/install-elasticsearch-docker-on-macos-m1-7dfbb8876b99`
