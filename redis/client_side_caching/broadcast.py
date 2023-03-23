@@ -98,9 +98,13 @@ class ClientSideCache(object):
     
     async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
         value = ttl = None
-        value = await self._redis.get(key)
-        if not only_value:
-            ttl = await self._redis.ttl(key)
+        if only_value:
+            value = await self._redis.get(key)
+        else:
+            pipe = self._redis.pipeline()
+            pipe.get(key)
+            pipe.ttl(key)
+            value, ttl = await pipe.execute()
         print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
         return value, ttl
     
