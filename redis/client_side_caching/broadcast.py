@@ -3,20 +3,23 @@ import time
 from typing import Union, Tuple
 import traceback
 from redis.asyncio import BlockingConnectionPool, Redis
+from lru import LRU
 
-CACHING_PLACEHOLDER = "__in_progress__"
+CACHING_PLACEHOLDER = "2c017ac168a7d22180e1c2fd60e70b0a"
 
-# TODO: limit cache size
 # TODO: use logging to replace print
 # TODO: use while signal_state.ALIVE to replace while True
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 
 class ClientSideCache(object):
-    def __init__(self, redis_host: str, perfix: list=[], expire_threshold: int=86400, check_health_interval: int=60) -> None:
+
+    VALUE_SLOT = 0
+    TTL_SLOT = 1
+
+    def __init__(self, redis_host: str, perfix: list=[], expire_threshold: int=86400, check_health_interval: int=60, cache_size=10000) -> None:
         self._pool = BlockingConnectionPool(host=redis_host, decode_responses=True, max_connections=10)
 
-        self._local_cache = {}
-        self._local_cache_expire_time = {}
+        self._local_cache = LRU(cache_size)
 
         self._pubsub = None
         self._pubsub_client_id = None
@@ -58,9 +61,9 @@ class ClientSideCache(object):
         # 1. check if key exist in local cache
         # 2. check if key expire time is not reached
         if key in self._local_cache:
-            if int(time.time()) < self._local_cache_expire_time[key]:
+            if int(time.time()) < self._local_cache[self.TTL_SLOT]:
                 print(f"Get key from client-side cache: {key}")
-                return self._local_cache[key]
+                return self._local_cache[key][self.VALUE_SLOT]
             else:
                 print(f"Key exists in clien-side cache but expired: {key}")
         
@@ -71,7 +74,7 @@ class ClientSideCache(object):
         # 4. set value to local cache
         # 5. set expire time to local cache
 
-        self._local_cache[key] = CACHING_PLACEHOLDER
+        self._local_cache[key] = (CACHING_PLACEHOLDER, None)
         value, ttl = await self._get_from_redis(key)
 
         if value is not None: # Key exist
@@ -83,9 +86,8 @@ class ClientSideCache(object):
                 self.flush_key(key)
                 return None
             # check if the value is deleted by _listen_invalidate
-            if self._local_cache.get(key, None) == CACHING_PLACEHOLDER:
-                self._local_cache[key] = value
-                self._local_cache_expire_time[key] = int(time.time())+ttl
+            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == CACHING_PLACEHOLDER:
+                self._local_cache[key] = (value, int(time.time())+ttl)
                 print(f"Set key to client-side cache: {key}, value={value}, ttl={ttl}")
             else:
                 self.flush_key(key)
@@ -111,8 +113,7 @@ class ClientSideCache(object):
         """
         clean whole cache
         """
-        self._local_cache = {}
-        self._local_cache_expire_time = {}
+        self._local_cache.clear()
         print("Flush client-side cache")
     
     def flush_key(self, key: str) -> None:
@@ -121,8 +122,6 @@ class ClientSideCache(object):
         """
         if key in self._local_cache:
             del self._local_cache[key]
-        if key in self._local_cache_expire_time:
-            del self._local_cache_expire_time[key]
         print(f"Flush key from client-side cache: {key}")
     
     async def _background_listen_invalidate(self) -> None:
