@@ -278,11 +278,11 @@ class CachedRedis(Redis):
         """
         try:
             # unsubscribe __redis__:invalidate
-            resp = await self.execute_command("UNSUBSCRIBE __redis__:invalidate")
+            resp = await super().execute_command("UNSUBSCRIBE __redis__:invalidate")
             if resp[-1] != 0:
                 raise Exception(f"UNSUBCRIBE __redis__:invalidate failed. resp={resp}")
             # client tracking off
-            resp = await self.execute_command("CLIENT TRACKING off")
+            resp = await super().execute_command("CLIENT TRACKING off")
             if resp != b'OK':
                 raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
         except Exception as e:
