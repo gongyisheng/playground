@@ -11,32 +11,27 @@ CACHING_PLACEHOLDER = "2c017ac168a7d22180e1c2fd60e70b0a"
 # TODO: use while signal_state.ALIVE to replace while True
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 
-class ClientSideCache(object):
+class CachedRedis(Redis):
 
     VALUE_SLOT = 0
     TTL_SLOT = 1
 
-    def __init__(self, redis_host: str, perfix: list=[], expire_threshold: int=86400, check_health_interval: int=60, cache_size=10000) -> None:
-        self._pool = BlockingConnectionPool(host=redis_host, decode_responses=True, max_connections=10)
-
-        self._local_cache = LRU(cache_size)
+    def __init__(self, *args, **kwargs) -> None:
+        self.perfix = kwargs.pop("perfix", [])
+        self.expire_threshold = kwargs.pop("expire_threshold", 86400)
+        self.check_health_interval = kwargs.pop("check_health_interval", 60)
+        self.cache_size = kwargs.pop("cache_size", 10000)
 
         self._pubsub = None
         self._pubsub_client_id = None
-
-        self.expire_threshold = expire_threshold
-        self.check_health_interval = check_health_interval
         self._next_check_heath_time = 0
 
-        self.perfix_command = "".join([f"PREFIX {p} " for p in set(perfix) if len(p)>0])
+        self._local_cache = LRU(self.cache_size)
+        self.perfix_command = "".join([f"PREFIX {p} " for p in set(self.perfix) if len(p)>0])
+        super().__init__(*args, **kwargs)
 
-    def __await__(self) -> "ClientSideCache":
-        return self.init().__await__()
-
-    async def init(self) -> "ClientSideCache":
-        self._redis = await Redis(connection_pool=self._pool)
+    async def run(self) -> None:
         asyncio.create_task(self._background_listen_invalidate())
-        return self
 
     async def set(self, key: str, value: Union[None, str, int, float]) -> None:
         """
@@ -44,7 +39,7 @@ class ClientSideCache(object):
         TODO: add optional parameter to set expire time
         TODO(optional): add optional parameter to set NOLOOP
         """
-        await self._redis.set(key, value)
+        await super().set(key, value)
         # optional: cache writes to local cache
         # optional: use NOLOOP option to tell the server 
         # client don't want to receive invalidation messages 
@@ -100,9 +95,9 @@ class ClientSideCache(object):
     async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
         value = ttl = None
         if only_value:
-            value = await self._redis.get(key)
+            value = await super().get(key)
         else:
-            pipe = self._redis.pipeline()
+            pipe = super().pipeline()
             pipe.get(key)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
@@ -145,7 +140,7 @@ class ClientSideCache(object):
         If any step failed, set self._pubsub to None to trigger a new listen invalidate coroutine
         """
         try:
-            self._pubsub = self._redis.pubsub()
+            self._pubsub = super().pubsub()
             # get client id
             await self._pubsub.execute_command("CLIENT ID")
             self._pubsub_client_id = await self._pubsub.connection.read_response()
@@ -155,7 +150,7 @@ class ClientSideCache(object):
             # client tracking
             await self._pubsub.execute_command(f"CLIENT TRACKING on REDIRECT {self._pubsub_client_id} BCAST {self.perfix_command}")
             resp = await self._pubsub.connection.read_response()
-            if resp != "OK":
+            if resp != b'OK':
                 raise Exception(f"CLIENT TRACKING on failed. resp={resp}")
 
             # subscribe __redis__:invalidate
@@ -183,7 +178,8 @@ class ClientSideCache(object):
         try:
             self.flush_cache()
             # release connection
-            await self._pubsub.close()
+            if self._pubsub is not None:
+                await self._pubsub.close()
         except Exception as e:
             print(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
         finally:
@@ -231,7 +227,7 @@ class ClientSideCache(object):
                 continue
             key = message["data"][0]
             self.flush_key(key)
-            print(f"Invalidate key: {key}, message={message}")
+            print(f"Invalidate key: {key}")
         await self._listen_invalidate_on_close()
 
     async def stop(self) -> None:
@@ -244,40 +240,45 @@ class ClientSideCache(object):
         """
         try:
             # unsubscribe __redis__:invalidate
-            resp = await self._redis.execute_command("UNSUBSCRIBE __redis__:invalidate")
+            resp = await self.execute_command("UNSUBSCRIBE __redis__:invalidate")
             if resp[-1] != 0:
                 raise Exception(f"UNSUBCRIBE __redis__:invalidate failed. resp={resp}")
             # client tracking off
-            resp = await self._redis.execute_command("CLIENT TRACKING off")
-            if resp != "OK":
+            resp = await self.execute_command("CLIENT TRACKING off")
+            if resp != b'OK':
                 raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
         except Exception as e:
             print(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
 
+async def init_redis(*args, **kwargs):
+    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=10)
+    client = CachedRedis(connection_pool=pool, *args, **kwargs)
+    await client.run()
+    return client
 
 async def test():
-    client = await ClientSideCache("localhost")
+    client = await init_redis()
     await client.set("my_key", "my_value")
     for i in range(50):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
 
 async def test_short_expire_time():
-    client = await ClientSideCache("localhost", expire_threshold=2)
+    client = await init_redis(expire_threshold=2)
     await client.set("my_key", "my_value")
     for i in range(50):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
 
 async def test_short_check_health():
-    client = await ClientSideCache("localhost", check_health_interval=2)
+    client = await init_redis(check_health_interval=2)
     await client.set("my_key", "my_value")
     for i in range(50):
         print(await client.get("my_key"))
         await asyncio.sleep(1)
 
 async def test_stop():
-    client = await ClientSideCache("localhost")
+    client = await init_redis()
     await client.set("my_key", "my_value")
     for i in range(2):
         print(await client.get("my_key"))
