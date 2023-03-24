@@ -1,13 +1,51 @@
 import asyncio
+import logging
 import time
-from typing import Union, Tuple
 import traceback
+from typing import Union, Tuple
+import uuid
+
 from redis.asyncio import BlockingConnectionPool, Redis
 from lru import LRU
 
+from contextvars import ContextVar
+request = ContextVar("request")
+
+def get_log_formatter():
+    formatter = logging.Formatter('%(levelname)s: [%(asctime)s][%(request)s]%(message)s')
+    return formatter
+
+def get_log_filter():
+    filter = logging.Filter()
+    def _filter(record):
+        if not request.get(None):
+            request.set(str(uuid.uuid4()).split('-')[0])
+        record.request = request.get()
+        return True
+    filter.filter = _filter
+    return filter
+
+def setup_logger():
+    logger = logging.getLogger()
+    formatter = get_log_formatter()
+    filter = get_log_filter()
+
+    fh = logging.FileHandler('redis_client_side_caching.log')
+    fh.setFormatter(formatter)
+    fh.addFilter(filter)
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    sh.addFilter(filter)
+    sh.setLevel(logging.INFO)
+    logger.addHandler(sh)
+
+    logger.setLevel(logging.DEBUG)
+
 CACHING_PLACEHOLDER = "2c017ac168a7d22180e1c2fd60e70b0a"
 
-# TODO: use logging to replace print
 # TODO: use while signal_state.ALIVE to replace while True
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 
@@ -57,10 +95,10 @@ class CachedRedis(Redis):
         # 2. check if key expire time is not reached
         if key in self._local_cache:
             if int(time.time()) < self._local_cache[key][self.TTL_SLOT]:
-                print(f"Get key from client-side cache: {key}")
+                logging.info(f"Get key from client-side cache: {key}")
                 return self._local_cache[key][self.VALUE_SLOT]
             else:
-                print(f"Key exists in clien-side cache but expired: {key}")
+                logging.info(f"Key exists in clien-side cache but expired: {key}")
         
         # Get value from redis server and set to cache
         # 1. set value to local cache to avoid race condition
@@ -83,7 +121,7 @@ class CachedRedis(Redis):
             # check if the value is deleted by _listen_invalidate
             if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == CACHING_PLACEHOLDER:
                 self._local_cache[key] = (value, int(time.time())+ttl)
-                print(f"Set key to client-side cache: {key}, value={value}, ttl={ttl}")
+                logging.info(f"Set key to client-side cache: {key}, value={value}, ttl={ttl}")
             else:
                 self.flush_key(key)
                 return None
@@ -101,7 +139,7 @@ class CachedRedis(Redis):
             pipe.get(key)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
-        print(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
+        logging.info(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
         return value, ttl
     
     def flush_cache(self) -> None:
@@ -109,7 +147,7 @@ class CachedRedis(Redis):
         clean whole cache
         """
         self._local_cache.clear()
-        print("Flush client-side cache")
+        logging.info("Flush client-side cache")
     
     def flush_key(self, key: str) -> None:
         """
@@ -117,7 +155,7 @@ class CachedRedis(Redis):
         """
         if key in self._local_cache:
             del self._local_cache[key]
-        print(f"Flush key from client-side cache: {key}")
+        logging.info(f"Flush key from client-side cache: {key}")
     
     async def _background_listen_invalidate(self) -> None:
         """
@@ -158,9 +196,9 @@ class CachedRedis(Redis):
             resp = await self._pubsub.connection.read_response()
             if resp[-1] != 1:
                 raise Exception(f"SUBCRIBE __redis__:invalidate failed. resp={resp}")
-            print(f"Listen invalidate on open success. client_id={self._pubsub_client_id}")
+            logging.info(f"Listen invalidate on open success. client_id={self._pubsub_client_id}")
         except Exception as e:
-            print(f"Listen invalidate on open failed. error={e}, traceback={traceback.format_exc()}")
+            logging.info(f"Listen invalidate on open failed. error={e}, traceback={traceback.format_exc()}")
             self._pubsub = None
             self._pubsub_client_id = None
     
@@ -181,9 +219,9 @@ class CachedRedis(Redis):
             if self._pubsub is not None:
                 await self._pubsub.close()
         except Exception as e:
-            print(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
+            logging.info(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
         finally:
-            print(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
+            logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
             self._pubsub = None
             self._pubsub_client_id = None
     
@@ -196,12 +234,12 @@ class CachedRedis(Redis):
         if self._pubsub is not None:
             try:
                 await self._pubsub.ping()
-                print(f"Listen invalidate connection is healthy. client_id={self._pubsub_client_id}")
+                logging.info(f"Listen invalidate connection is healthy. client_id={self._pubsub_client_id}")
                 return True
             except Exception as e:
-                print(f"Listen invalidate connection is broken. error={e}, traceback={traceback.format_exc()}")
+                logging.info(f"Listen invalidate connection is broken. error={e}, traceback={traceback.format_exc()}")
         else:
-            print(f"Listen invalidate connection is broken. self._pubsub=None")
+            logging.info(f"Listen invalidate connection is broken. self._pubsub=None")
         return False
 
     async def _listen_invalidate(self) -> None:
@@ -220,14 +258,14 @@ class CachedRedis(Redis):
             try:
                 message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=0.2)
             except Exception as e:
-                print(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
+                logging.info(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
                 break
             if message is None or not message.get("data"):
                 await asyncio.sleep(1)
                 continue
             key = message["data"][0]
             self.flush_key(key)
-            print(f"Invalidate key: {key}")
+            logging.info(f"Invalidate key: {key}")
         await self._listen_invalidate_on_close()
 
     async def stop(self) -> None:
@@ -248,9 +286,10 @@ class CachedRedis(Redis):
             if resp != b'OK':
                 raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
         except Exception as e:
-            print(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
+            logging.info(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
 
 async def init_redis(*args, **kwargs):
+    setup_logger()
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=10)
     client = CachedRedis(connection_pool=pool, *args, **kwargs)
     await client.run()
@@ -260,28 +299,28 @@ async def test():
     client = await init_redis()
     await client.set("my_key", "my_value")
     for i in range(50):
-        print(await client.get("my_key"))
+        logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
 
 async def test_short_expire_time():
     client = await init_redis(expire_threshold=2)
     await client.set("my_key", "my_value")
     for i in range(50):
-        print(await client.get("my_key"))
+        logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
 
 async def test_short_check_health():
     client = await init_redis(check_health_interval=2)
     await client.set("my_key", "my_value")
     for i in range(50):
-        print(await client.get("my_key"))
+        logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
 
 async def test_stop():
     client = await init_redis()
     await client.set("my_key", "my_value")
     for i in range(2):
-        print(await client.get("my_key"))
+        logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
     await client.stop()
 
