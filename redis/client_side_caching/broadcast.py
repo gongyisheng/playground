@@ -61,7 +61,7 @@ class ClientSideCache(object):
         # 1. check if key exist in local cache
         # 2. check if key expire time is not reached
         if key in self._local_cache:
-            if int(time.time()) < self._local_cache[self.TTL_SLOT]:
+            if int(time.time()) < self._local_cache[key][self.TTL_SLOT]:
                 print(f"Get key from client-side cache: {key}")
                 return self._local_cache[key][self.VALUE_SLOT]
             else:
@@ -231,7 +231,7 @@ class ClientSideCache(object):
                 continue
             key = message["data"][0]
             self.flush_key(key)
-            print(f"Invalidate key: {key}")
+            print(f"Invalidate key: {key}, message={message}")
         await self._listen_invalidate_on_close()
 
     async def stop(self) -> None:
@@ -285,7 +285,7 @@ async def test_stop():
     await client.stop()
 
 if __name__ == "__main__":
-    # asyncio.run(test())
+    asyncio.run(test())
     # asyncio.run(test_short_expire_time())
     # asyncio.run(test_short_check_health())
-    asyncio.run(test_stop())
+    # asyncio.run(test_stop())
