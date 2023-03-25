@@ -21,7 +21,7 @@ class CachedRedis(aioredis.Redis):
     SET_CACHE_PLACEHOLDER = object()
 
     def __init__(self, *args, **kwargs) -> None:
-        self.perfix = kwargs.pop("prefix", [])
+        self.prefix = kwargs.pop("prefix", [])
         self.expire_threshold = kwargs.pop("expire_threshold", 86400)
         self.check_health_interval = kwargs.pop("check_health_interval", 60)
         self.cache_size = kwargs.pop("cache_size", 10000)
@@ -31,7 +31,7 @@ class CachedRedis(aioredis.Redis):
         self._next_check_heath_time = 0
 
         self._local_cache = LRU(self.cache_size)
-        self.perfix_commands = [f"PREFIX {p}" for p in set(self.perfix)] if len(self.perfix) > 0 else [""]
+        self.prefix_commands = [f"PREFIX {p}" for p in set(self.prefix)] if len(self.prefix) > 0 else [""]
         super().__init__(*args, **kwargs)
 
     async def run(self) -> None:
@@ -156,8 +156,8 @@ class CachedRedis(aioredis.Redis):
 
             # client tracking
             pipe = super().pipeline()
-            for perfix_command in self.perfix_commands:
-                pipe.execute_command(f"CLIENT TRACKING on REDIRECT {self._pubsub_client_id} BCAST {perfix_command}")
+            for prefix_command in self.prefix_commands:
+                pipe.execute_command(f"CLIENT TRACKING on REDIRECT {self._pubsub_client_id} BCAST {prefix_command}")
             resp_list = await pipe.execute()
             for resp in resp_list:
                 if resp != b'OK':
