@@ -85,7 +85,7 @@ class CachedRedis(Redis):
             # check if the value is deleted by _listen_invalidate
             if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == CACHING_PLACEHOLDER:
                 self._local_cache[key] = (value, int(time.time())+ttl)
-                logging.info(f"Set key to client-side cache: {key}, value={value}, ttl={ttl}")
+                logging.info(f"Set key to client-side cache: {key}, value={value[:64]}, ttl={ttl}")
             else:
                 self.flush_key(key)
                 return None
