@@ -217,7 +217,7 @@ class CachedRedis(Redis):
         TODO: discuss a better timeout value
         """
         await self._listen_invalidate_on_open()
-        while self._pubsub is not None:
+        while signal_state.ALIVE and self._pubsub is not None:
             now = int(time.time())
             if self._next_check_heath_time < now:
                 if not await self._listen_invalidate_check_health():
