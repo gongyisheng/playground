@@ -1,5 +1,6 @@
 import asyncio
 import time
+import inspect
 
 usage_data = {}
 
@@ -30,8 +31,12 @@ def track_time(metric):
             end = time.perf_counter()
             usage_data[_metric] = usage_data.get(_metric, 0) + (end - start)*1000
             print(f"record time: _metric={_metric}, data={usage_data[_metric]}")
+
+        print(func)
         
         if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        elif asyncio.iscoroutine(func):
             return async_wrapper
         else:
             return wrapper
@@ -45,7 +50,7 @@ def IO(wait=1):
 
 @track_count("IO")
 @track_time("IO")
-async def IO(wait=1):
+async def async_IO(wait=1):
     await asyncio.sleep(wait)
     pass
 
@@ -58,11 +63,29 @@ def main():
 
 async def async_main():
     for i in range(5):
-        await IO(i)
+        await async_IO(i)
 
 async def async_test():
     await async_main()
     display_usage()
 
+class Test:
+    def __init__(self):
+        pass
+    # avoid track time first
+    @track_count("IO")
+    @track_time("IO")
+    async def IO(self, wait=1):
+        await asyncio.sleep(wait)
+        pass
+
+async def async_test2():
+    test = Test()
+    print(inspect.iscoroutinefunction(test.IO))
+    for i in range(5):
+        await test.IO(i)
+    display_usage()
+
 if __name__ == '__main__':
-    asyncio.run(async_test())
+    #asyncio.run(async_test())
+    asyncio.run(async_test2())
