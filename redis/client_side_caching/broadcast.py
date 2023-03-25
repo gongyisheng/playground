@@ -9,14 +9,16 @@ from lru import LRU
 import signal_state_aio as signal_state
 
 
-CACHING_PLACEHOLDER = "2c017ac168a7d22180e1c2fd60e70b0a"
-
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 
 class CachedRedis(Redis):
 
     VALUE_SLOT = 0
-    TTL_SLOT = 1
+    EXPIRE_TIME_SLOT = 1
+
+    SET_CACHE_LOCK = asyncio.Lock()
+    SET_CACHE_EVENT = asyncio.Event()
+    SET_CACHE_PLACEHOLDER = object()
 
     def __init__(self, *args, **kwargs) -> None:
         self.perfix = kwargs.pop("perfix", [])
@@ -58,7 +60,9 @@ class CachedRedis(Redis):
         # 1. check if key exist in local cache
         # 2. check if key expire time is not reached
         if key in self._local_cache:
-            if int(time.time()) < self._local_cache[key][self.TTL_SLOT]:
+            if self._local_cache[key][self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+                await self.SET_CACHE_EVENT.wait()
+            if int(time.time()) <= self._local_cache[key][self.EXPIRE_TIME_SLOT]:
                 logging.info(f"Get key from client-side cache: {key}")
                 return self._local_cache[key][self.VALUE_SLOT]
             else:
@@ -71,27 +75,27 @@ class CachedRedis(Redis):
         # 4. set value to local cache
         # 5. set expire time to local cache
 
-        self._local_cache[key] = (CACHING_PLACEHOLDER, None)
-        value, ttl = await self._get_from_redis(key)
+        async with self.SET_CACHE_LOCK:
+            self._local_cache[key] = (self.SET_CACHE_PLACEHOLDER, None)
+            value, ttl = await self._get_from_redis(key)
 
-        if value is not None: # Key exist
-            if ttl >= 0: # Integer expire time
-                ttl = min(ttl, self.expire_threshold)
-            elif ttl == -1: # No expire time or integer expire time
-                ttl = self.expire_threshold
-            elif ttl == -2: # Key not exist
+            if value is not None: 
+                # Key exist
+                ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
+
+                # check if the value is deleted by _listen_invalidate
+                if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+                    self._local_cache[key] = (value, int(time.time())+ttl)
+                    logging.info(f"Set key to client-side cache: {key}, value={value[:64]}, ttl={ttl}")
+                else:
+                    value = None
+                    self.flush_key(key)
+            else: 
+                # Key not exist
                 self.flush_key(key)
-                return None
-            # check if the value is deleted by _listen_invalidate
-            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == CACHING_PLACEHOLDER:
-                self._local_cache[key] = (value, int(time.time())+ttl)
-                logging.info(f"Set key to client-side cache: {key}, value={value[:64]}, ttl={ttl}")
-            else:
-                self.flush_key(key)
-                return None
-        else: # Key not exist
-            self.flush_key(key)
-            return None
+            # notify other coroutines waiting for this key, and clear the event
+            self.SET_CACHE_EVENT.set()
+            self.SET_CACHE_EVENT.clear()
         return value
     
     async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
@@ -99,6 +103,7 @@ class CachedRedis(Redis):
         if only_value:
             value = await super().get(key)
         else:
+            # Use pipelien to execute a transaction
             pipe = super().pipeline()
             pipe.get(key)
             pipe.ttl(key)
