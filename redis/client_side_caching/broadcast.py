@@ -7,6 +7,7 @@ import uuid
 
 from redis.asyncio import BlockingConnectionPool, Redis
 from lru import LRU
+import signal_state_aio as signal_state
 
 from contextvars import ContextVar
 request = ContextVar("request")
@@ -46,7 +47,6 @@ def setup_logger():
 
 CACHING_PLACEHOLDER = "2c017ac168a7d22180e1c2fd60e70b0a"
 
-# TODO: use while signal_state.ALIVE to replace while True
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 
 class CachedRedis(Redis):
@@ -161,7 +161,7 @@ class CachedRedis(Redis):
         """
         create another listen invalidate coroutine in case the current connection is broken
         """
-        while True:
+        while signal_state:
             if self._pubsub is not None:
                 continue
             else:
@@ -288,40 +288,54 @@ class CachedRedis(Redis):
         except Exception as e:
             logging.info(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
 
-async def init_redis(*args, **kwargs):
+async def init(*args, **kwargs):
     setup_logger()
+    signal_state.register_exit_signal()
+
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=10)
     client = CachedRedis(connection_pool=pool, *args, **kwargs)
     await client.run()
     return client
 
 async def test():
-    client = await init_redis()
+    client = await init()
     await client.set("my_key", "my_value")
     for i in range(50):
         logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
+        if signal_state.ALIVE == False:
+            break
+    await client.stop()
+        
 
 async def test_short_expire_time():
-    client = await init_redis(expire_threshold=2)
+    client = await init(expire_threshold=2)
     await client.set("my_key", "my_value")
     for i in range(50):
         logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
+        if signal_state.ALIVE == False:
+            break
+    await client.stop()
 
 async def test_short_check_health():
-    client = await init_redis(check_health_interval=2)
+    client = await init(check_health_interval=2)
     await client.set("my_key", "my_value")
     for i in range(50):
         logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
+        if signal_state.ALIVE == False:
+            break
+    await client.stop()
 
 async def test_stop():
-    client = await init_redis()
+    client = await init()
     await client.set("my_key", "my_value")
     for i in range(2):
         logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
+        if signal_state.ALIVE == False:
+            break
     await client.stop()
 
 if __name__ == "__main__":
