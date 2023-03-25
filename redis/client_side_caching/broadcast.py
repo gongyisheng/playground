@@ -86,7 +86,7 @@ class CachedRedis(aioredis.Redis):
                 # check if the value is deleted by _listen_invalidate
                 if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
                     self._local_cache[key] = (value, int(time.time())+ttl)
-                    logging.info(f"Set key to client-side cache: {key}, value={value[:64]}, ttl={ttl}")
+                    logging.info(f"Set key to client-side cache: {key}, ttl={ttl}, len={len(value)}")
                 else:
                     value = None
                     self.flush_key(key)
@@ -108,7 +108,7 @@ class CachedRedis(aioredis.Redis):
             pipe.get(key)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
-        logging.info(f"Get key from redis server: {key}, value={value}, ttl={ttl}")
+        logging.info(f"Get key from redis server: {key}, ttl={ttl}, len={len(value)}")
         return value, ttl
     
     def flush_cache(self) -> None:
