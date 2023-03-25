@@ -3,47 +3,11 @@ import logging
 import time
 import traceback
 from typing import Union, Tuple
-import uuid
 
-from redis.asyncio import BlockingConnectionPool, Redis
+from redis.asyncio import Redis
 from lru import LRU
 import signal_state_aio as signal_state
 
-from contextvars import ContextVar
-request = ContextVar("request")
-
-def get_log_formatter():
-    formatter = logging.Formatter('%(levelname)s: [%(asctime)s][%(request)s]%(message)s')
-    return formatter
-
-def get_log_filter():
-    filter = logging.Filter()
-    def _filter(record):
-        if not request.get(None):
-            request.set(str(uuid.uuid4()).split('-')[0])
-        record.request = request.get()
-        return True
-    filter.filter = _filter
-    return filter
-
-def setup_logger():
-    logger = logging.getLogger()
-    formatter = get_log_formatter()
-    filter = get_log_filter()
-
-    fh = logging.FileHandler('redis_client_side_caching.log')
-    fh.setFormatter(formatter)
-    fh.addFilter(filter)
-    fh.setLevel(logging.DEBUG)
-    logger.addHandler(fh)
-
-    sh = logging.StreamHandler()
-    sh.setFormatter(formatter)
-    sh.addFilter(filter)
-    sh.setLevel(logging.INFO)
-    logger.addHandler(sh)
-
-    logger.setLevel(logging.DEBUG)
 
 CACHING_PLACEHOLDER = "2c017ac168a7d22180e1c2fd60e70b0a"
 
@@ -287,59 +251,3 @@ class CachedRedis(Redis):
                 raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
         except Exception as e:
             logging.info(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
-
-async def init(*args, **kwargs):
-    setup_logger()
-    signal_state.register_exit_signal()
-
-    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=10)
-    client = CachedRedis(connection_pool=pool, *args, **kwargs)
-    await client.run()
-    return client
-
-async def test():
-    client = await init()
-    await client.set("my_key", "my_value")
-    for i in range(50):
-        logging.info(await client.get("my_key"))
-        await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
-    await client.stop()
-        
-
-async def test_short_expire_time():
-    client = await init(expire_threshold=2)
-    await client.set("my_key", "my_value")
-    for i in range(50):
-        logging.info(await client.get("my_key"))
-        await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
-    await client.stop()
-
-async def test_short_check_health():
-    client = await init(check_health_interval=2)
-    await client.set("my_key", "my_value")
-    for i in range(50):
-        logging.info(await client.get("my_key"))
-        await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
-    await client.stop()
-
-async def test_stop():
-    client = await init()
-    await client.set("my_key", "my_value")
-    for i in range(2):
-        logging.info(await client.get("my_key"))
-        await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
-    await client.stop()
-
-if __name__ == "__main__":
-    asyncio.run(test())
-    # asyncio.run(test_short_expire_time())
-    # asyncio.run(test_short_check_health())
-    # asyncio.run(test_stop())
