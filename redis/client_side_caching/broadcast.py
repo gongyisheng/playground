@@ -116,7 +116,7 @@ class CachedRedis(Redis):
         clean whole cache
         """
         self._local_cache.clear()
-        logging.info("Flush client-side cache")
+        logging.info("Flush ALL client-side cache")
     
     def flush_key(self, key: str) -> None:
         """
@@ -167,7 +167,7 @@ class CachedRedis(Redis):
                 raise Exception(f"SUBCRIBE __redis__:invalidate failed. resp={resp}")
             logging.info(f"Listen invalidate on open success. client_id={self._pubsub_client_id}")
         except Exception as e:
-            logging.info(f"Listen invalidate on open failed. error={e}, traceback={traceback.format_exc()}")
+            logging.error(f"Listen invalidate on open failed. error={e}, traceback={traceback.format_exc()}")
             self._pubsub = None
             self._pubsub_client_id = None
     
@@ -188,7 +188,7 @@ class CachedRedis(Redis):
             if self._pubsub is not None:
                 await self._pubsub.close()
         except Exception as e:
-            logging.info(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
+            logging.error(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
         finally:
             logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
             self._pubsub = None
@@ -206,9 +206,9 @@ class CachedRedis(Redis):
                 logging.info(f"Listen invalidate connection is healthy. client_id={self._pubsub_client_id}")
                 return True
             except Exception as e:
-                logging.info(f"Listen invalidate connection is broken. error={e}, traceback={traceback.format_exc()}")
+                logging.error(f"Listen invalidate connection is broken. error={e}, traceback={traceback.format_exc()}")
         else:
-            logging.info(f"Listen invalidate connection is broken. self._pubsub=None")
+            logging.error(f"Listen invalidate connection is broken. self._pubsub=None")
         return False
 
     async def _listen_invalidate(self) -> None:
@@ -227,14 +227,14 @@ class CachedRedis(Redis):
             try:
                 message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=0.2)
             except Exception as e:
-                logging.info(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
+                logging.error(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
                 break
             if message is None or not message.get("data"):
                 await asyncio.sleep(1)
                 continue
             key = message["data"][0]
             self.flush_key(key)
-            logging.info(f"Invalidate key: {key}")
+            logging.info(f"Invalidate key {key} because received invalidate message from redis server")
         await self._listen_invalidate_on_close()
 
     async def stop(self) -> None:
@@ -255,4 +255,4 @@ class CachedRedis(Redis):
             if resp != b'OK':
                 raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
         except Exception as e:
-            logging.info(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
+            logging.error(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
