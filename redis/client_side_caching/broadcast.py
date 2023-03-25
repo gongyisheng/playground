@@ -4,14 +4,14 @@ import time
 import traceback
 from typing import Union, Tuple
 
-from redis.asyncio import Redis
+import redis.asyncio as aioredis
 from lru import LRU
 import signal_state_aio as signal_state
 
 
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 
-class CachedRedis(Redis):
+class CachedRedis(aioredis.Redis):
 
     VALUE_SLOT = 0
     EXPIRE_TIME_SLOT = 1
