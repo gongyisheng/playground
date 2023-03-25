@@ -19,20 +19,20 @@ def track_time(metric):
         def wrapper(*args, **kwargs):
             _metric = metric + "_time"
             start = time.perf_counter()
-            func(*args, **kwargs)
+            result = func(*args, **kwargs)
             end = time.perf_counter()
             usage_data[_metric] = usage_data.get(_metric, 0) + (end - start)*1000
             print(f"record time: _metric={_metric}, data={usage_data[_metric]}")
+            return result
 
         async def async_wrapper(*args, **kwargs):
             _metric = metric + "_time"
             start = time.perf_counter()
-            await func(*args, **kwargs)
+            result = await func(*args, **kwargs)
             end = time.perf_counter()
             usage_data[_metric] = usage_data.get(_metric, 0) + (end - start)*1000
             print(f"record time: _metric={_metric}, data={usage_data[_metric]}")
-
-        print(func)
+            return result
         
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
@@ -77,13 +77,13 @@ class Test:
     @track_time("IO")
     async def IO(self, wait=1):
         await asyncio.sleep(wait)
-        pass
+        return 1, 2, 3
 
 async def async_test2():
     test = Test()
     print(inspect.iscoroutinefunction(test.IO))
     for i in range(5):
-        await test.IO(i)
+        a,b,c = await test.IO(i)
     display_usage()
 
 if __name__ == '__main__':
