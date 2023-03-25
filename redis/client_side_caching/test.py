@@ -60,7 +60,16 @@ async def test():
         if signal_state.ALIVE == False:
             break
     await client.stop()
-        
+
+async def test_prefix():
+    client = await init(prefix=["test", "my"])
+    await client.set("my_key", "my_value")
+    for i in range(50):
+        logging.info(await client.get("my_key"))
+        await asyncio.sleep(1)
+        if signal_state.ALIVE == False:
+            break
+    await client.stop()
 
 async def test_short_expire_time():
     client = await init(expire_threshold=2)
@@ -94,6 +103,7 @@ async def test_stop():
 
 if __name__ == "__main__":
     asyncio.run(test())
+    # asyncio.run(test_prefix())
     # asyncio.run(test_short_expire_time())
     # asyncio.run(test_short_check_health())
     # asyncio.run(test_stop())
