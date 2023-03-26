@@ -47,8 +47,8 @@ async def init(*args, **kwargs):
     signal_state.register_exit_signal()
 
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=10)
-    client = CachedRedis(connection_pool=pool, *args, **kwargs)
-    await client.run()
+    client = CachedRedis(*args, connection_pool=pool, **kwargs)
+    asyncio.create_task(client.run())
     return client
 
 async def test():
@@ -91,19 +91,8 @@ async def test_short_check_health():
             break
     await client.stop()
 
-async def test_stop():
-    client = await init()
-    await client.set("my_key", "my_value")
-    for i in range(2):
-        logging.info(await client.get("my_key"))
-        await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
-    await client.stop()
-
 if __name__ == "__main__":
-    asyncio.run(test())
-    # asyncio.run(test_prefix())
+    # asyncio.run(test())
+    asyncio.run(test_prefix())
     # asyncio.run(test_short_expire_time())
     # asyncio.run(test_short_check_health())
-    # asyncio.run(test_stop())
