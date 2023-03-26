@@ -233,12 +233,7 @@ class CachedRedis(aioredis.Redis):
                 else:
                     self._next_check_heath_time = now + self.check_health_interval
             try:
-                can_read = await self._pubsub_connection.can_read()
-                if can_read:
-                    message = await asyncio.wait_for(self._pubsub_connection.read_response(), timeout=1)
-                else:
-                    await asyncio.sleep(1)
-                    continue
+                message = await self._pubsub_connection.read_response(timeout=1)
             except Exception as e:
                 logging.error(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
                 break
