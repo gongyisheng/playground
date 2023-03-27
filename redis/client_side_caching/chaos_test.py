@@ -15,37 +15,76 @@ class BaseChaosMonkey(object):
         'expire': 10,
         'flushdb': 1,
     }
-    KEY_LIST = []
+    GET_KEY_PATTERN = '*'
+    SET_KEY_PATTERN = '*'
 
     def __init__(self, redis, sleep_time=0.1):
         self._redis = redis
         self._sleep_time = sleep_time
     
-    async def get(self, key):
+    async def init_keys(self):
+        pass
+
+    async def init_hash_keys(self):
+        pass
+
+    async def get(self):
+        return await self._get(random.choice(self.KEY_LIST))
+    
+    async def _get(self, key):
         logging.info(f"[ChaosMonkey({self.TYPE})] get: {key}")
         return await self._redis.get(key)
     
-    async def set(self, key, value):
+    async def set(self):
+        key = random.choice(self.KEY_LIST)
+        value = random.randint(0, 100)
+        return await self._set(key, value)
+    
+    async def _set(self, key, value):
         logging.info(f"[ChaosMonkey({self.TYPE})] set: {key}={value}")
         return await self._redis.set(key, value)
     
-    async def hget(self, key, field):
+    async def hget(self):
+        key = random.choice(self.KEY_LIST)
+        field = random.choice(self.FIELD_LIST)
+        return await self._hget(key, field)
+    
+    async def _hget(self, key, field):
         logging.info(f"[ChaosMonkey({self.TYPE})] hget: {key}.{field}")
         return await self._redis.hget(key, field)
     
-    async def hset(self, key, field, value):
+    async def hset(self):
+        key = random.choice(self.KEY_LIST)
+        field = random.choice(self.FIELD_LIST)
+        value = random.randint(0, 100)
+        return await self._hset(key, field, value)
+    
+    async def _hset(self, key, field, value):
         logging.info(f"[ChaosMonkey({self.TYPE})] hset: {key}.{field}={value}")
         return await self._redis.hset(key, field, value)
     
-    async def delete(self, key):
+    async def delete(self):
+        return await self._delete(random.choice(self.KEY_LIST))
+    
+    async def _delete(self, key):
         logging.info(f"[ChaosMonkey({self.TYPE})] delete: {key}")
         return await self._redis.delete(key)
     
-    async def hdel(self, key, field):
+    async def hdel(self):
+        key = random.choice(self.KEY_LIST)
+        field = random.choice(self.FIELD_LIST)
+        return await self._hdel(key, field)
+
+    async def _hdel(self, key, field):
         logging.info(f"[ChaosMonkey({self.TYPE})] hdel: {key}.{field}")
         return await self._redis.hdel(key, field)
     
-    async def expire(self, key, seconds):
+    async def expire(self):
+        key = random.choice(self.KEY_LIST)
+        seconds = random.randint(0, 100)
+        return await self._expire(key, seconds)
+    
+    async def _expire(self, key, seconds):
         logging.info(f"[ChaosMonkey({self.TYPE})] expire: {key}={seconds}")
         return await self._redis.expire(key, seconds)
     
@@ -70,6 +109,7 @@ class BaseChaosMonkey(object):
                 logging.error(f"[ChaosMonkey({self.TYPE})] execute method failed. Error={e}")
             finally:
                 await asyncio.sleep(self._sleep_time)
-
         
+        logging.info(f"[ChaosMonkey({self.TYPE})] exit")
+
     
