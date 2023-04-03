@@ -1,8 +1,8 @@
+import os
 import openai
-import cred
 from prompt import prompt
 
-openai.api_key = cred.OPENAI_API_KEY
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def _chat_round_trip(input_text):
     completion = openai.ChatCompletion.create(
