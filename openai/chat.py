@@ -11,15 +11,15 @@ def _chat_round_trip(input_text):
         )
     return str(completion.choices[0].message['content'])
 
-def chat():
-    for i in range(50):
+def chat(limit=50):
+    for i in range(limit):
         prompt = input("You:\n")
         output = _chat_round_trip(prompt)
         print(f"ChatGPT:\n{output}")
 
-def chat_with_prompt():
-    while True:
-        supported_prompts = prompt.keys()
+def chat_with_prompt(limit=50):
+    supported_prompts = prompt.keys()
+    for i in range(limit):
         print("Supported prompts: " + ", ".join(supported_prompts))
         prompt_type = input("Which prompt do you want to use? \n")
         if prompt_type not in supported_prompts:
