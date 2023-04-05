@@ -1,4 +1,5 @@
 `tcp || icmp` 过滤 TCP 或 ICMP 包
+`icmp || (tcp && ip.addr == <IP>)` 常用看tcp流的命令
 
 `ip.addr == 192.168.1.1` 过滤 SRC IP 或 DST IP 是 192.168.1.1 的包  
 `ip.dst == 192.168.1.1` 过滤 DST IP 是 192.168.1.1 的包
