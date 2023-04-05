@@ -1,2 +1,6 @@
 ### save tcpdump result to file  
-`sudo tcpdump -i eth0 host <> -w /tmp/tcpdump.pcap`
+- interface: eth0
+- host: <>
+- snaplen: 96
+- output file: /tmp/tcpdump.pcap  
+`sudo tcpdump -i eth0 host <> -w /tmp/tcpdump.pcap -s 96`
