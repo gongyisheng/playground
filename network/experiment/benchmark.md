@@ -6,3 +6,6 @@ Experiment benchmark settings
    
 Download file:  
 `scp -i ~/.ssh/******.pem ec2-user@*.*.*.*:~/****.pcap ~/Downloads`
+
+### install tools
+refer to: https://command-not-found.com/
