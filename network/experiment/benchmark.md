@@ -5,7 +5,14 @@ Experiment benchmark settings
 4. Client can get files through `curl`: `curl http://<ip>:8089/<file_path> --output ~/<file_name>`
    
 Download file:  
-`scp -i ~/.ssh/******.pem ec2-user@*.*.*.*:~/****.pcap ~/Downloads`
+`scp -i ~/.ssh/yipit-mac.pem ec2-user@*.*.*.*:~/client.pcap ~/Downloads`  
+`scp -i ~/.ssh/yipit-mac.pem ec2-user@*.*.*.*:~/server.pcap ~/Downloads`
 
 ### install tools
 refer to: https://command-not-found.com/
+
+### traffic control
+give packets from enX0 a delay of 2ms
+`tc qdisc add dev enX0 root netem delay 2ms`
+give packets from enX0 a delay of 500ms
+`tc qdisc change dev enX0 root netem delay 500ms`
