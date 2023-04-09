@@ -1,2 +1,2 @@
-rm server.pcap
+rm -f server.pcap
 ping baidu.com -c 1
