@@ -33,11 +33,21 @@ give packets from enX0 a reorder rate of 1% (server)
 give packets from enX0 a reorder rate of 20% (server)
 `tc qdisc change dev enX0 root netem delay 10ms reorder 80% 50%`
 give packets from enX0 a speed limit of 50Mbps (server)
-`tc qdisc add dev enX0 root tbf rate 50mbit burst 1mbit latency 100ms`
+`tc qdisc add dev enX0 root tbf rate 400mbit burst 10mbit latency 10ms`
 give packets from enX0 a speed limit of 1Mbps (server)
-`tc qdisc change dev enX0 root tbf rate 1mbit burst 20kbit latency 100ms`
+`tc qdisc change dev enX0 root tbf rate 8mbit burst 200kbit latency 10ms`
+
+delete all traffic control rules
+`tc qdisc del dev enX0 root`
 
 ## buffer size
+see current buffer size settings:
+`sysctl -a|egrep "rmem|wmem"`
+
+origin settings:
+`sysctl -w net.ipv4.tcp_rmem="4096 131072 6291456"`
+`sysctl -w net.ipv4.tcp_wmem="4096 20480 4194304`
+
 hardcode read buffer size to 4096 bits (client)
 `sysctl -w net.ipv4.tcp_rmem="4096 4096 4096"`
 hardcode write buffer size to 4096 bits (server)
