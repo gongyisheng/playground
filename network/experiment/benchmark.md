@@ -29,9 +29,9 @@ give packets from enX0 a corrupt rate of 1% (server)
 give packets from enX0 a corrupt rate of 20% (server)
 `tc qdisc change dev enX0 root netem corrupt 20%`
 give packets from enX0 a reorder rate of 1% (server)
-`tc qdisc add dev enX0 root netem delay 10ms reorder 99% 50%`
+`tc qdisc add dev enX0 root netem delay 100ms reorder 99% 10%`
 give packets from enX0 a reorder rate of 20% (server)
-`tc qdisc change dev enX0 root netem delay 10ms reorder 80% 50%`
+`tc qdisc change dev enX0 root netem delay 100ms reorder 80% 10%`
 give packets from enX0 a speed limit of 50Mbps (server)
 `tc qdisc add dev enX0 root tbf rate 400mbit burst 10mbit latency 10ms`
 give packets from enX0 a speed limit of 1Mbps (server)
@@ -52,3 +52,19 @@ hardcode read buffer size to 4096 bits (client)
 `sysctl -w net.ipv4.tcp_rmem="4096 4096 4096"`
 hardcode write buffer size to 4096 bits (server)
 `sysctl -w net.ipv4.tcp_wmem="4096 4096 4096"`
+
+## buffer experiment settings
+#### wmem
+- wmem_4096_rtt_100ms: server wmem=4096, client delay=100ms
+- wmem_4096_loss_20%: server wmem=4096, server loss=20%
+- wmem_4096_duplicate_20%: server wmem=4096, server duplicate=20%
+- wmen_4096_corrupt_20%: server wmem=4096, server corrupt=20%
+- wmen_4096_reorder_20%: server wmem=4096, server reorder=20%
+- wmen_4096_bandwidth_1mbps: server wmem=4096, server speed=1Mbps
+#### rmen
+- rmen_4096_rtt_100ms: client rmem=4096, client delay=100ms
+- rmen_4096_loss_20%: client rmem=4096, server loss=20%
+- rmen_4096_duplicate_20%: client rmem=4096, server duplicate=20%
+- rmen_4096_corrupt_20%: client rmem=4096, server corrupt=20%
+- rmen_4096_reorder_20%: client rmem=4096, server reorder=20%
+- rmen_4096_bandwidth_1mbps: client rmem=4096, server speed=1Mbps
