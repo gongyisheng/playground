@@ -46,7 +46,7 @@ see current buffer size settings:
 
 origin settings:
 `sysctl -w net.ipv4.tcp_rmem="4096 131072 6291456"`
-`sysctl -w net.ipv4.tcp_wmem="4096 20480 4194304`
+`sysctl -w net.ipv4.tcp_wmem="4096 20480 4194304"`
 
 hardcode read buffer size to 4096 bits (client)
 `sysctl -w net.ipv4.tcp_rmem="4096 4096 4096"`
