@@ -69,6 +69,6 @@ hardcode write buffer size to 4096 bits (server)
 - rmen_4096_reorder_20%: client rmem=4096, server reorder=20%
 - rmen_4096_bandwidth_1mbps: client rmem=4096, server speed=1Mbps
 #### inf loop
-- sudo nice -n -20 python inf_loop.py
-- sudo nice -n 19 python -m http.server 8000
-- sudo nice -n 19 curl http://172.31.82.1:8080/0000000000000000.data --output ~/0000000000000000.data
+- sudo nice -n -20 taskset -c 0 python inf_loop.py
+- sudo nice -n 19 taskset -c 0 python -m http.server 8000
+- sudo nice -n 19 taskset -c 0 curl http://172.31.82.1:8080/0000000000000000.data --output ~/0000000000000000.data
