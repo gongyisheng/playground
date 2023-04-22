@@ -35,12 +35,12 @@ def random_int(length):
 
 # Define function to generate random user data
 def generate_user_age():
-    return (random_string(1000), random_int(2))
+    return (random_string(255), random_int(2), random_string(10000000)) # 1MB
 
 # Insert random data into user table
 for i in range(num_rows):
     user_data = generate_user_age()
-    cursor.execute("INSERT INTO user_age (user_id, age) VALUES (%s, %s)", user_data)
+    cursor.execute("INSERT INTO user_age (user_id, age, payload) VALUES (%s, %s, %s)", user_data)
     if i % 50 == 0:
         print(f"Inserted row {i}")
 
