@@ -1,6 +1,6 @@
 import sys
 
-import MySQLdb
+import mysql.connector
 import random
 import string
 
@@ -19,7 +19,7 @@ config = {
 }
 
 # Connect to MySQL server
-conn = MySQLdb.connect(**config)
+conn = mysql.connector.connect(**config)
 
 # Create cursor
 cursor = conn.cursor()
@@ -35,14 +35,12 @@ def random_int(length):
 
 # Define function to generate random user data
 def generate_user_age():
-    return (random_string(255), random_int(2), random_string(10000000)) # 1MB
+    return (random_string(255), random_int(2), random_string(1_000_000)) # 1MB
 
-# Insert random data into user table
+user_data = generate_user_age()
 for i in range(num_rows):
-    user_data = generate_user_age()
     cursor.execute("INSERT INTO user_age (user_id, age, payload) VALUES (%s, %s, %s)", user_data)
-    if i % 50 == 0:
-        print(f"Inserted row {i}")
+    print(f"Inserted row {i}")
 
 # Commit changes and close connection
 conn.commit()
