@@ -27,7 +27,7 @@ def random_int(length):
 
 # Define function to generate random user data
 def generate_user_age():
-    return (random_string(10), random_int(2))
+    return (random_string(1000), random_int(2))
 
 # Define number of rows to insert
 num_rows = 100
@@ -36,6 +36,7 @@ num_rows = 100
 for i in range(num_rows):
     user_data = generate_user_age()
     cursor.execute("INSERT INTO user_age (user_id, age) VALUES (%s, %s)", user_data)
+    print(f"Inserted row {i}, {user_data}")
 
 # Commit changes and close connection
 conn.commit()
