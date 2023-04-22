@@ -1,6 +1,14 @@
+import sys
+
 import MySQLdb
 import random
 import string
+
+# Define number of rows to insert
+try:
+    num_rows = int(sys.argv[1])
+except Exception:
+    num_rows = 100
 
 # Define connection parameters
 config = {
@@ -29,15 +37,15 @@ def random_int(length):
 def generate_user_age():
     return (random_string(1000), random_int(2))
 
-# Define number of rows to insert
-num_rows = 100
-
 # Insert random data into user table
 for i in range(num_rows):
     user_data = generate_user_age()
     cursor.execute("INSERT INTO user_age (user_id, age) VALUES (%s, %s)", user_data)
-    print(f"Inserted row {i}, {user_data}")
+    if i % 50 == 0:
+        print(f"Inserted row {i}")
 
 # Commit changes and close connection
 conn.commit()
 conn.close()
+
+print("Done inserting data")
