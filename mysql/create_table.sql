@@ -1,0 +1,11 @@
+CREATE TABLE 1kb_test (
+    id INT NOT NULL AUTO_INCREMENT,
+    payload VARCHAR(1000),
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE 1mb_test (
+    id INT NOT NULL AUTO_INCREMENT,
+    payload VARCHAR(1000000),
+    PRIMARY KEY (id)
+);
