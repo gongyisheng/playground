@@ -4,11 +4,24 @@ import mysql.connector
 import random
 import string
 
+try:
+    payload_size = int(sys.argv[1])
+    unit = str(sys.argv[2])
+    if unit not in ["b","kb","mb"]:
+        print("Invalid unit. Please use b, kb, or mb")
+        raise Exception
+except Exception:
+    payload_size = 1
+    unit = "mb"
+
 # Define number of rows to insert
 try:
-    num_rows = int(sys.argv[1])
+    num_rows = int(sys.argv[3])
 except Exception:
     num_rows = 100
+
+table = f"{payload_size}{unit}_test"
+print(f"Test Job: insert {num_rows} rows of {payload_size}{unit} data. Table: {table}")
 
 # Define connection parameters
 config = {
@@ -33,13 +46,9 @@ def random_string(length):
 def random_int(length):
     return random.randint(0, 10**length)
 
-# Define function to generate random user data
-def generate_user_age():
-    return (random_string(255), random_int(2), random_string(1_000_000)) # 1MB
-
-user_data = generate_user_age()
+user_data =  (random_string(1_000_000))
 for i in range(num_rows):
-    cursor.execute("INSERT INTO user_age (user_id, age, payload) VALUES (%s, %s, %s)", user_data)
+    cursor.execute(f"INSERT INTO {table} (payload) VALUES ({user_data})")
     print(f"Inserted row {i}")
 
 # Commit changes and close connection
