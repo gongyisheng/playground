@@ -4,6 +4,8 @@ import mysql.connector
 import random
 import string
 
+from config import db_cred
+
 try:
     payload_size = int(sys.argv[1])
     unit = str(sys.argv[2])
@@ -23,16 +25,9 @@ except Exception:
 table = f"{payload_size}{unit}_test"
 print(f"Test Job: insert {num_rows} rows of {payload_size}{unit} data. Table: {table}")
 
-# Define connection parameters
-config = {
-    'user': '',
-    'password': '',
-    'host': 'test-database-1.cwib8arbo5fd.us-east-1.rds.amazonaws.com',
-    'database': '',
-}
 
 # Connect to MySQL server
-conn = mysql.connector.connect(**config)
+conn = mysql.connector.connect(**db_cred)
 
 # Create cursor
 cursor = conn.cursor()
@@ -46,9 +41,9 @@ def random_string(length):
 def random_int(length):
     return random.randint(0, 10**length)
 
-user_data =  (random_string(1_000_000))
+user_data =  random_string(1_000_000)
 for i in range(num_rows):
-    cursor.execute(f"INSERT INTO {table} (payload) VALUES ({user_data})")
+    cursor.execute(f"INSERT INTO {table} (payload) VALUES (\"{user_data}\")")
     print(f"Inserted row {i}")
 
 # Commit changes and close connection

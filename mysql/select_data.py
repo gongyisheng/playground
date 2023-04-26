@@ -2,6 +2,8 @@ import sys
 
 import mysql.connector
 
+from config import db_cred
+
 try:
     payload_size = int(sys.argv[1])
     unit = str(sys.argv[2])
@@ -18,27 +20,25 @@ try:
 except Exception:
     num_rows = 100
 
-table = f"{payload_size}{unit}_test"
-print(f"Test Job: insert {num_rows} rows of {payload_size}{unit} data. Table: {table}")
+try:
+    round = int(sys.argv[4])
+except Exception:
+    round = 1
 
-# Define connection parameters
-config = {
-    'user': '',
-    'password': '',
-    'host': 'test-database-1.cwib8arbo5fd.us-east-1.rds.amazonaws.com',
-    'database': '',
-}
+table = f"{payload_size}{unit}_test"
+print(f"Test Job: selects {num_rows} rows of {payload_size}{unit} data. Table: {table}, Round: {round}")
 
 # Connect to MySQL server
-conn = mysql.connector.connect(**config)
+conn = mysql.connector.connect(**db_cred)
 
 # Create cursor
 cursor = conn.cursor()
 
-for i in range(num_rows):
-    cursor.execute(f"SELECT * FROM {table} WHERE id={i}")
-    rows = cursor.fetchall()
-    print(f"SELECT row {i}")
+for _ in range(round):
+    for i in range(num_rows):
+        cursor.execute(f"SELECT * FROM {table} WHERE id={i}")
+        rows = cursor.fetchall()
+        print(f"SELECT row {i}")
 
 # close connection
 conn.close()
