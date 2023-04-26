@@ -1,5 +1,6 @@
 import random
 import sys
+import time
 
 import mysql.connector
 
@@ -36,12 +37,14 @@ conn = mysql.connector.connect(**db_cred)
 cursor = conn.cursor()
 
 for _ in range(round):
+    start_time = time.time()
     for i in range(num_rows):
         rand_id = random.randint(0, num_rows)
         cursor.execute(f"SELECT * FROM {table} WHERE id={rand_id}")
         rows = cursor.fetchall()
         print(f"SELECT row {i}")
-
+    end_time = time.time()
+    print(f"Time taken: {end_time - start_time}")
 # close connection
 conn.close()
 
