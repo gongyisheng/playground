@@ -8,3 +8,6 @@
 `git push --force`
 - edit commit message  
 `git commit --amend`
+- look up commit by hash
+`git checkout <branch>`
+`git log -p -1 <hash>`
