@@ -42,10 +42,11 @@ total_time = 0
 for i in range(round):
     start = time.perf_counter()
     cursor.execute(sql[sql_id])
+    data = cursor.fetchall()
     end = time.perf_counter()
-    print(f"select_time: {end-start}, round: {round}")
+    print(f"select_time: {end-start}, round: {i}")
     total_time += end-start
-print(f"Total_round: {round}, avg_time: {(end-start)/round}")
+print(f"Total_round: {round}, avg_time: {total_time/round}")
 
 # Commit changes and close connection
 conn.commit()
