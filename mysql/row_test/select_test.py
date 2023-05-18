@@ -37,12 +37,15 @@ conn = mysql.connector.connect(**db_cred)
 
 # Create cursor
 cursor = conn.cursor()
+total_time = 0
 
-start = time.perf_counter()
 for i in range(round):
+    start = time.perf_counter()
     cursor.execute(sql[sql_id])
-end = time.perf_counter()
-print(f"total_time: {end-start}, round: {round}, avg_time: {(end-start)/round}")    
+    end = time.perf_counter()
+    print(f"select_time: {end-start}, round: {round}")
+    total_time += end-start
+print(f"Total_round: {round}, avg_time: {(end-start)/round}")
 
 # Commit changes and close connection
 conn.commit()
