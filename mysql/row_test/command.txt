@@ -11,7 +11,17 @@ cd row_test
 vim insert_data.py
 vim config.py
 
-run
+insert
 ----
 cd row_test
 nohup python insert_data.py 50m 5000000
+
+****
+
+create table 80m_row_test like 50m_row_test
+insert into 50m_row_test (`person_id`, `person_name`, `insert_time`, `update_time`)
+select `person_id`, `person_name`, `insert_time`, `update_time` from 10m_row_test
+
+select
+----
+python select_data.py 50m 20 1
