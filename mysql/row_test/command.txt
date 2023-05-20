@@ -1,0 +1,17 @@
+init
+----
+sudo yum install python 
+y
+sudo yum install pip
+y
+sudo pip install mysql-connector-python
+
+mkdir row_test
+cd row_test
+vim insert_data.py
+vim config.py
+
+run
+----
+cd row_test
+nohup python insert_data.py 50m 5000000
