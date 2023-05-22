@@ -36,6 +36,8 @@ conn = mysql.connector.connect(**db_cred)
 # Create cursor
 cursor = conn.cursor()
 total_time = 0
+cursor.execute("show status like 'innodb_buffer_pool_pages_data'")
+start_status = cursor.fetchall()
 
 for i in range(round):
     start = time.perf_counter()
@@ -44,7 +46,10 @@ for i in range(round):
     end = time.perf_counter()
     print(f"select_time: {end-start}, round: {i}")
     total_time += end-start
+cursor.execute("show status like 'innodb_buffer_pool_pages_data'")
+end_status = cursor.fetchall()
 print(f"Total_round: {round}, avg_time: {total_time/round}")
+print(f"start_status: {start_status}, end_status: {end_status}")
 
 # Commit changes and close connection
 conn.commit()
