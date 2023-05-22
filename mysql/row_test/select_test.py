@@ -31,9 +31,9 @@ print(f"Test Job: count * test. Table: {table}")
 
 sql = {
     1: f"select count(*) from {table}",
-    2: f"select count(*) from {table} where id = 0",
-    3: f"select count(*) from {table} where insert_time = 0",
-    4: f"select * from {table} where insert_time = 0"
+    2: f"select count(*) from {table} where id = 12345",
+    3: f"select count(*) from {table} where insert_time = 12345",
+    4: f"select * from {table} where insert_time = 12345"
 }
 
 # Connect to MySQL server

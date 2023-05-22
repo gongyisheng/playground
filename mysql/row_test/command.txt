@@ -25,3 +25,8 @@ select `person_id`, `person_name`, `insert_time`, `update_time` from 10m_row_tes
 select
 ----
 python select_data.py 50m 20 1
+
+get buffer pool info
+----
+SHOW ENGINE INNODB STATUS
+SHOW STATUS LIKE 'innodb_buffer_pool_page%'
