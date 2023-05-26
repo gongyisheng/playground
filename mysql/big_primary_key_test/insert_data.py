@@ -17,7 +17,7 @@ supported_table = {
     "390625": 390625,
 }
 
-fixed_tail = "DEUPtVxudqspDncYswuJReaLenIRaazDUrNuvoJOfpTfrJOfnJWQZZuAklIMSKytNsiIOPBXvmLlanDTeBVaxEkeilJdnOFpMcXGQLesGYahIUpbuwpkloZneWSvUrCbfGhzAWFqrtxPoITZgdZvTrGFGrYMDRHtzDIrazFVZOFHrZxylgEwNRoHdvwDIXeWuJxDpaCsqSjgQDhEjIMumVPtySerRLnlQjbVtlIJoqqslwZwRZnIbFCHaCFMeSwOYXKPCjZiQfHucMfgpZmVJXJzbEKxnSbOrBwzeXwWYNCvjWgiIKKXLEygZlncrKfEPuwqBcsSYmvPQjwsufvVTkHUVrGcAEvxCUziRvXtcOCfQHcnlaXcBdNfTcQMXwCcUeUgVpohdxaagcjAGgybOgjQPMFraipkrBgcVkOQjXVzaRyQTZvksmUxTPKuMYhYHSgdYvtSwhbKUEQiURkTBuZqfrjcicTrovimVdLrcBhbgqjLIFkYsogfrSSBhDOAHImynXMxNjeFtNVbWFxlJTZycWxkyxMomphFzFVguzYbmcYiRgNyuPfBOXdgemLcLgCTcCXiEOARhmOEGwERFQyLvwCVrwGNVXGHAwVPrktEqjZQXkjcNvXmvjOcJnrDHwHLCVTWIJrReGvjByLjVWrGLdlTvCquSxuzIwyRzPScirvYiodNNjROjRmFvwvvxClCmlhoXigVdQQOejVcHrEeBhtbLnLCgezWGgROxWVfHcVENbDWFSvnFJI"
+fixed_tail = "VxudqspDncYswuJReaLenIRaazDUrNuvoJOfpTfrJOfnJWQZZuAklIMSKytNsiIOPBXvmLlanDTeBVaxEkeilJdnOFpMcXGQLesGYahIUpbuwpkloZneWSvUrCbfGhzAWFqrtxPoITZgdZvTrGFGrYMDRHtzDIrazFVZOFHrZxylgEwNRoHdvwDIXeWuJxDpaCsqSjgQDhEjIMumVPtySerRLnlQjbVtlIJoqqslwZwRZnIbFCHaCFMeSwOYXKPCjZiQfHucMfgpZmVJXJzbEKxnSbOrBwzeXwWYNCvjWgiIKKXLEygZlncrKfEPuwqBcsSYmvPQjwsufvVTkHUVrGcAEvxCUziRvXtcOCfQHcnlaXcBdNfTcQMXwCcUeUgVpohdxaagcjAGgybOgjQPMFraipkrBgcVkOQjXVzaRyQTZvksmUxTPKuMYhYHSgdYvtSwhbKUEQiURkTBuZqfrjcicTrovimVdLrcBhbgqjLIFkYsogfrSSBhDOAHImynXMxNjeFtNVbWFxlJTZycWxkyxMomphFzFVguzYbmcYiRgNyuPfBOXdgemLcLgCTcCXiEOARhmOEGwERFQyLvwCVrwGNVXGHAwVPrktEqjZQXkjcNvXmvjOcJnrDHwHLCVTWIJrReGvjByLjVWrGLdlTvCquSxuzIwyRzPScirvYiodNNjROjRmFvwvvxClCmlhoXigVdQQOejVcHrEeBhtbLnLCgezWGgROxWVfHcVENbDWFSvnFJI"
 
 table_size = str(sys.argv[1])
 if table_size not in supported_table:
@@ -44,9 +44,9 @@ def compact_string(string):
 fixed_tail = random_string(756)
 
 for i in range(num_rows):
-    head = random_string(5)
+    head = random_string(10)
     if i == 0:
-        head = "OawrG"
+        head = "OawrGDEUPt"
     pk = compact_string(head + fixed_tail)
     sql = f"INSERT INTO {table} (big_pk, big_index_key) VALUES ({pk}, {pk})"
     cursor.execute(sql)
