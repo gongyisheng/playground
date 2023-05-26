@@ -44,7 +44,7 @@ fixed_tail = random_string(756)
 for i in range(num_rows):
     head = random_string(12)
     pk = compact_string(head + fixed_tail)
-    sql = f"INSERT INTO {table} (big_pk) VALUES ({pk})"
+    sql = f"INSERT INTO {table} (big_pk, big_index_key) VALUES ({pk}, {pk})"
     cursor.execute(sql)
     if i%100 == 0:
         conn.commit()
