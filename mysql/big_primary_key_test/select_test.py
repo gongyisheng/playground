@@ -29,6 +29,7 @@ target_key = "OawrGDEUPtVxudqspDncYswuJReaLenIRaazDUrNuvoJOfpTfrJOfnJWQZZuAklIMS
 
 sql = {
     1: f"select * from {table} where big_pk = \"{target_key}\"",
+    2: f"select * from {table} where big_index_key = \"{target_key}\"",
 }
 
 # Connect to MySQL server
