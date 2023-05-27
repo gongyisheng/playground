@@ -46,7 +46,7 @@ for i in range(round):
     cursor.execute(sql[sql_id])
     data = cursor.fetchall()
     end = time.perf_counter()
-    print(f"select_time: {end-start}, round: {i}")
+    print(f"select_time: {end-start}, round: {i}, has_result: {len(data) > 0}")
     total_time += end-start
 cursor.execute("show status like 'innodb_buffer_pool_pages_data'")
 end_status = cursor.fetchall()
