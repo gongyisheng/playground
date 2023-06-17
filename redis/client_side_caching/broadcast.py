@@ -194,11 +194,11 @@ class CachedRedis(aioredis.Redis):
             # release connection
             if self._pubsub_connection is not None:
                 await self._pubsub_connection.disconnect()
-        except Exception as e:
-            logging.error(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
-        finally:
             self.connection_pool.pool.put_nowait(None)
             logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
+        except Exception as e:
+            logging.error(f"Listen invalidate on close failed. error={str(e)}, traceback={traceback.format_exc()}")
+        finally:
             self._pubsub_connection = None
             self._pubsub_client_id = None
     
