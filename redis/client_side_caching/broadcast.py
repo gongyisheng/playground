@@ -160,13 +160,11 @@ class CachedRedis(aioredis.Redis):
                 raise Exception(f"CLIENT ID failed. resp=None")
 
             # client tracking
-            pipe = super().pipeline()
-            for prefix_command in self.prefix_commands:
-                pipe.execute_command(f"CLIENT TRACKING on REDIRECT {self._pubsub_client_id} BCAST {prefix_command}")
-            resp_list = await pipe.execute()
-            for resp in resp_list:
-                if resp != b'OK':
-                    raise Exception(f"CLIENT TRACKING on failed. resp={resp}")
+            prefix_command = " ".join(self.prefix_commands)
+            await self._pubsub_connection.send_command(f"CLIENT TRACKING on REDIRECT {self._pubsub_client_id} BCAST {prefix_command}")
+            resp = await self._pubsub_connection.read_response()
+            if resp != b'OK':
+                raise Exception(f"CLIENT TRACKING on failed. resp={resp}")
 
             # subscribe __redis__:invalidate
             await self._pubsub_connection.send_command("SUBSCRIBE __redis__:invalidate")
@@ -198,6 +196,7 @@ class CachedRedis(aioredis.Redis):
         except Exception as e:
             logging.error(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
         finally:
+            self.connection_pool.pool.put_nowait(None)
             logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
             self._pubsub_connection = None
             self._pubsub_client_id = None
