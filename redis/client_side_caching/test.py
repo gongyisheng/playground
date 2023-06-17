@@ -64,7 +64,7 @@ async def test():
 async def test_prefix():
     client = await init(prefix=["test", "my"])
     await client.set("my_key", "my_value")
-    for i in range(50):
+    for i in range(120):
         logging.info(await client.get("my_key"))
         await asyncio.sleep(1)
         if signal_state.ALIVE == False:
@@ -92,7 +92,8 @@ async def test_short_check_health():
     await client.stop()
 
 if __name__ == "__main__":
-    # asyncio.run(test())
-    asyncio.run(test_prefix())
-    # asyncio.run(test_short_expire_time())
-    # asyncio.run(test_short_check_health())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test())
+    # loop.run_until_complete(test_prefix())
+    # loop.run_until_complete(test_short_expire_time())
+    # loop.run_until_complete(test_short_check_health())
