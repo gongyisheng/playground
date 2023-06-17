@@ -86,10 +86,11 @@ class CachedRedis(aioredis.Redis):
 
                 # check if the value is deleted by _listen_invalidate
                 if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+                    # if it's not deleted, set the value to local cache
                     self._local_cache[key] = (value, int(time.time())+ttl)
                     logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
                 else:
-                    value = None
+                    # if it's deleted, flsuh the key from local cache and return the stale value
                     self.flush_key(key)
             else: 
                 # Key not exist
