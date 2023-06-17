@@ -10,7 +10,7 @@ from broadcast import CachedRedis
 request = ContextVar("request")
 
 def get_log_formatter():
-    formatter = logging.Formatter('%(levelname)s: [%(asctime)s][%(request)s]%(message)s')
+    formatter = logging.Formatter('%(levelname)s: [%(asctime)s][%(filename)s:%(lineno)s][%(request)s]%(message)s')
     return formatter
 
 def get_log_filter():
@@ -54,46 +54,50 @@ async def init(*args, **kwargs):
 async def test():
     client = await init()
     await client.set("my_key", "my_value")
-    for i in range(50):
-        logging.info(await client.get("my_key"))
+    while signal_state.ALIVE:
+        try:
+            logging.info(await client.get("my_key"))
+        except Exception as e:
+            continue
         await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
     await client.stop()
 
 async def test_prefix():
     client = await init(prefix=["test", "my"])
     await client.set("my_key", "my_value")
-    for i in range(120):
-        logging.info(await client.get("my_key"))
+    while signal_state.ALIVE:
+        try:
+            logging.info(await client.get("my_key"))
+        except Exception as e:
+            continue
         await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
     await client.stop()
 
 async def test_short_expire_time():
     client = await init(expire_threshold=2)
     await client.set("my_key", "my_value")
-    for i in range(50):
-        logging.info(await client.get("my_key"))
+    while signal_state.ALIVE:
+        try:
+            logging.info(await client.get("my_key"))
+        except Exception as e:
+            continue
         await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
     await client.stop()
 
 async def test_short_check_health():
     client = await init(check_health_interval=2)
     await client.set("my_key", "my_value")
-    for i in range(50):
-        logging.info(await client.get("my_key"))
+    while signal_state.ALIVE:
+        try:
+            logging.info(await client.get("my_key"))
+        except Exception as e:
+            continue
         await asyncio.sleep(1)
-        if signal_state.ALIVE == False:
-            break
     await client.stop()
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(test())
-    # loop.run_until_complete(test_prefix())
+    # loop.run_until_complete(test())
+    loop.run_until_complete(test_prefix())
     # loop.run_until_complete(test_short_expire_time())
     # loop.run_until_complete(test_short_check_health())
