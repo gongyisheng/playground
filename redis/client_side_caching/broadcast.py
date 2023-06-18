@@ -10,7 +10,6 @@ import signal_state_aio as signal_state
 
 
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
-
 class CachedRedis(aioredis.Redis):
 
     VALUE_SLOT = 0
@@ -23,19 +22,35 @@ class CachedRedis(aioredis.Redis):
     LISTEN_INVALIDATE_COROUTINE_EVENT = asyncio.Event()
 
     TASK_NAME = 'task-cached_redis'
+    HEALTH_CHECK_MSG = b'cached-redis-py-health-check'
+    LISTEN_INVALIDATE_CHANNEL = b"__redis__:invalidate"
+    SUBSCRIBE_SUCCESS_MSG = {
+        'type':"subscribe", 
+        'channel': LISTEN_INVALIDATE_CHANNEL, 
+        'data': 1
+    }
+    UNSUBSCRIBE_SUCCESS_MSG = {
+        'type':"unsubscribe",
+        'channel': LISTEN_INVALIDATE_CHANNEL,
+        'data': 0
+    }
 
     def __init__(self, *args, **kwargs) -> None:
         self.prefix = kwargs.pop("prefix", [])
         self.expire_threshold = kwargs.pop("expire_threshold", 86400)
-        self.check_health_interval = kwargs.pop("check_health_interval", 60)
+        self.pubsub_health_check_interval = kwargs.pop("pubsub_health_check_interval", 60)
         self.cache_size = kwargs.pop("cache_size", 10000)
-
-        self._pubsub_connection = None
+        
+        self._pubsub = None
         self._pubsub_client_id = None
-        self._next_check_heath_time = 0
+
+        self.health_check_ongoing_flag = False
+        self.health_check_timeout = 10
+        self._last_health_check_time = 0
+        self._next_health_check_time = 0
 
         self._local_cache = LRU(self.cache_size)
-        self.prefix_commands = [f"PREFIX {p}" for p in set(self.prefix)] if len(self.prefix) > 0 else [""]
+        
         super().__init__(*args, **kwargs)
 
     async def set(self, key: str, value: Union[None, str, int, float]) -> None:
@@ -54,18 +69,21 @@ class CachedRedis(aioredis.Redis):
         """
         Get value from redis server or client side cache.
         """
-        if self._pubsub_connection is None:
+        value = None
+
+        # get value from redis
+        if self._pubsub is None:
             value, _ = await self._get_from_redis(key, only_value=True)
-            return value
+        
         # Get value from local cache
         # 1. check if key exist in local cache
         # 2. check if key expire time is not reached
-        if key in self._local_cache:
+        if value is None and key in self._local_cache:
             if self._local_cache[key][self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
                 await self.SET_CACHE_EVENT.wait()
             if int(time.time()) <= self._local_cache[key][self.EXPIRE_TIME_SLOT]:
-                logging.info(f"Get key from client-side cache: {key}")
-                return self._local_cache[key][self.VALUE_SLOT]
+                value = self._local_cache[key][self.VALUE_SLOT]
+                logging.info(f"Get key from client-side cache: {key}, value: {str(value)[:16]}")
             else:
                 logging.info(f"Key exists in clien-side cache but expired: {key}")
         
@@ -76,28 +94,39 @@ class CachedRedis(aioredis.Redis):
         # 4. set value to local cache
         # 5. set expire time to local cache
 
-        async with self.SET_CACHE_LOCK:
-            self._local_cache[key] = (self.SET_CACHE_PLACEHOLDER, None)
-            value, ttl = await self._get_from_redis(key)
-
-            if value is not None: 
-                # Key exist
-                ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
-
-                # check if the value is deleted by _listen_invalidate
-                if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
-                    # if it's not deleted, set the value to local cache
-                    self._local_cache[key] = (value, int(time.time())+ttl)
-                    logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
-                else:
-                    # if it's deleted, flsuh the key from local cache and return the stale value
+        if value is None:
+            async with self.SET_CACHE_LOCK:
+                self.SET_CACHE_EVENT.clear()
+                self._local_cache[key] = (self.SET_CACHE_PLACEHOLDER, None)
+                try:
+                    value, ttl = await self._get_from_redis(key)
+                except Exception as e:
                     self.flush_key(key)
-            else: 
-                # Key not exist
-                self.flush_key(key)
-            # notify other coroutines waiting for this key, and clear the event
-            self.SET_CACHE_EVENT.set()
-            self.SET_CACHE_EVENT.clear()
+                    # notify other coroutines waiting for this key, and clear the event
+                    self.SET_CACHE_EVENT.set()
+                    raise e
+
+                if value is not None: 
+                    # Key exist
+                    ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
+
+                    # check if the value is deleted by _listen_invalidate
+                    if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+                        # if it's not deleted, set the value to local cache
+                        self._local_cache[key] = (value, int(time.time())+ttl)
+                        logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
+                    else:
+                        # if it's deleted, flsuh the key from local cache and return the stale value
+                        self.flush_key(key)
+                else: 
+                    # Key not exist
+                    self.flush_key(key)
+                # notify other coroutines waiting for this key, and clear the event
+                self.SET_CACHE_EVENT.set()
+
+        # Ensure that other tasks on the event loop get a chance to run
+        # if we didn't have to block for I/O anywhere.
+        await asyncio.sleep(0)
         return value
     
     async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
@@ -113,7 +142,7 @@ class CachedRedis(aioredis.Redis):
         logging.info(f"Get key from redis server: {key}, ttl={ttl}")
         return value, ttl
     
-    def flush_cache(self) -> None:
+    def flush_all(self) -> None:
         """
         clean whole cache
         """
@@ -141,7 +170,6 @@ class CachedRedis(aioredis.Redis):
         except Exception as e:
             logging.error("Error in _background_listen_invalidate", error=e)
         finally:
-            await self.stop()
             logging.info("Exit _background_listen_invalidate")
     
     async def _listen_invalidate_on_open(self) -> None:
@@ -153,29 +181,33 @@ class CachedRedis(aioredis.Redis):
         If any step failed, set self._pubsub_connection to None to trigger a new listen invalidate coroutine
         """
         try:
-            self._pubsub_connection = await self.connection_pool.get_connection("_")
-            # get client id
-            await self._pubsub_connection.send_command("CLIENT ID")
-            self._pubsub_client_id = await self._pubsub_connection.read_response()
-            if self._pubsub_client_id is None:
-                raise Exception(f"CLIENT ID failed. resp=None")
+            # create pubsub object
+            self._pubsub = self.pubsub()
 
-            # client tracking
-            prefix_command = " ".join(self.prefix_commands)
-            await self._pubsub_connection.send_command(f"CLIENT TRACKING on REDIRECT {self._pubsub_client_id} BCAST {prefix_command}")
-            resp = await self._pubsub_connection.read_response()
-            if resp != b'OK':
-                raise Exception(f"CLIENT TRACKING on failed. resp={resp}")
+            # get client id
+            await self._pubsub.execute_command("CLIENT ID")
+            self._pubsub_client_id = await self._pubsub.parse_response(block=False, timeout=1)
+            if self._pubsub_client_id is None:
+                raise Exception(f"CLIENT ID failed. resp={self._pubsub_client_id}")
 
             # subscribe __redis__:invalidate
-            await self._pubsub_connection.send_command("SUBSCRIBE __redis__:invalidate")
-            resp = await self._pubsub_connection.read_response()
-            if resp[-1] != 1:
-                raise Exception(f"SUBCRIBE __redis__:invalidate failed. resp={resp}")
-            logging.info(f"Listen invalidate on open success. client_id={self._pubsub_client_id}")
+            await self._pubsub.subscribe(self.LISTEN_INVALIDATE_CHANNEL)
+            resp = await self._pubsub.get_message(timeout=1)
+            for k,v in self.SUBSCRIBE_SUCCESS_MSG.items():
+                if k not in resp or v != resp[k]:
+                    raise Exception(f"SUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
+
+            # client tracking
+            resp = await self.client_tracking_on(clientid=self._pubsub_client_id, bcast=True, prefix=self.prefix)
+            if resp != b"OK":
+                raise Exception(f"CLIENT TRACKING failed. resp={resp}")
+            
+            # disable built-in health check interval
+            self._pubsub.connection.health_check_interval = None
+            logging.info(f"Listen invalidate on open success. client_id={self._pubsub_client_id}, channel={self.LISTEN_INVALIDATE_CHANNEL}")
         except Exception as e:
             logging.error(f"Listen invalidate on open failed. error={e}, traceback={traceback.format_exc()}")
-            self._pubsub_connection = None
+            self._pubsub = None
             self._pubsub_client_id = None
     
     async def _listen_invalidate_on_close(self) -> None:
@@ -190,34 +222,28 @@ class CachedRedis(aioredis.Redis):
         3. the client is closed
         """
         try:
-            self.flush_cache()
-            # release connection
-            if self._pubsub_connection is not None:
-                await self._pubsub_connection.disconnect()
-            self.connection_pool.pool.put_nowait(None)
+            self.flush_all()
+            if self._pubsub is not None:
+                # client tracking off
+                resp = await self.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.prefix)
+                if resp != b'OK':
+                    raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
+
+                # unsubscribe __redis__:invalidate
+                await self._pubsub.unsubscribe(self.LISTEN_INVALIDATE_CHANNEL)
+                resp = await self._pubsub.get_message(timeout=1)
+                for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
+                    if k not in resp or v != resp[k]:
+                        raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
+                
+                # reset pubsub
+                await self._pubsub.reset()
             logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
         except Exception as e:
             logging.error(f"Listen invalidate on close failed. error={str(e)}, traceback={traceback.format_exc()}")
         finally:
-            self._pubsub_connection = None
+            self._pubsub = None
             self._pubsub_client_id = None
-    
-    async def _listen_invalidate_check_health(self) -> bool:
-        """
-        check if the current listen invalidate connection is healthy
-        By default, the connections in the pool does not has health_check_interval
-        But we do need health check for THIS, EXACTLY THIS listen invalidate connection
-        """
-        if self._pubsub_connection is not None:
-            try:
-                await self._pubsub_connection.check_health()
-                logging.info(f"Listen invalidate connection is healthy. client_id={self._pubsub_client_id}")
-                return True
-            except Exception as e:
-                logging.error(f"Listen invalidate connection is broken. error={e}, traceback={traceback.format_exc()}")
-        else:
-            logging.error(f"Listen invalidate connection is broken. self._pubsub_connection=None")
-        return False
 
     async def _listen_invalidate(self) -> None:
         """
@@ -225,49 +251,48 @@ class CachedRedis(aioredis.Redis):
         TODO: discuss a better timeout value
         """
         await self._listen_invalidate_on_open()
-        while signal_state.ALIVE and self._pubsub_connection is not None:
-            now = int(time.time())
-            if self._next_check_heath_time < now:
-                if not await self._listen_invalidate_check_health():
-                    break
-                else:
-                    self._next_check_heath_time = now + self.check_health_interval
+        while signal_state.ALIVE and self._pubsub is not None:
+            now = time.time()
             try:
-                message = await self._pubsub_connection.read_response(timeout=1)
+                # check health
+                if self.health_check_ongoing_flag:
+                    if now-self._last_health_check_time > self.health_check_timeout:
+                        raise Exception(f"check health timeout. now={now}, last_health_check_time={self._last_health_check_time}")
+                elif now > self._next_health_check_time:
+                    await self._pubsub.ping(message=self.HEALTH_CHECK_MSG)
+                    self._last_health_check_time = now
+                    self._next_health_check_time = now + self.pubsub_health_check_interval
+                    self.health_check_ongoing_flag = True
+                
+                # listen pubsub messages
+                resp = await self._pubsub.get_message(timeout=1)
+
+                # message handling
+                if resp is None:
+                    pass
+                elif resp['type'] == 'message':
+                    if resp['channel'] == self.LISTEN_INVALIDATE_CHANNEL:
+                        if resp['data'] is None:
+                            # flushdb or flushall
+                            self.flush_all()
+                        else:
+                            for key in resp['data']:
+                                key = key.decode('ascii')
+                                self.flush_key(key)
+                                logging.info(f"Invalidate key {key} because received invalidate message from redis server")
+                elif resp['type'] == 'pong':
+                    if resp['data'] == self.HEALTH_CHECK_MSG:
+                        self.health_check_ongoing_flag = False
+                        logging.info("Receive health check message from redis server")
             except Exception as e:
                 logging.error(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
                 break
 
-            if message is None or not message[-1]:
-                continue
-            key = message[-1][0].decode('ascii')
-            self.flush_key(key)
-            logging.info(f"Invalidate key {key} because received invalidate message from redis server")
         await self._listen_invalidate_on_close()
         self.LISTEN_INVALIDATE_COROUTINE_EVENT.set()
-
-    async def stop(self) -> None:
-        """
-        Steps to stop client side cache
-        1. unsubscribe __redis__:invalidate channel
-        2. disable client tracking
-
-        This function is called when the client is closed or the object is about to delete
-        """
-        try:
-            # unsubscribe __redis__:invalidate
-            resp = await super().execute_command("UNSUBSCRIBE __redis__:invalidate")
-            if resp[-1] != 0:
-                raise Exception(f"UNSUBCRIBE __redis__:invalidate failed. resp={resp}")
-            # client tracking off
-            resp = await super().execute_command("CLIENT TRACKING off")
-            if resp != b'OK':
-                raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
-        except Exception as e:
-            logging.error(f"Stop failed. error={e}, traceback={traceback.format_exc()}")
     
     async def run(self) -> None:
-        task_list = [asyncio.create_task(self._background_listen_invalidate())]
+        task_list = [asyncio.create_task(self._background_listen_invalidate(), name=self.TASK_NAME)]
         await asyncio.gather(*task_list)
 
         try:
