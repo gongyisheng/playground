@@ -5,7 +5,7 @@ pool = aioredis.BlockingConnectionPool(host='localhost', port=6379, db=0, max_co
 node = aioredis.Redis(connection_pool=pool)
 
 async def freq_update():
-    for i in range(100000000):
+    while True:
         await node.set("my_key", "my_value")
     
 if __name__ == '__main__':
