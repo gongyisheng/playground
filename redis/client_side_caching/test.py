@@ -43,16 +43,14 @@ def setup_logger():
     logger.setLevel(logging.DEBUG)
 
 async def init(*args, **kwargs):
-    setup_logger()
     signal_state.register_exit_signal()
-
-    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=10)
+    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
     client = CachedRedis(*args, connection_pool=pool, **kwargs)
-    asyncio.create_task(client.run())
-    return client
+    daemon_task = asyncio.create_task(client.run())
+    return client, daemon_task
 
 async def test():
-    client = await init()
+    client, daemon_task = await init()
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         try:
@@ -60,10 +58,10 @@ async def test():
         except Exception as e:
             continue
         await asyncio.sleep(1)
-    await client.stop()
+    await asyncio.gather(daemon_task)
 
 async def test_prefix():
-    client = await init(prefix=["test", "my"])
+    client, daemon_task = await init(prefix=["test", "my"])
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         try:
@@ -71,10 +69,20 @@ async def test_prefix():
         except Exception as e:
             continue
         await asyncio.sleep(1)
-    await client.stop()
+    await asyncio.gather(daemon_task)
+
+async def test_frequent_get():
+    client, daemon_task = await init()
+    await client.set("my_key", "my_value")
+    while signal_state.ALIVE:
+        try:
+            logging.info(await client.get("my_key"))
+        except Exception as e:
+            continue
+    await asyncio.gather(daemon_task)
 
 async def test_short_expire_time():
-    client = await init(expire_threshold=2)
+    client, daemon_task = await init(expire_threshold=2)
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         try:
@@ -82,10 +90,10 @@ async def test_short_expire_time():
         except Exception as e:
             continue
         await asyncio.sleep(1)
-    await client.stop()
+    await asyncio.gather(daemon_task)
 
 async def test_short_check_health():
-    client = await init(check_health_interval=2)
+    client, daemon_task = await init(pubsub_health_check_interval=2)
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         try:
@@ -93,11 +101,14 @@ async def test_short_check_health():
         except Exception as e:
             continue
         await asyncio.sleep(1)
-    await client.stop()
+    await asyncio.gather(daemon_task)
 
 if __name__ == "__main__":
+    setup_logger()
+
     loop = asyncio.get_event_loop()
     # loop.run_until_complete(test())
     loop.run_until_complete(test_prefix())
+    # loop.run_until_complete(test_frequent_get())
     # loop.run_until_complete(test_short_expire_time())
     # loop.run_until_complete(test_short_check_health())
