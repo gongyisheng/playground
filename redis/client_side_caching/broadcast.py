@@ -68,6 +68,10 @@ class CachedRedis(aioredis.Redis):
     async def get(self, key: str) -> Union[None, str, int, float]:
         """
         Get value from redis server or client side cache.
+        1. If value is not in client side cache, get it from redis server and cache it.
+        2. If value is in client side cache, return it.
+        3. Lock and events are used to prevent race condition.
+        4. Keys in local cache may be evicted for two reasons: LRU full or expire time reached.
         """
         value = None
 
@@ -130,6 +134,10 @@ class CachedRedis(aioredis.Redis):
         return value
     
     async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
+        """
+        Get key and ttl (optional) from redis server
+        This function may raise exceptions
+        """
         value = ttl = None
         if only_value:
             value = await super().get(key)
@@ -144,14 +152,14 @@ class CachedRedis(aioredis.Redis):
     
     def flush_all(self) -> None:
         """
-        clean whole cache
+        Flush the whole local cache
         """
         self._local_cache.clear()
         logging.info("Flush ALL client-side cache")
     
     def flush_key(self, key: str) -> None:
         """
-        delete key from local cache
+        Delete key from local cache
         """
         if key in self._local_cache:
             del self._local_cache[key]
@@ -159,7 +167,7 @@ class CachedRedis(aioredis.Redis):
     
     async def _background_listen_invalidate(self) -> None:
         """
-        create another listen invalidate coroutine in case the current connection is broken
+        Create another listen invalidate coroutine in case the current connection is broken
         """
         logging.info("Start _background_listen_invalidate")
         try:
@@ -175,9 +183,10 @@ class CachedRedis(aioredis.Redis):
     async def _listen_invalidate_on_open(self) -> None:
         """
         Steps to open listen invalidate coroutine
-        1. get client id
-        2. enable client tracking, redirect invalidate message to this connection
-        3. subscribe __redis__:invalidate channel
+        1. create pubsub object
+        2. get client id
+        3. enable client tracking, redirect invalidate message to this connection
+        4. subscribe __redis__:invalidate channel
         If any step failed, set self._pubsub_connection to None to trigger a new listen invalidate coroutine
         """
         try:
@@ -214,7 +223,9 @@ class CachedRedis(aioredis.Redis):
         """
         Steps to close listen invalidate coroutine
         1. flush whole client side cache
-        2. close pubsub and release connection
+        2. disable client tracking
+        3. unsubscribe __redis__:invalidate channel
+        4. close pubsub connection and release it to connection pool
 
         This function is called when:
         1. the connection is broken
@@ -235,19 +246,20 @@ class CachedRedis(aioredis.Redis):
                 for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
                     if k not in resp or v != resp[k]:
                         raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
-                
-                # reset pubsub
-                await self._pubsub.reset()
             logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
         except Exception as e:
             logging.error(f"Listen invalidate on close failed. error={str(e)}, traceback={traceback.format_exc()}")
         finally:
+            await self._pubsub.reset()
             self._pubsub = None
             self._pubsub_client_id = None
 
     async def _listen_invalidate(self) -> None:
         """
-        listen invalidate message from redis server
+        Listen invalidate message from redis server 
+        as well as connection health check
+        1. if receive a invalidate message, flush the key from local cache
+        2. if receive a health check message, update health check status
         TODO: discuss a better timeout value
         """
         await self._listen_invalidate_on_open()
