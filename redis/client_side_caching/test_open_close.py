@@ -1,23 +1,32 @@
 import asyncio
 import redis.asyncio as aioredis
 
-pool = aioredis.BlockingConnectionPool(host='localhost', port=6379, db=0, max_connections=1)
+pool = aioredis.BlockingConnectionPool(host='localhost', port=6379, db=0, max_connections=20)
 node = aioredis.Redis(connection_pool=pool)
 prefix = ['abc', 'zoo']
+LISTEN_INVALIDATE_CHANNEL = b"__redis__:invalidate"
 
 async def open_close():
-    connection = await node.connection_pool.get_connection('_')
-    await connection.send_command("CLIENT ID")
-    connection_id = await connection.read_response()
-    print(connection_id)
+    _pubsub = node.pubsub()
+    await _pubsub.execute_command("CLIENT ID")
+    _pubsub_client_id = await _pubsub.parse_response(block=False, timeout=1)
+    print(_pubsub_client_id)
 
-    prefix_command = " ".join(f"PREFIX {p}" for p in prefix)
-    await connection.send_command(f"CLIENT TRACKING on REDIRECT {connection_id} BCAST {prefix_command}")
-    resp = await connection.read_response()
+    await _pubsub.subscribe(LISTEN_INVALIDATE_CHANNEL)
+    resp = await _pubsub.get_message(timeout=1)
     print(resp)
 
-    await connection.disconnect()
-    node.connection_pool.pool.put_nowait(None)
+    resp = await node.client_tracking_on(clientid=_pubsub_client_id, bcast=True, prefix=prefix)
+    print(resp)
+
+    resp = await node.client_tracking_off(clientid=_pubsub_client_id, bcast=True)
+    print(resp)
+
+    await _pubsub.unsubscribe(LISTEN_INVALIDATE_CHANNEL)
+    resp = await _pubsub.get_message(timeout=1)
+    print(resp)
+
+    await _pubsub.reset()
 
 async def main(round):
     for i in range(round):
