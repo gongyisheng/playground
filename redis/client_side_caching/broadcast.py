@@ -13,6 +13,7 @@ import signal_state_aio as signal_state
 # TODO: use single set cache lock / event?
 # TODO: check if there's problems return bytes
 # TODO: check if there's problems return stale values when it's invalidated
+# FIXME: get unexpected message after unsubscribe 
 class CachedRedis(aioredis.Redis):
 
     VALUE_SLOT = 0
