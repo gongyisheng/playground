@@ -86,7 +86,7 @@ async def test_frequent_get():
     await asyncio.gather(daemon_task)
 
 async def test_short_expire_time():
-    client, daemon_task = await init(expire_threshold=2)
+    client, daemon_task = await init(cache_expire_threshold=2)
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         try:
@@ -127,6 +127,21 @@ async def test_concurrent_get():
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
 
+async def test_concurrent_get_short_expire_time():
+    async def _get():
+        while signal_state.ALIVE:
+            try:
+                value = await client.get("my_key")
+                assert value == b"my_value"
+            except Exception as e:
+                logging.error(e)
+                raise e
+    pool_num = 10
+    client, daemon_task = await init(prefix=["test", "my"], cache_expire_threshold=0)
+    await client.set("my_key", "my_value")
+    task = [asyncio.create_task(_get()) for _ in range(pool_num)]
+    await asyncio.gather(daemon_task, *task)
+
 if __name__ == "__main__":
     setup_logger()
     loop = asyncio.get_event_loop()
@@ -136,3 +151,4 @@ if __name__ == "__main__":
     # loop.run_until_complete(test_short_expire_time())
     # loop.run_until_complete(test_short_check_health())
     # loop.run_until_complete(test_concurrent_get())
+    loop.run_until_complete(test_concurrent_get_short_expire_time())
