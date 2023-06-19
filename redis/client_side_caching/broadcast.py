@@ -95,7 +95,7 @@ class CachedRedis(aioredis.Redis):
 
         # Get value from redis server and set to cache
         # 1. Dup check that value is not in local cache
-        # 2. Clear set cache event and set value to placeholder to block other coroutines trying to get the same key
+        # 2. Clear set cache event and set value to placeholder to block other coroutines trying to read the same key
         # 3. Get value and ttl from redis server
         # 4. Check whether the value is deleted by _listen_invalidate
         # 5. Set key, value and expire time to local cache
@@ -109,31 +109,13 @@ class CachedRedis(aioredis.Redis):
                     self._local_cache[key] = (self.SET_CACHE_PLACEHOLDER, None)
                     try:
                         value, ttl = await self._get_from_redis(key)
+                        self._set_to_local_cache(key, value, ttl)
                     except Exception as e:
                         self.flush_key(key)
+                        raise e
+                    finally:
                         # notify other coroutines waiting for this key, and clear the event
                         self.SET_CACHE_EVENT.set()
-                        raise e
-
-                    if value is not None: 
-                        # Key exist
-                        ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
-
-                        # check if the value is deleted by _listen_invalidate
-                        if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
-                            # if it's not deleted, set the value to local cache
-                            self._local_cache[key] = (value, int(time.time())+ttl)
-                            logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
-                        else:
-                            # if it's deleted, flsuh the key from local cache and return the stale value
-                            logging.info(f"Key becomes invalid before set to cache: {key}")
-                            self.flush_key(key)
-                    else: 
-                        # Key not exist
-                        logging.info(f"Key not exist in redis server: {key}")
-                        self.flush_key(key)
-                    # notify other coroutines waiting for this key, and clear the event
-                    self.SET_CACHE_EVENT.set()
 
         # Ensure that other tasks on the event loop get a chance to run
         # if we didn't have to block for I/O anywhere.
@@ -183,6 +165,28 @@ class CachedRedis(aioredis.Redis):
             else:
                 logging.info(f"Key exists in clien-side cache but expired: {key}")
         return value, False
+    
+    def _set_to_local_cache(self, key, value, ttl):
+        """
+        Set key, value and expire time to local cache
+        """
+        if value is not None: 
+            # Key exist
+            ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
+
+            # check if the value is deleted by _listen_invalidate
+            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+                # if it's not deleted, set the value to local cache
+                self._local_cache[key] = (value, int(time.time())+ttl)
+                logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
+            else:
+                # if it's deleted, flsuh the key from local cache and return the stale value
+                logging.info(f"Key becomes invalid before set to cache: {key}")
+                self.flush_key(key)
+        else: 
+            # Key not exist
+            logging.info(f"Key not exist in redis server: {key}")
+            self.flush_key(key)
     
     def flush_all(self) -> None:
         """
