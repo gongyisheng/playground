@@ -21,6 +21,7 @@ class CachedRedis(aioredis.Redis):
     SET_CACHE_LOCK = asyncio.Lock()
     SET_CACHE_EVENT = asyncio.Event()
     SET_CACHE_PLACEHOLDER = object()
+    RW_CONFLICT_MAX_RETRY = 5
 
     LISTEN_INVALIDATE_COROUTINE_EVENT = asyncio.Event()
 
@@ -78,58 +79,61 @@ class CachedRedis(aioredis.Redis):
         """
         value = None
 
-        # get value from redis
+        # if pubsub is not created, get value from redis server
         if self._pubsub is None:
+            logging.info("pubsub is not created, get value from redis server")
             value, _ = await self._get_from_redis(key, only_value=True)
+            return value
         
         # Get value from local cache
-        # 1. check if key exist in local cache
-        # 2. check if key expire time is not reached
-        if value is None and key in self._local_cache:
-            if self._local_cache[key][self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
-                await self.SET_CACHE_EVENT.wait()
-            if int(time.time()) <= self._local_cache[key][self.EXPIRE_TIME_SLOT]:
-                value = self._local_cache[key][self.VALUE_SLOT]
-                logging.info(f"Get key from client-side cache: {key}, value: {str(value)[:16]}")
-            else:
-                logging.info(f"Key exists in clien-side cache but expired: {key}")
-        
-        # Get value from redis server and set to cache
-        # 1. set value to local cache to avoid race condition
-        # 2. get value from redis server
-        # 3. get expire time from redis server
-        # 4. set value to local cache
-        # 5. set expire time to local cache
+        # If read-write conflict is heavy, get value from redis server
+        value, rw_conflict_fail = await self._get_from_local_cache(key)
+        if rw_conflict_fail:
+            logging.info(f"Heavy read-write conflict, get value from redis server, key: {key}")
+            value, _ = await self._get_from_redis(key, only_value=True)
+            return value
 
+        # Get value from redis server and set to cache
+        # 1. Dup check that value is not in local cache
+        # 2. Clear set cache event and set value to placeholder to block other coroutines trying to get the same key
+        # 3. Get value and ttl from redis server
+        # 4. Check whether the value is deleted by _listen_invalidate
+        # 5. Set key, value and expire time to local cache
+        # 6. Notify other coroutines waiting for this key, and clear the event
         if value is None:
             async with self.SET_CACHE_LOCK:
-                self.SET_CACHE_EVENT.clear()
-                self._local_cache[key] = (self.SET_CACHE_PLACEHOLDER, None)
-                try:
-                    value, ttl = await self._get_from_redis(key)
-                except Exception as e:
-                    self.flush_key(key)
+                # dup check from memory cache
+                value, _ = await self._get_from_local_cache(key)
+                if value is None:
+                    self.SET_CACHE_EVENT.clear()
+                    self._local_cache[key] = (self.SET_CACHE_PLACEHOLDER, None)
+                    try:
+                        value, ttl = await self._get_from_redis(key)
+                    except Exception as e:
+                        self.flush_key(key)
+                        # notify other coroutines waiting for this key, and clear the event
+                        self.SET_CACHE_EVENT.set()
+                        raise e
+
+                    if value is not None: 
+                        # Key exist
+                        ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
+
+                        # check if the value is deleted by _listen_invalidate
+                        if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+                            # if it's not deleted, set the value to local cache
+                            self._local_cache[key] = (value, int(time.time())+ttl)
+                            logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
+                        else:
+                            # if it's deleted, flsuh the key from local cache and return the stale value
+                            logging.info(f"Key becomes invalid before set to cache: {key}")
+                            self.flush_key(key)
+                    else: 
+                        # Key not exist
+                        logging.info(f"Key not exist in redis server: {key}")
+                        self.flush_key(key)
                     # notify other coroutines waiting for this key, and clear the event
                     self.SET_CACHE_EVENT.set()
-                    raise e
-
-                if value is not None: 
-                    # Key exist
-                    ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
-
-                    # check if the value is deleted by _listen_invalidate
-                    if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
-                        # if it's not deleted, set the value to local cache
-                        self._local_cache[key] = (value, int(time.time())+ttl)
-                        logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
-                    else:
-                        # if it's deleted, flsuh the key from local cache and return the stale value
-                        self.flush_key(key)
-                else: 
-                    # Key not exist
-                    self.flush_key(key)
-                # notify other coroutines waiting for this key, and clear the event
-                self.SET_CACHE_EVENT.set()
 
         # Ensure that other tasks on the event loop get a chance to run
         # if we didn't have to block for I/O anywhere.
@@ -152,6 +156,33 @@ class CachedRedis(aioredis.Redis):
             value, ttl = await pipe.execute()
         logging.info(f"Get key from redis server: {key}, ttl={ttl}")
         return value, ttl
+    
+    async def _get_from_local_cache(self, key):
+        """
+        Get value from local cache
+        1. Check if key exist in local cache. 
+           If it's hold by placeholder, wait for SET_CACHE_EVENT
+        2. Check if key expire time is not reached
+        """
+        value = None
+        if key in self._local_cache:
+            _retry = self.RW_CONFLICT_MAX_RETRY
+            while self._local_cache[key][self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+                await self.SET_CACHE_EVENT.wait()
+                _retry -= 1
+                if key not in self._local_cache:
+                    logging.info(f"Key becomes invalid after waiting for SET_CACHE_EVENT: {key}")
+                    return None, False
+                if _retry <= 0:
+                    logging.info(f"Heavy read-write conflict, retry times exceeded: {key}")
+                    return None, True
+            
+            if int(time.time()) <= self._local_cache[key][self.EXPIRE_TIME_SLOT]:
+                value = self._local_cache[key][self.VALUE_SLOT]
+                logging.info(f"Get key from client-side cache: {key}, value: {str(value)[:16]}")
+            else:
+                logging.info(f"Key exists in clien-side cache but expired: {key}")
+        return value, False
     
     def flush_all(self) -> None:
         """
