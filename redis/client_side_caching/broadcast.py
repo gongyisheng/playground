@@ -13,7 +13,10 @@ import signal_state_aio as signal_state
 # TODO: use single set cache lock / event?
 # TODO: check if there's problems return bytes
 # TODO: check if there's problems return stale values when it's invalidated
-# FIXME: get unexpected message after unsubscribe 
+# KNOWN ISSUE:
+#  1. if redis server closes the connection, the available connection number will -1
+#     but the connection pool will not create new connection to replace it.
+#     This will cause "No connection available" error if all the connections are closed.
 class CachedRedis(aioredis.Redis):
 
     VALUE_SLOT = 0
