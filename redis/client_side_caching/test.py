@@ -2,6 +2,7 @@ import asyncio
 from contextvars import ContextVar
 import logging
 import signal_state_aio as signal_state
+import time
 import uuid
 
 from redis.asyncio import BlockingConnectionPool
@@ -113,13 +114,16 @@ async def test_concurrent_get():
         while signal_state.ALIVE:
             try:
                 value = await client.get("my_key")
-                assert value == b"my_value"
+                assert value[:8] == b"my_value"
+                diff = time.time() - float(value.decode('ascii')[9:])
+                logging.info(f"diff: {int(diff*1000)}ms")
+                assert diff < 1
             except Exception as e:
                 logging.error(e)
                 raise e
     pool_num = 10
     client, daemon_task = await init(prefix=["test", "my"])
-    await client.set("my_key", "my_value")
+    await client.set("my_key", f"my_value_{time.time()}")
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
 
@@ -131,4 +135,4 @@ if __name__ == "__main__":
     # loop.run_until_complete(test_frequent_get())
     # loop.run_until_complete(test_short_expire_time())
     # loop.run_until_complete(test_short_check_health())
-    loop.run_until_complete(test_concurrent_get())
+    # loop.run_until_complete(test_concurrent_get())
