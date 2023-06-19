@@ -19,9 +19,9 @@ class CachedRedis(aioredis.Redis):
     VALUE_SLOT = 0
     EXPIRE_TIME_SLOT = 1
 
-    SET_CACHE_LOCK = asyncio.Lock()
-    SET_CACHE_EVENT = asyncio.Event()
-    SET_CACHE_PLACEHOLDER = object()
+    WRITE_CACHE_LOCK = asyncio.Lock()
+    WRITE_CACHE_PLACEHOLDER = object()
+    READ_CACHE_EVENT = asyncio.Event()
     RW_CONFLICT_MAX_RETRY = 5
 
     LISTEN_INVALIDATE_COROUTINE_EVENT = asyncio.Event()
@@ -102,12 +102,12 @@ class CachedRedis(aioredis.Redis):
         # 5. Set key, value and expire time to local cache
         # 6. Notify other coroutines waiting for this key, and clear the event
         if value is None:
-            async with self.SET_CACHE_LOCK:
+            async with self.WRITE_CACHE_LOCK:
                 # dup check from memory cache
                 value, _ = await self._get_from_local_cache(key)
                 if value is None:
-                    self.SET_CACHE_EVENT.clear()
-                    self._local_cache[key] = (self.SET_CACHE_PLACEHOLDER, None)
+                    self.READ_CACHE_EVENT.clear()
+                    self._local_cache[key] = (self.WRITE_CACHE_PLACEHOLDER, None)
                     try:
                         value, ttl = await self._get_from_redis(key)
                         self._set_to_local_cache(key, value, ttl)
@@ -116,7 +116,7 @@ class CachedRedis(aioredis.Redis):
                         raise e
                     finally:
                         # notify other coroutines waiting for this key, and clear the event
-                        self.SET_CACHE_EVENT.set()
+                        self.READ_CACHE_EVENT.set()
 
         # Ensure that other tasks on the event loop get a chance to run
         # if we didn't have to block for I/O anywhere.
@@ -144,17 +144,17 @@ class CachedRedis(aioredis.Redis):
         """
         Get value from local cache
         1. Check if key exist in local cache. 
-           If it's hold by placeholder, wait for SET_CACHE_EVENT
+           If it's hold by placeholder, wait for READ_CACHE_EVENT
         2. Check if key expire time is not reached
         """
         value = None
         if key in self._local_cache:
             _retry = self.RW_CONFLICT_MAX_RETRY
-            while self._local_cache[key][self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
-                await self.SET_CACHE_EVENT.wait()
+            while self._local_cache[key][self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER:
+                await self.READ_CACHE_EVENT.wait()
                 _retry -= 1
                 if key not in self._local_cache:
-                    logging.info(f"Key becomes invalid after waiting for SET_CACHE_EVENT: {key}")
+                    logging.info(f"Key becomes invalid after waiting for READ_CACHE_EVENT: {key}")
                     return None, False
                 if _retry <= 0:
                     logging.info(f"Heavy read-write conflict, retry times exceeded: {key}")
@@ -176,7 +176,7 @@ class CachedRedis(aioredis.Redis):
             ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
 
             # check if the value is deleted by _listen_invalidate
-            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.SET_CACHE_PLACEHOLDER:
+            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER:
                 # if it's not deleted, set the value to local cache
                 self._local_cache[key] = (value, int(time.time())+ttl)
                 logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
