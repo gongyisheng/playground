@@ -282,9 +282,15 @@ class CachedRedis(aioredis.Redis):
                 # unsubscribe __redis__:invalidate
                 await self._pubsub.unsubscribe(self.LISTEN_INVALIDATE_CHANNEL)
                 resp = await self._pubsub.get_message(timeout=1)
-                for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
-                    if k not in resp or v != resp[k]:
-                        raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
+                while resp is not None:
+                    if resp['type'] != 'unsubscribe':
+                        # read out other messages that are left in the channel
+                        resp = await self._pubsub.get_message(timeout=1)
+                    else:
+                        for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
+                            if k not in resp or v != resp[k]:
+                                raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
+                        break
             logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
         except Exception as e:
             logging.error(f"Listen invalidate on close failed. error={str(e)}, traceback={traceback.format_exc()}")
