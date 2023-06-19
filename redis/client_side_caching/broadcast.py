@@ -31,8 +31,7 @@ class CachedRedis(aioredis.Redis):
     LISTEN_INVALIDATE_CHANNEL = b"__redis__:invalidate"
     SUBSCRIBE_SUCCESS_MSG = {
         'type':"subscribe", 
-        'channel': LISTEN_INVALIDATE_CHANNEL, 
-        'data': 1
+        'channel': LISTEN_INVALIDATE_CHANNEL
     }
     UNSUBSCRIBE_SUCCESS_MSG = {
         'type':"unsubscribe",
