@@ -2,7 +2,6 @@ import asyncio
 import logging
 import time
 import traceback
-from typing import Union, Tuple
 
 import redis.asyncio as aioredis
 from lru import LRU
@@ -68,7 +67,7 @@ class CachedRedis(aioredis.Redis):
         
         super().__init__(*args, **kwargs)
 
-    async def set(self, key: str, value: Union[None, str, int, float]) -> None:
+    async def set(self, key, value):
         """
         Set kv pair to redis server, nothing different from redis.set()
         TODO: add optional parameter to set expire time
@@ -80,7 +79,7 @@ class CachedRedis(aioredis.Redis):
         # client don't want to receive invalidation messages 
         # for this keys that it modified.
 
-    async def get(self, key: str) -> Union[None, str, int, float]:
+    async def get(self, key):
         """
         Get value from redis server or client side cache.
         1. If value is not in client side cache, get it from redis server and cache it.
@@ -136,7 +135,7 @@ class CachedRedis(aioredis.Redis):
         await asyncio.sleep(0)
         return value
     
-    async def _get_from_redis(self, key: str, only_value: bool=False) -> Tuple[Union[None, str, int, float], int]:
+    async def _get_from_redis(self, key, only_value=False):
         """
         Get key and ttl (optional) from redis server
         This function may raise exceptions
