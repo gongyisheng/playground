@@ -210,7 +210,6 @@ class CachedRedis(aioredis.Redis):
         """
         self._local_cache.clear()
         logging.info("Flush ALL client-side cache")
-        logging.info(f"after flush: {self._local_cache.items()}")
     
     def flush_key(self, key: str):
         """
