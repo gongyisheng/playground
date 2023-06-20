@@ -242,7 +242,7 @@ class CachedRedis(aioredis.Redis):
         2. Get client id
         3. Enable client tracking, redirect invalidate message to this connection
         4. Subscribe __redis__:invalidate channel
-        If any step failed, set self._pubsub to None to trigger a new listen invalidate coroutine
+        If any step failed, set self._pubsub_is_alive to None to trigger a new listen invalidate coroutine
         """
         try:
             # Create pubsub object
