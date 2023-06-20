@@ -5,7 +5,7 @@ import signal_state_aio as signal_state
 import time
 import uuid
 
-from redis.asyncio import BlockingConnectionPool
+from redis.asyncio import BlockingConnectionPool, ConnectionError
 from broadcast import CachedRedis
 
 request = ContextVar("request")
