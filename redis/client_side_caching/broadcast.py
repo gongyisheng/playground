@@ -15,6 +15,9 @@ import signal_state_aio as signal_state
 #  1. if redis server closes the connection, the available connection number will -1
 #     but the connection pool will not create new connection to replace it.
 #     This will cause "No connection available" error if all the connections are closed.
+#  2. If redis is shutdown and rebooted, it's recommend to restart the client. 
+#     The closed connection in the pool will not be reconnected, and there're chances 
+#     to cause "No connection available" error.
 class CachedRedis(aioredis.Redis):
 
     VALUE_SLOT = 0
@@ -40,14 +43,14 @@ class CachedRedis(aioredis.Redis):
         'data': 0
     }
 
-    def __init__(self, *args, **kwargs) -> None:
-        # pubsub related
+    def __init__(self, *args, **kwargs):
+        # PubSub related
         self._pubsub = None
         self._pubsub_client_id = None
         self._pubsub_is_alive = False
         self.prefix = kwargs.pop("prefix", [])
         
-        # local cache related
+        # Local cache related
         self.cache_size = kwargs.pop("cache_size", 10000)
         self.cache_expire_threshold = kwargs.pop("cache_expire_threshold", 86400)
         if self.cache_expire_threshold <= 0:
@@ -55,7 +58,7 @@ class CachedRedis(aioredis.Redis):
             self.cache_expire_threshold = 86400
         self._local_cache = LRU(self.cache_size)
 
-        # health check related
+        # Health check related
         self.pubsub_health_check_interval = kwargs.pop("pubsub_health_check_interval", 60)
         if self.pubsub_health_check_interval <= 0:
             logging.warning("pubsub_health_check_interval should be larger than 0, set to 60")
@@ -89,7 +92,7 @@ class CachedRedis(aioredis.Redis):
         """
         value = None
 
-        # if pubsub is not alive, get value from redis server
+        # If pubsub is not alive, get value from redis server
         if not self._pubsub_is_alive:
             logging.info("PubSub is not alive, get value from redis server")
             value, _ = await self._get_from_redis(key, only_value=True)
@@ -115,7 +118,7 @@ class CachedRedis(aioredis.Redis):
         # 6. Notify other coroutines waiting for this key, and clear the event
         if value is None:
             async with self.WRITE_CACHE_LOCK:
-                # dup check from memory cache
+                # Dup check from memory cache
                 value, _ = await self._get_from_local_cache(key)
                 if value is None:
                     self.READ_CACHE_EVENT.clear()
@@ -127,11 +130,11 @@ class CachedRedis(aioredis.Redis):
                         self.flush_key(key)
                         raise e
                     finally:
-                        # notify other coroutines waiting for this key, and clear the event
+                        # Notify other coroutines waiting for this key, and clear the event
                         self.READ_CACHE_EVENT.set()
 
         # Ensure that other tasks on the event loop get a chance to run
-        # if we didn't have to block for I/O anywhere.
+        # If we didn't have to block for I/O anywhere.
         await asyncio.sleep(0)
         return value
     
@@ -144,7 +147,7 @@ class CachedRedis(aioredis.Redis):
         if only_value:
             value = await super().get(key)
         else:
-            # Use pipelien to execute a transaction
+            # Use pipeline to execute a transaction
             pipe = super().pipeline()
             pipe.get(key)
             pipe.ttl(key)
@@ -188,8 +191,6 @@ class CachedRedis(aioredis.Redis):
             ttl = min(ttl, self.cache_expire_threshold) if ttl >=0 else self.cache_expire_threshold
 
             # Check if the value is deleted by _listen_invalidate
-            # Need to check _pubsub_is_alive because of a bug in LRU dict
-            # This coroutine may still be able to see placeholder is there after local_cache.clear()
             if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER and self._pubsub_is_alive:
                 # If it's not deleted, set the value to local cache
                 self._local_cache[key] = (value, time.time()+ttl)
@@ -203,7 +204,7 @@ class CachedRedis(aioredis.Redis):
             self.flush_key(key)
             logging.info(f"Key not exist in redis server: {key}")
     
-    def flush_all(self) -> None:
+    def flush_all(self):
         """
         Flush the whole local cache
         """
@@ -211,7 +212,7 @@ class CachedRedis(aioredis.Redis):
         logging.info("Flush ALL client-side cache")
         logging.info(f"after flush: {self._local_cache.items()}")
     
-    def flush_key(self, key: str) -> None:
+    def flush_key(self, key: str):
         """
         Delete key from local cache
         """
@@ -219,7 +220,7 @@ class CachedRedis(aioredis.Redis):
             del self._local_cache[key]
         logging.info(f"Flush key from client-side cache: {key}")
     
-    async def _background_listen_invalidate(self) -> None:
+    async def _background_listen_invalidate(self):
         """
         Create another listen invalidate coroutine in case the current connection is broken
         """
@@ -234,38 +235,38 @@ class CachedRedis(aioredis.Redis):
         finally:
             logging.info("Exit _background_listen_invalidate")
     
-    async def _listen_invalidate_on_open(self) -> None:
+    async def _listen_invalidate_on_open(self):
         """
         Steps to open listen invalidate coroutine
-        1. create pubsub object
-        2. get client id
-        3. enable client tracking, redirect invalidate message to this connection
-        4. subscribe __redis__:invalidate channel
-        If any step failed, set self._pubsub_connection to None to trigger a new listen invalidate coroutine
+        1. Create pubsub object
+        2. Get client id
+        3. Enable client tracking, redirect invalidate message to this connection
+        4. Subscribe __redis__:invalidate channel
+        If any step failed, set self._pubsub to None to trigger a new listen invalidate coroutine
         """
         try:
-            # create pubsub object
+            # Create pubsub object
             self._pubsub = self.pubsub()
 
-            # get client id
+            # Get client id
             await self._pubsub.execute_command("CLIENT ID")
             self._pubsub_client_id = await self._pubsub.parse_response(block=False, timeout=1)
             if self._pubsub_client_id is None:
                 raise Exception(f"CLIENT ID failed. resp={self._pubsub_client_id}")
 
-            # subscribe __redis__:invalidate
+            # Subscribe __redis__:invalidate
             await self._pubsub.subscribe(self.LISTEN_INVALIDATE_CHANNEL)
             resp = await self._pubsub.get_message(timeout=1)
             for k,v in self.SUBSCRIBE_SUCCESS_MSG.items():
                 if k not in resp or v != resp[k]:
                     raise Exception(f"SUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
 
-            # client tracking
+            # Client tracking
             resp = await self.client_tracking_on(clientid=self._pubsub_client_id, bcast=True, prefix=self.prefix)
             if resp != b"OK":
                 raise Exception(f"CLIENT TRACKING failed. resp={resp}")
             
-            # disable built-in health check interval
+            # Disable built-in health check interval
             self._pubsub.connection.health_check_interval = None
             self._pubsub_is_alive = True
             logging.info(f"Listen invalidate on open success. client_id={self._pubsub_client_id}, channel={self.LISTEN_INVALIDATE_CHANNEL}")
@@ -275,44 +276,44 @@ class CachedRedis(aioredis.Redis):
             self._pubsub_client_id = None
             self._pubsub_is_alive = False
     
-    async def _listen_invalidate_on_close(self) -> None:
+    async def _listen_invalidate_on_close(self):
         """
         Steps to close listen invalidate coroutine
-        1. flush whole client side cache
-        2. disable client tracking
-        3. unsubscribe __redis__:invalidate channel
-        4. close pubsub connection and release it to connection pool
+        1. Flush whole client side cache
+        2. Disable client tracking
+        3. Unsubscribe __redis__:invalidate channel
+        4. Close pubsub connection and release it to connection pool
 
         This function is called when:
-        1. the connection is broken
-        2. redis server failed
-        3. the client is closed
+        1. The connection is broken
+        2. Redis server failed
+        3. The client is closed
         """
+        # Flush whole client side cache
+        # Set _pubsub_is_alive to false to prevent read/write message from local cache
         try:
-            # Flush whole client side cache
-            # Set _pubsub_is_alive to false to prevent read/write message from local cache
             self.flush_all()
-            self._pubsub_is_alive = False
-
-            if self._pubsub is not None:
-                # client tracking off
+            if self._pubsub_is_alive:
+                # Client tracking off
                 resp = await self.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.prefix)
                 if resp != b'OK':
                     raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
 
-                # unsubscribe __redis__:invalidate
+                # Unsubscribe __redis__:invalidate
                 await self._pubsub.unsubscribe(self.LISTEN_INVALIDATE_CHANNEL)
                 resp = await self._pubsub.get_message(timeout=1)
                 while resp is not None:
                     if resp['type'] != 'unsubscribe':
-                        # read out other messages that are left in the channel
+                        # Read out other messages that are left in the channel
                         resp = await self._pubsub.get_message(timeout=1)
                     else:
                         for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
                             if k not in resp or v != resp[k]:
                                 raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
                         break
-            logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
+                logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
+            else:
+                logging.info("Listen invalidate on close skipped. _pubsub_is_alive=False")
         except Exception as e:
             logging.warning(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
         finally:
@@ -320,19 +321,19 @@ class CachedRedis(aioredis.Redis):
             self._pubsub_client_id = None
             logging.info("PubSub reset complete")
 
-    async def _listen_invalidate(self) -> None:
+    async def _listen_invalidate(self):
         """
         Listen invalidate message from redis server 
         as well as connection health check
-        1. if receive a invalidate message, flush the key from local cache
-        2. if receive a health check message, update health check status
+        1. If receive a invalidate message, flush the key from local cache
+        2. If receive a health check message, update health check status
         TODO: discuss a better timeout value
         """
         await self._listen_invalidate_on_open()
         while signal_state.ALIVE and self._pubsub_is_alive:
             now = time.time()
             try:
-                # check health
+                # Health check
                 if self.health_check_ongoing_flag:
                     if now-self._last_health_check_time > self.health_check_timeout:
                         raise Exception(f"check health timeout. now={now}, last_health_check_time={self._last_health_check_time}")
@@ -342,16 +343,16 @@ class CachedRedis(aioredis.Redis):
                     self._next_health_check_time = now + self.pubsub_health_check_interval
                     self.health_check_ongoing_flag = True
                 
-                # listen pubsub messages
+                # Listen pubsub messages
                 resp = await self._pubsub.get_message(timeout=1)
 
-                # message handling
+                # Message handling
                 if resp is None:
                     pass
                 elif resp['type'] == 'message':
                     if resp['channel'] == self.LISTEN_INVALIDATE_CHANNEL:
                         if resp['data'] is None:
-                            # flushdb or flushall
+                            # Flushdb or Flushall
                             self.flush_all()
                         else:
                             for key in resp['data']:
@@ -363,13 +364,15 @@ class CachedRedis(aioredis.Redis):
                         self.health_check_ongoing_flag = False
                         logging.info("Receive health check message from redis server, interval=%.3fms" % ((now-self._last_health_check_time)*1000))
             except Exception as e:
+                # If any exception occurs, set _pubsub_is_alive to False
+                self._pubsub_is_alive = False
                 logging.error(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
                 break
 
         await self._listen_invalidate_on_close()
         self.LISTEN_INVALIDATE_COROUTINE_EVENT.set()
     
-    async def run(self) -> None:
+    async def run(self):
         task_list = [asyncio.create_task(self._background_listen_invalidate(), name=self.TASK_NAME)]
         await asyncio.gather(*task_list)
 
