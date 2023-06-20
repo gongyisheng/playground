@@ -10,7 +10,6 @@ import signal_state_aio as signal_state
 
 
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
-# TODO: use single set cache lock / event?
 # TODO: check if there's problems return bytes
 # TODO: check if there's problems return stale values when it's invalidated
 # KNOWN ISSUE:
