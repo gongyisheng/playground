@@ -102,7 +102,6 @@ class CachedRedis(aioredis.Redis):
         
         # Get value from local cache
         # If read-write conflict is heavy, get value from redis server
-        logging.info("trying to get value from local cache - 1")
         value, rw_conflict_fail = await self._get_from_local_cache(key)
         if rw_conflict_fail:
             logging.info(f"Heavy read-write conflict, get value from redis server, key: {key}")
@@ -119,7 +118,6 @@ class CachedRedis(aioredis.Redis):
         if value is None:
             async with self.WRITE_CACHE_LOCK:
                 # dup check from memory cache
-                logging.info("trying to get value from local cache - 2")
                 value, _ = await self._get_from_local_cache(key)
                 if value is None:
                     self.READ_CACHE_EVENT.clear()
@@ -318,7 +316,7 @@ class CachedRedis(aioredis.Redis):
                         break
             logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
         except Exception as e:
-            logging.error(f"Listen invalidate on close failed. error={str(e)}, traceback={traceback.format_exc()}")
+            logging.warning(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
         finally:
             self._pubsub = None
             self._pubsub_client_id = None
