@@ -43,20 +43,29 @@ class CachedRedis(aioredis.Redis):
     }
 
     def __init__(self, *args, **kwargs) -> None:
-        self.prefix = kwargs.pop("prefix", [])
-        self.expire_threshold = kwargs.pop("expire_threshold", 86400)
-        self.pubsub_health_check_interval = kwargs.pop("pubsub_health_check_interval", 60)
-        self.cache_size = kwargs.pop("cache_size", 10000)
-        
+        # pubsub related
         self._pubsub = None
         self._pubsub_client_id = None
+        self._pubsub_is_alive = False
+        self.prefix = kwargs.pop("prefix", [])
+        
+        # local cache related
+        self.cache_size = kwargs.pop("cache_size", 10000)
+        self.cache_expire_threshold = kwargs.pop("cache_expire_threshold", 86400)
+        if self.cache_expire_threshold <= 0:
+            logging.warning("expire_threshold should be larger than 0, set to 86400")
+            self.cache_expire_threshold = 86400
+        self._local_cache = LRU(self.cache_size)
 
+        # health check related
+        self.pubsub_health_check_interval = kwargs.pop("pubsub_health_check_interval", 60)
+        if self.pubsub_health_check_interval <= 0:
+            logging.warning("pubsub_health_check_interval should be larger than 0, set to 60")
+            self.pubsub_health_check_interval = 60
         self.health_check_ongoing_flag = False
         self.health_check_timeout = 10
         self._last_health_check_time = 0
         self._next_health_check_time = 0
-
-        self._local_cache = LRU(self.cache_size)
         
         super().__init__(*args, **kwargs)
 
@@ -82,14 +91,18 @@ class CachedRedis(aioredis.Redis):
         """
         value = None
 
-        # if pubsub is not created, get value from redis server
-        if self._pubsub is None:
-            logging.info("pubsub is not created, get value from redis server")
+        # if pubsub is not alive, get value from redis server
+        if not self._pubsub_is_alive:
+            logging.info("PubSub is not alive, get value from redis server")
             value, _ = await self._get_from_redis(key, only_value=True)
+            # Ensure that other tasks on the event loop get a chance to run
+            # if we didn't have to block for I/O anywhere.
+            await asyncio.sleep(0)
             return value
         
         # Get value from local cache
         # If read-write conflict is heavy, get value from redis server
+        logging.info("trying to get value from local cache - 1")
         value, rw_conflict_fail = await self._get_from_local_cache(key)
         if rw_conflict_fail:
             logging.info(f"Heavy read-write conflict, get value from redis server, key: {key}")
@@ -106,6 +119,7 @@ class CachedRedis(aioredis.Redis):
         if value is None:
             async with self.WRITE_CACHE_LOCK:
                 # dup check from memory cache
+                logging.info("trying to get value from local cache - 2")
                 value, _ = await self._get_from_local_cache(key)
                 if value is None:
                     self.READ_CACHE_EVENT.clear()
@@ -139,7 +153,7 @@ class CachedRedis(aioredis.Redis):
             pipe.get(key)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
-        logging.info(f"Get key from redis server: {key}, ttl={ttl}")
+        logging.info(f"Get key from redis server: {key}, ttl={ttl}, only_value={only_value}")
         return value, ttl
     
     async def _get_from_local_cache(self, key):
@@ -162,9 +176,9 @@ class CachedRedis(aioredis.Redis):
                     logging.info(f"Heavy read-write conflict, retry times exceeded: {key}")
                     return None, True
             
-            if int(time.time()) <= self._local_cache[key][self.EXPIRE_TIME_SLOT]:
+            if time.time() <= self._local_cache[key][self.EXPIRE_TIME_SLOT]:
                 value = self._local_cache[key][self.VALUE_SLOT]
-                logging.info(f"Get key from client-side cache: {key}, value: {str(value)[:16]}")
+                logging.info(f"Get key from client-side cache: {key}")
             else:
                 logging.info(f"Key exists in clien-side cache but expired: {key}")
         return value, False
@@ -175,21 +189,23 @@ class CachedRedis(aioredis.Redis):
         """
         if value is not None: 
             # Key exist
-            ttl = min(ttl, self.expire_threshold) if ttl >=0 else self.expire_threshold
+            ttl = min(ttl, self.cache_expire_threshold) if ttl >=0 else self.cache_expire_threshold
 
-            # check if the value is deleted by _listen_invalidate
-            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER:
-                # if it's not deleted, set the value to local cache
-                self._local_cache[key] = (value, int(time.time())+ttl)
+            # Check if the value is deleted by _listen_invalidate
+            # Need to check _pubsub_is_alive because of a bug in LRU dict
+            # This coroutine may still be able to see placeholder is there after local_cache.clear()
+            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER and self._pubsub_is_alive:
+                # If it's not deleted, set the value to local cache
+                self._local_cache[key] = (value, time.time()+ttl)
                 logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
             else:
-                # if it's deleted, flsuh the key from local cache and return the stale value
-                logging.info(f"Key becomes invalid before set to cache: {key}")
+                # If it's deleted, flsuh the key from local cache and return the stale value
                 self.flush_key(key)
+                logging.info(f"Key becomes invalid before set to cache, return the stale value: {key}")
         else: 
             # Key not exist
-            logging.info(f"Key not exist in redis server: {key}")
             self.flush_key(key)
+            logging.info(f"Key not exist in redis server: {key}")
     
     def flush_all(self) -> None:
         """
@@ -197,6 +213,7 @@ class CachedRedis(aioredis.Redis):
         """
         self._local_cache.clear()
         logging.info("Flush ALL client-side cache")
+        logging.info(f"after flush: {self._local_cache.items()}")
     
     def flush_key(self, key: str) -> None:
         """
@@ -254,11 +271,13 @@ class CachedRedis(aioredis.Redis):
             
             # disable built-in health check interval
             self._pubsub.connection.health_check_interval = None
+            self._pubsub_is_alive = True
             logging.info(f"Listen invalidate on open success. client_id={self._pubsub_client_id}, channel={self.LISTEN_INVALIDATE_CHANNEL}")
         except Exception as e:
             logging.error(f"Listen invalidate on open failed. error={e}, traceback={traceback.format_exc()}")
             self._pubsub = None
             self._pubsub_client_id = None
+            self._pubsub_is_alive = False
     
     async def _listen_invalidate_on_close(self) -> None:
         """
@@ -274,7 +293,11 @@ class CachedRedis(aioredis.Redis):
         3. the client is closed
         """
         try:
+            # Flush whole client side cache
+            # Set _pubsub_is_alive to false to prevent read/write message from local cache
             self.flush_all()
+            self._pubsub_is_alive = False
+
             if self._pubsub is not None:
                 # client tracking off
                 resp = await self.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.prefix)
@@ -297,9 +320,9 @@ class CachedRedis(aioredis.Redis):
         except Exception as e:
             logging.error(f"Listen invalidate on close failed. error={str(e)}, traceback={traceback.format_exc()}")
         finally:
-            await self._pubsub.reset()
             self._pubsub = None
             self._pubsub_client_id = None
+            logging.info("PubSub reset complete")
 
     async def _listen_invalidate(self) -> None:
         """
@@ -310,7 +333,7 @@ class CachedRedis(aioredis.Redis):
         TODO: discuss a better timeout value
         """
         await self._listen_invalidate_on_open()
-        while signal_state.ALIVE and self._pubsub is not None:
+        while signal_state.ALIVE and self._pubsub_is_alive:
             now = time.time()
             try:
                 # check health
@@ -342,7 +365,7 @@ class CachedRedis(aioredis.Redis):
                 elif resp['type'] == 'pong':
                     if resp['data'] == self.HEALTH_CHECK_MSG:
                         self.health_check_ongoing_flag = False
-                        logging.info("Receive health check message from redis server")
+                        logging.info("Receive health check message from redis server, interval=%.3fms" % ((now-self._last_health_check_time)*1000))
             except Exception as e:
                 logging.error(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
                 break
