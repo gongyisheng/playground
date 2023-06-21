@@ -1,6 +1,6 @@
 import cProfile
-import profile
 import pstats
+import asyncio
 
 def fib(n):
     if n == 0:
@@ -17,11 +17,18 @@ def fib_seq(n):
     seq.append(fib(n))
     return seq
 
+async def combined(n):
+    for i in range(n):
+        fib_seq(10)
+        await asyncio.sleep(1)
 
 if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+
     import time
     p = cProfile.Profile(timer=time.process_time) # you can set up your custom timer
-    p.run('fib_seq(30)')
+    # p.run('fib_seq(30)')
+    p.run('loop.run_until_complete(combined(5))')
     p.dump_stats('output.prof')
 
     stream = open('output.txt', 'w')
