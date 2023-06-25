@@ -12,6 +12,7 @@ import signal_state_aio as signal_state
 # TODO: check if there's problems return bytes
 # TODO: check if there's problems return stale values when it's invalidated
 # TODO: 打散expire time，避免同时过期
+# TODO: add insert_time for debug
 # KNOWN ISSUE:
 #  1. if redis server closes the connection, the available connection number will -1
 #     but the connection pool will not create new connection to replace it.
