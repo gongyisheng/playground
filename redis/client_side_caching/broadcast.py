@@ -196,7 +196,7 @@ class CachedRedis(aioredis.Redis):
                 self._local_cache[key] = (value, time.time()+ttl)
                 logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
             else:
-                # If it's deleted, flsuh the key from local cache and return the stale value
+                # If it's deleted, flush the key from local cache and return the stale value
                 self.flush_key(key)
                 logging.info(f"Key becomes invalid before set to cache, return the stale value: {key}")
         else: 
