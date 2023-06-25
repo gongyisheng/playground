@@ -1,0 +1,1 @@
+docker run --name test-database -e MYSQL_ROOT_PASSWORD=root -d mysql:latest
