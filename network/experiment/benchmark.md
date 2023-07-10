@@ -2,7 +2,7 @@ Experiment benchmark settings
 1. Start 2 EC2 instance on AWS in the same region, one as server, one as client.
 2. Edit security group of server, add inbound rule: `Custom TCP Rule`, `Port Range: 8000`
 3. Start server: `python -m http.server 8000`
-4. Client can get files through `curl`: `curl http://172.31.82.1:8080/0000000000000000.data --output ~/0000000000000000.data`
+4. Client can get files through `curl`: `curl http://172.31.82.1:8000/0000000000000000.data --output ~/0000000000000000.data`
    
 Download file:  
 `scp -i ~/.ssh/yipit-mac.pem ec2-user@*.*.*.*:~/client.pcap ~/Downloads`  
