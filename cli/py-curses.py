@@ -2,7 +2,7 @@ import curses
 
 def main(stdscr):
     # Setup
-    curses.curs_set(0)
+    curses.curs_set(1)
     stdscr.clear()
 
     # Data structure to store the tasks
