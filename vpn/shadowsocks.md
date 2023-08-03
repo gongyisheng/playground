@@ -12,5 +12,5 @@
     "fast_open":true,  
     "workers": 1  
 }  
-- edit /usr/local/lib/python3.8/dist-packages/shadowsocks/crypto/openssl.py, replace EVP_CIPHER_CTX_cleanup with EVP_CIPHER_CTX_reset
+- edit /usr/local/lib/python3.9/site-packages/shadowsocks/crypto/openssl.py, replace EVP_CIPHER_CTX_cleanup with EVP_CIPHER_CTX_reset
 - sudo ssserver -c /etc/shadowsocks.json -d start
