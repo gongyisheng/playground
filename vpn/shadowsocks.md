@@ -1,4 +1,4 @@
-# install shadowsocks on x86_64 aws ec2
+# setup shadowsocks server on x86_64 aws ec2
 - sudo yum install python
 - sudo yum install python-pip
 - sudo pip install shadowsocks
