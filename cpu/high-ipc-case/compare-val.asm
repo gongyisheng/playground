@@ -1,0 +1,35 @@
+section .text
+  global _start  ; must be declared for linker (ld)
+_start:
+  mov eax, 1     ; initialize i to 1
+  .loop:         ; tells linker entry point
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    cmp eax, 1   ; compare eax with 1
+    jmp .loop    ; loop back to .loop
+  .exit:
+    ret
