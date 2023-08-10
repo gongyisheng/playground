@@ -52,6 +52,8 @@ pub fn access_hashmap(){
     println!("[hashmap][access] my_map[\"one\"]: {}", my_map["one"]);
     let key_list = ["two", "three", "four"];
     for _key in key_list.iter(){
+        // map.get returns Option<&V>
+        // Option is an enum, it can be either Some(v) or None
         if let Some(value) = my_map.get("one") {
             println!("[hashmap][access] my_map.get(\"one\"): {}", value);
         } else {
