@@ -1,4 +1,5 @@
 mod container;
+mod enumerate;
 mod func;
 mod oop;
 
@@ -49,6 +50,29 @@ fn main() {
     func::variable_test();
     
     println!("-------------------");
+
+    // enum test
+    println!("-----enum test-----");
+
+    let coin = enumerate::Coin::Penny;
+    let cents = enumerate::value_in_cents(coin);
+    println!("Value: {} cents", cents);
+
+    let coin = enumerate::Coin::Nickel;
+    let cents = enumerate::value_in_cents(coin);
+    println!("Value: {} cents", cents);
+
+    let coin = enumerate::Coin::Dime;
+    let cents = enumerate::value_in_cents(coin);
+    println!("Value: {} cents", cents);
+
+    let coin = enumerate::Coin::Quarter(enumerate::UsState::Alaska);
+    let cents = enumerate::value_in_cents(coin);
+    println!("Value: {} cents", cents);
+
+    let coin = enumerate::Coin::Quarter(enumerate::UsState::Alabama);
+    let cents = enumerate::value_in_cents(coin);
+    println!("Value: {} cents", cents);
 
     // container test
     println!("---container test---");
