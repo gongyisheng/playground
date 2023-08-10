@@ -3,7 +3,7 @@ pub enum Coin {
     Penny,
     Nickel,
     Dime,
-    Quarter(UsState),
+    Quarter(UsState), // Quarter is a variant of the Coin enum, and it takes an associated value of the UsState enum
 }
 
 #[derive(Debug)]
