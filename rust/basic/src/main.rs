@@ -17,5 +17,9 @@ fn main() {
     // container test
     println!("---container test---");
 
-    container::iter_list();   
+    container::create_list1();
+    container::create_list2();
+    container::access_list();
+    container::delete_list();
+    container::iter_list(); 
 }
