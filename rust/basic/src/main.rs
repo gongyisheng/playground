@@ -13,6 +13,8 @@ fn main() {
     func::greet("world");
     crate::func::greet("world");
     println!("-------------------");
+    println!("fibonacci(10): {}", func::fibonacci(10));
+    println!("-------------------");
 
     // container test
     println!("---container test---");

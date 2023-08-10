@@ -13,3 +13,13 @@ pub fn ferris_says() {
     let mut writer = BufWriter::new(stdout.lock());
     say(message.as_bytes(), width, &mut writer).unwrap();
 }
+
+pub fn fibonacci(n: u64) -> u64 {
+    if n == 0 {
+        0
+    } else if n == 1 {
+        1
+    } else {
+        fibonacci(n - 1) + fibonacci(n - 2)
+    }
+}
