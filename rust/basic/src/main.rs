@@ -1,7 +1,21 @@
+mod container;
 mod func;
-use func::{greet, ferris_says};
+
 
 fn main() {
-    ferris_says();
-    greet("world");
+
+    // func test
+    println!("-----func test-----");
+
+    func::ferris_says();
+    println!("-------------------");
+    // same thing, different import
+    func::greet("world");
+    crate::func::greet("world");
+    println!("-------------------");
+
+    // container test
+    println!("---container test---");
+
+    container::iter_list();   
 }
