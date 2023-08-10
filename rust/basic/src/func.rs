@@ -30,3 +30,26 @@ pub fn variable_test() {
     counter += 1;                 // Modify the mutable variable
     println!("Counter: {}, Value: {}", counter, value);
 }
+
+// Lifetime Annotations
+pub fn get_longer_str<'a>(s1: &'a str, s2: &'a str) -> &'a str {
+    if s1.len() > s2.len() {
+        s1
+    } else {
+        s2
+    }
+}
+
+// Borrowing and References
+pub fn modify(s: &mut String) {
+    s.push_str(" World");
+}
+
+// Option and Result Enums
+pub fn divide(a: f64, b: f64) -> Result<f64, String> {
+    if b != 0.0 {
+        Ok(a / b)
+    } else {
+        Err("Cannot divide by zero".to_string())
+    }
+}

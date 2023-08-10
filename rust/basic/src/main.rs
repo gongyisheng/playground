@@ -19,6 +19,32 @@ fn main() {
     println!("fibonacci(10): {}", func::fibonacci(10));
     
     println!("-------------------");
+
+    let s1 = String::from("Hello");
+    let s2 = String::from("World !");
+    println!("get_longer_str(\"{}\", \"{}\") = \"{}\"", s1, s2, func::get_longer_str(&s1, &s2));
+
+    println!("-------------------");
+
+    let mut s = String::from("Hello");
+    println!("s before modify: {}", s);
+    func::modify(&mut s);
+    println!("s after modify: {}", s);
+
+    println!("-------------------");
+
+    let result = func::divide(10.0, 2.0);
+    match result {
+        Ok(value) => println!("Divide Result: {}", value),
+        Err(error) => println!("Divide Error: {}", error),
+    }
+    let result = func::divide(10.0, 0.0);
+    match result {
+        Ok(value) => println!("Divide Result: {}", value),
+        Err(error) => println!("Divide Error: {}", error),
+    }
+
+    println!("-------------------");
     
     func::variable_test();
     
