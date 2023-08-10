@@ -21,5 +21,12 @@ fn main() {
     container::create_list2();
     container::access_list();
     container::delete_list();
-    container::iter_list(); 
+    container::iter_list();
+
+    container::create_hashmap(true);
+    container::access_hashmap();
+    container::add_hashmap();
+    container::update_hashmap();
+    container::delete_hashmap();
+    container::iter_hashmap();
 }
