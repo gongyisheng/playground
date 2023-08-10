@@ -23,3 +23,10 @@ pub fn fibonacci(n: u64) -> u64 {
         fibonacci(n - 1) + fibonacci(n - 2)
     }
 }
+
+pub fn variable_test() {
+    let mut counter = 0;          // Declare a mutable variable
+    let value = counter;          // Copy value, no ownership transfer
+    counter += 1;                 // Modify the mutable variable
+    println!("Counter: {}, Value: {}", counter, value);
+}

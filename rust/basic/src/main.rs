@@ -15,6 +15,8 @@ fn main() {
     println!("-------------------");
     println!("fibonacci(10): {}", func::fibonacci(10));
     println!("-------------------");
+    func::variable_test();
+    println!("-------------------");
 
     // container test
     println!("---container test---");
