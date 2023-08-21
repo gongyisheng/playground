@@ -19,3 +19,12 @@ impl Debug for Car {
         d.finish_non_exhaustive()
     }
 }
+
+pub fn demo_debug() {
+    let car = Car {
+        name: String::from("BMW"),
+        price: 1000000,
+        owner: String::from("John"),
+    };
+    println!("car: {:?}", car);
+}
