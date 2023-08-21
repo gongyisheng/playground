@@ -11,3 +11,6 @@
 - look up commit by hash
 `git checkout <branch>`
 `git log -p -1 <hash>`
+- revert commit
+`git revert <hash>`
+`git reset --soft <hash>`
