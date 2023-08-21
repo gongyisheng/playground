@@ -1,0 +1,2 @@
+- add healthcheck for the service need to be chained
+- otherwise it'll be unpredictable when the service is ready
