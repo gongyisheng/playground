@@ -16,3 +16,9 @@ __pycache__
 
 # bin
 bin
+
+# target
+target
+
+# secrets toml
+secrets.toml
