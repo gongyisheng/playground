@@ -22,4 +22,10 @@ func main() {
         }
     }
     fmt.Println("2d: ", twoD)
+
+    // Iterate over an array
+    // index, value
+    for i, v := range a {
+        fmt.Println(i, v)
+    }
 }
