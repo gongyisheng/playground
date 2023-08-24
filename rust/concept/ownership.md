@@ -69,7 +69,12 @@ calculate_length borrows a reference to s6 without taking ownership.
 
 By enforcing these ownership rules, Rust ensures memory safety without requiring a garbage collector or manual memory management. It also encourages a clear understanding of data lifetimes and promotes efficient memory usage.
 
-
-
-
+# Error Example
+```rust
+fn main() {
+    let s = String::from("hello");
+    let s1 = s;
+    println!("{}", s); // Error: s is no longer valid
+}
+```
 

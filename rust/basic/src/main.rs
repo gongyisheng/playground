@@ -2,6 +2,7 @@ mod container;
 mod enumerate;
 mod func;
 mod oop;
+mod ownership;
 
 fn main() {
 
@@ -106,4 +107,7 @@ fn main() {
     let tiny_rec = oop::Rectangle { width: 5, height: 5 };
     println!("tiny rec: {:?}, {:?}", tiny_rec.width, tiny_rec.height);
     println!("rec can hold tiny rec: {:?}", rec.can_hold(&tiny_rec));
+
+    ownership::test_ownership1();
+    ownership::test_ownership2();
 }
