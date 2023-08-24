@@ -14,29 +14,23 @@ async fn main() -> Result<()> {
 
     // Initialize our configuration reader
     let secrets = Config::builder()
-        .add_source(File::from(Path::new("../secrets.toml")))
+        .add_source(File::from(Path::new("/Users/temp/Documents/playground/opendal/rust/s3test/secrets.toml")))
         .build()
         .unwrap();
 
+    let ACCESS_KEY_ID = secrets.get_string(&"GCS_ACCESS_KEY_ID").ok().unwrap();
+    let SECRET_ACCESS_KEY = secrets.get_string(&"GCS_SECRET_ACCESS_KEY").ok().unwrap();
     // Print out our settings (as a HashMap)
-    println!(
-        "\n{:?} \n\n-----------",
-        secrets
-            .try_deserialize::<HashMap<String, String>>()
-            .unwrap()
-    );
-
-    let GCS_ACCESS_KEY_ID = secrets.get_string("GCS_ACCESS_KEY_ID").unwrap();
-    let GCS_SECRET_ACCESS_KEY = secrets.get_string("GCS_SECRET_ACCESS_KEY").unwrap();
-
+    let debug_secrets = secrets.try_deserialize::<HashMap<String, String>>().unwrap();
+    println!("secrets: {:?}", debug_secrets);
 
     let mut builder = S3::default();
     builder.root("/Users/temp/Downloads");
     builder.bucket("opendal-test");
     builder.region("us-west1");
     builder.endpoint("https://storage.googleapis.com");
-    // builder.access_key_id(&GCS_ACCESS_KEY_ID);
-    // builder.secret_access_key(&GCS_SECRET_ACCESS_KEY);
+    builder.access_key_id(&ACCESS_KEY_ID);
+    builder.secret_access_key(&SECRET_ACCESS_KEY);
     
     let op = Operator::new(builder)?.finish();
     info!("operator: {:?}", op);
