@@ -28,10 +28,10 @@ async fn main() -> Result<()> {
     let mut builder = S3::default();
     builder.root("o");
     builder.bucket("opendal-test");
-    // builder.region("us-west1");
+    builder.region("us-west1");
     builder.endpoint("https://storage.googleapis.com/storage/v1/b");
-    // builder.access_key_id(&access_key_id);
-    // builder.secret_access_key(&secret_access_key);
+    builder.access_key_id(&access_key_id);
+    builder.secret_access_key(&secret_access_key);
     
     let op = Operator::new(builder)?
         .layer(LoggingLayer::default())
@@ -40,6 +40,6 @@ async fn main() -> Result<()> {
 
     op.read("test.csv").await?;
     //op.write("hello.txt", "Hello, World!").await?;
-    
+
     Ok(())
 }
