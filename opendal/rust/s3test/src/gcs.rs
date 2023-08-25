@@ -35,7 +35,12 @@ pub async fn test_gcs() -> Result<()> {
         .finish();
     info!("operator: {:?}", op);
 
-    op.read("test.csv").await?;
+    let buf = op.read("test.csv").await?;
+    let s = match std::str::from_utf8(&buf) {
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+    };
+    println!("s: {}", s);
     // op.write("hello.txt", "Hello, World!").await?;
 
     Ok(())
