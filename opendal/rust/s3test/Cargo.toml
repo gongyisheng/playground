@@ -10,4 +10,3 @@ opendal = { path = "/Users/temp/Documents/incubator-opendal/core" }
 config = { version = "0.13.1", features = ["toml"] }
 log = { version = "0.4" }
 tokio = { version = "1", features = ["full"] }
-anyhow = "1.0"
