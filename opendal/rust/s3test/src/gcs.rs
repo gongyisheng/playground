@@ -23,10 +23,10 @@ pub async fn test_gcs() -> Result<()> {
     println!("secrets: {:?}", debug_secrets);
 
     let mut builder = S3::default();
-    builder.root("o");
+    builder.root("");
     builder.bucket("opendal-test");
     builder.region("us-west1");
-    builder.endpoint("https://storage.googleapis.com/storage/v1/b");
+    builder.endpoint("https://storage.googleapis.com/");
     builder.access_key_id(&access_key_id);
     builder.secret_access_key(&secret_access_key);
     
@@ -36,7 +36,7 @@ pub async fn test_gcs() -> Result<()> {
     info!("operator: {:?}", op);
 
     op.read("test.csv").await?;
-    //op.write("hello.txt", "Hello, World!").await?;
+    // op.write("hello.txt", "Hello, World!").await?;
 
     Ok(())
 }
