@@ -10,6 +10,7 @@ use opendal::services::S3;
 use opendal::Operator;
 
 pub async fn test_gcs() -> Result<()> {
+    println!("Testing GCS");
     // Initialize our configuration reader
     let secrets = Config::builder()
         .add_source(File::from(Path::new("/Users/temp/Documents/playground/opendal/rust/s3test/secrets.toml")))
@@ -19,8 +20,8 @@ pub async fn test_gcs() -> Result<()> {
     let access_key_id = secrets.get_string("GCS_ACCESS_KEY_ID").ok().unwrap();
     let secret_access_key = secrets.get_string("GCS_SECRET_ACCESS_KEY").ok().unwrap();
     // Print out our settings (as a HashMap)
-    let debug_secrets = secrets.try_deserialize::<HashMap<String, String>>().unwrap();
-    println!("secrets: {:?}", debug_secrets);
+    // let debug_secrets = secrets.try_deserialize::<HashMap<String, String>>().unwrap();
+    // println!("secrets: {:?}", debug_secrets);
 
     let mut builder = S3::default();
     builder.root("");
@@ -35,13 +36,20 @@ pub async fn test_gcs() -> Result<()> {
         .finish();
     info!("operator: {:?}", op);
 
-    let buf = op.read("test.csv").await?;
-    let s = match std::str::from_utf8(&buf) {
-        Ok(v) => v,
-        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-    };
-    println!("s: {}", s);
-    // op.write("hello.txt", "Hello, World!").await?;
+    // read
+    // let buf = op.read("test.csv").await?;
+    // let s = match std::str::from_utf8(&buf) {
+    //     Ok(v) => v,
+    //     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+    // };
+    // println!("s: {}", s);
+
+    // write
+    op.write("hello.txt", "Hello, World!").await?;
+
+    // delete
+    op.delete("hello.txt").await?;
+    op.delete("test1.txt").await?; // should not raise 404
 
     Ok(())
 }
