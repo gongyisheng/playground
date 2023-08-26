@@ -1513,7 +1513,6 @@ dependencies = [
  "config",
  "log",
  "opendal",
- "reqwest",
  "tokio",
 ]
 
