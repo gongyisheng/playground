@@ -51,5 +51,13 @@ pub async fn test_aws() -> Result<()> {
     op.delete("hello.txt").await?;
     op.delete("test1.txt").await?; // should not raise 404
 
+    // write
+    op.write("test/test1.txt", "Hello, World!").await?;
+    op.write("test/test2.txt", "Hello, World!").await?;
+
+    // batch delete
+    // op.remove(vec!["test/test1.txt".to_string(), "test/test2.txt".to_string()]).await?;
+    op.remove_all("test/").await?;
+
     Ok(())
 }

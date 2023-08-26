@@ -43,13 +43,22 @@ pub async fn test_gcs() -> Result<()> {
     //     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
     // };
     // println!("s: {}", s);
-
+    
+    // single file delete
     // write
     op.write("hello.txt", "Hello, World!").await?;
 
     // delete
     op.delete("hello.txt").await?;
     op.delete("test1.txt").await?; // should not raise 404
+    
+    // batch file delete (should fail, gcs does not support batch delete)
+    // write
+    // op.write("test/test1.txt", "Hello, World!").await?;
+    // op.write("test/test2.txt", "Hello, World!").await?;
+    // delete
+    // op.remove(vec!["test/test1.txt".to_string(), "test/test2.txt".to_string()]).await?;
+    // op.remove_all("test/").await?;
 
     Ok(())
 }
