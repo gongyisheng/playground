@@ -1,7 +1,7 @@
 package learn_echotest
 
 import (
-	"fmt"
+	_ "fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,7 +21,7 @@ var (
 func TestCreateUser(t *testing.T) {
 	// Setup
 	e := echo.New()
-	fmt.Println(strings.NewReader(userJSON))
+	// fmt.Println(strings.NewReader(userJSON))
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(userJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
