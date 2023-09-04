@@ -1,3 +1,6 @@
+### install
+`apt-get install net-tools`
+
 ### basic
 `netstat -an`: display all active network connections
 `netstat -an p`: display all active network connections with PID/Program name
