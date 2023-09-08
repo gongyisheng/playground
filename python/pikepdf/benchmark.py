@@ -13,7 +13,7 @@ logging.basicConfig(
     datefmt='%H:%M:%S'
 )
 
-
+# use pip install pikepdf==8.4.0
 def benchmark_pikepdf():
     root_directory = Path("/Users/temp/Downloads/test-pdf")
     cost_ms = []
