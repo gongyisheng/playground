@@ -1,0 +1,12 @@
+[package]
+name = "fstest"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+opendal = { path = "/Users/temp/Documents/incubator-opendal/core" }
+config = { version = "0.13.1", features = ["toml"] }
+log = { version = "0.4" }
+tokio = { version = "1", features = ["full"] }
