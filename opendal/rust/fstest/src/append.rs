@@ -1,10 +1,11 @@
 //use std::sync::Arc;
 
 use opendal::services::Fs;
+use opendal::services::Azdls;
 use opendal::Operator;
 use std::io::Result;
 
-pub async fn append_test() -> Result<()> {
+pub async fn fs_append_test() -> Result<()> {
     // Create fs backend builder.
     let mut builder = Fs::default();
     // Set the root for fs, all operations will happen under this root.
@@ -19,5 +20,16 @@ pub async fn append_test() -> Result<()> {
         .append(true)
         .await?;
 
+    Ok(())
+}
+
+pub async fn azdls_append_test() -> Result<()> {
+    // Create azdfs backend builder.
+    let mut builder = Azdls::default();
+
+    // Set the root for azdfs
+    builder.root("");
+
+    
     Ok(())
 }

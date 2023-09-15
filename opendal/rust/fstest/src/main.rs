@@ -4,6 +4,6 @@ mod append;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    append::append_test().await?;
+    append::fs_append_test().await?;
     Ok(())
 }
