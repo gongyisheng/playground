@@ -1,8 +1,8 @@
 //use std::sync::Arc;
 
-use std::io::Result;
 use opendal::services::Fs;
 use opendal::Operator;
+use std::io::Result;
 
 pub async fn append_test() -> Result<()> {
     // Create fs backend builder.
@@ -14,7 +14,9 @@ pub async fn append_test() -> Result<()> {
 
     // `Accessor` provides the low level APIs, we will use `Operator` normally.
     let op: Operator = Operator::new(builder)?.finish();
-    
-    op.write_with("test.txt", "hello world!\n").append(true).await?;
+
+    op.write_with("test.txt", "hello world!\n")
+        .append(true)
+        .await?;
     Ok(())
 }
