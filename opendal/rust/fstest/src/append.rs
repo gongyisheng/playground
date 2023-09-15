@@ -15,7 +15,6 @@ pub async fn append_test() -> Result<()> {
     // `Accessor` provides the low level APIs, we will use `Operator` normally.
     let op: Operator = Operator::new(builder)?.finish();
     
-    op.write("test.txt", "hello world").await?;
-    op.write("test.txt", "1").await?;
+    op.write_with("test.txt", "hello world!\n").append(true).await?;
     Ok(())
 }
