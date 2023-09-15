@@ -18,5 +18,6 @@ pub async fn append_test() -> Result<()> {
     op.write_with("test.txt", "hello world!\n")
         .append(true)
         .await?;
+
     Ok(())
 }
