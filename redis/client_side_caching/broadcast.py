@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import random
 import time
 import traceback
 
@@ -11,7 +12,6 @@ import signal_state_aio as signal_state
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 # TODO: check if there's problems return bytes
 # TODO: check if there's problems return stale values when it's invalidated
-# TODO: 打散expire time，避免同时过期
 # TODO: add insert_time for debug
 # TODO: support hget/hset
 # TODO: support set nolppo
@@ -50,6 +50,14 @@ class CachedRedis(aioredis.Redis):
     }
 
     def __init__(self, *args, **kwargs):
+        """
+        :param cache_size: max number of keys in local cache
+        :param cache_ttl: max time to live for keys in local cache
+        :param cache_ttl_deviation: deviation for cache_ttl to avoid all keys expire at the same time, 
+                                    should be in [0, 1], 0.01 means 1% deviation of cache_ttl
+        :param hget_deviation: deviation for hget, to avoid a lot of pods running hget at the same time
+        """
+
         # PubSub related
         self._pubsub = None
         self._pubsub_client_id = None
@@ -58,10 +66,18 @@ class CachedRedis(aioredis.Redis):
         
         # Local cache related
         self.cache_size = kwargs.pop("cache_size", 10000)
-        self.cache_expire_threshold = kwargs.pop("cache_expire_threshold", 86400)
-        if self.cache_expire_threshold <= 0:
-            logging.warning("expire_threshold should be larger than 0, set to 86400")
-            self.cache_expire_threshold = 86400
+        self.cache_ttl = kwargs.pop("cache_ttl", 86400)
+        if self.cache_ttl <= 0:
+            logging.warning("cache_ttl should be larger than 0, set to 86400")
+            self.cache_ttl = 86400
+        self.cache_ttl_deviation = kwargs.pop("cache_ttl_deviation", 0.01)
+        if self.cache_ttl_deviation < 0 or self.cache_ttl_deviation > 1:
+            logging.warning("cache_ttl_deviation should be in [0, 1], set to 0.01")
+            self.cache_ttl_deviation = 0.01
+        self.cache_ttl_max_deviation = int(self.cache_ttl * self.cache_ttl_deviation)
+        if self.cache_ttl_max_deviation < 1:
+            logging.error("cache_ttl * cache_ttl_deviation is less than 1, \
+            please increase cache_ttl or decrease cache_ttl_deviation to avoid cache avalanche")
         self._local_cache = LRU(self.cache_size)
 
         # Health check related
@@ -192,9 +208,13 @@ class CachedRedis(aioredis.Redis):
         """
         Set key, value and expire time to local cache
         """
+        # Key exist
         if value is not None: 
-            # Key exist
-            ttl = min(ttl, self.cache_expire_threshold) if ttl >=0 else self.cache_expire_threshold
+            # If the key has ttl in redis server and less than or equal to cache_ttl, 
+            # use it to keep the expire time consistent. Otherwise, use cache_ttl and 
+            # make it a little bit random to avoid cache avalanche.
+            if ttl < 0 and ttl > self.cache_ttl:
+                ttl = self.cache_ttl - random.randint(0, self.cache_ttl_max_deviation)
 
             # Check if the value is deleted by _listen_invalidate
             if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER and self._pubsub_is_alive:
