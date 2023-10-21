@@ -81,6 +81,7 @@ class CachedRedis(aioredis.Redis):
 
         # Listen invalidate related
         self._listen_invalidate_callback = []
+        self._listen_invalidate_callback_enabled = False
 
         # Health check related
         self.pubsub_health_check_interval = kwargs.pop("pubsub_health_check_interval", 60)
@@ -404,14 +405,16 @@ class CachedRedis(aioredis.Redis):
         """
         Register callback function for listen invalidate
         """
+        self._listen_invalidate_callback_enabled = True
         self._listen_invalidate_callback.append([func, args, kwargs])
     
     def run_listen_invalidate_callback(self, message_resp):
         """
         Run all callback functions
         """
-        for func, args, kwargs in self._listen_invalidate_callback:
-            func(message_resp, *args, **kwargs)
+        if self._listen_invalidate_callback_enabled:
+            for func, args, kwargs in self._listen_invalidate_callback:
+                func(message_resp, *args, **kwargs)
     
     async def run(self):
         task_list = [asyncio.create_task(self._background_listen_invalidate(), name=self.TASK_NAME)]
