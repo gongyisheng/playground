@@ -15,7 +15,6 @@ import signal_state_aio as signal_state
 # TODO: add insert_time for debug
 # TODO: support hget/hset
 # TODO: support set nolppo
-# TODO: support customized callback for invalidation
 
 # KNOWN ISSUE:
 #  1. if redis server closes the connection, the available connection number will -1
@@ -79,6 +78,9 @@ class CachedRedis(aioredis.Redis):
             logging.error("cache_ttl * cache_ttl_deviation is less than 1, \
             please increase cache_ttl or decrease cache_ttl_deviation to avoid cache avalanche")
         self._local_cache = LRU(self.cache_size)
+
+        # Listen invalidate related
+        self._listen_invalidate_callback = []
 
         # Health check related
         self.pubsub_health_check_interval = kwargs.pop("pubsub_health_check_interval", 60)
@@ -384,6 +386,7 @@ class CachedRedis(aioredis.Redis):
                                 key = key.decode('ascii')
                                 self.flush_key(key)
                                 logging.info(f"Invalidate key {key} because received invalidate message from redis server")
+                    self.run_listen_invalidate_callback(resp)
                 elif resp['type'] == 'pong':
                     if resp['data'] == self.HEALTH_CHECK_MSG:
                         self.health_check_ongoing_flag = False
@@ -396,6 +399,19 @@ class CachedRedis(aioredis.Redis):
 
         await self._listen_invalidate_on_close()
         self.LISTEN_INVALIDATE_COROUTINE_EVENT.set()
+    
+    def register_listen_invalidate_callback(self, func, *args, **kwargs):
+        """
+        Register callback function for listen invalidate
+        """
+        self._listen_invalidate_callback.append([func, args, kwargs])
+    
+    def run_listen_invalidate_callback(self, redis_resp):
+        """
+        Run all callback functions
+        """
+        for func, args, kwargs in self._listen_invalidate_callback:
+            func(redis_resp, *args, **kwargs)
     
     async def run(self):
         task_list = [asyncio.create_task(self._background_listen_invalidate(), name=self.TASK_NAME)]
