@@ -27,6 +27,7 @@ class CachedRedis(aioredis.Redis):
 
     VALUE_SLOT = 0
     EXPIRE_TIME_SLOT = 1
+    INSERT_TIME_SLOT = 2
 
     WRITE_CACHE_LOCK = asyncio.Lock()
     WRITE_CACHE_PLACEHOLDER = object()
@@ -73,7 +74,7 @@ class CachedRedis(aioredis.Redis):
         if self.cache_ttl_deviation < 0 or self.cache_ttl_deviation > 1:
             logging.warning("cache_ttl_deviation should be in [0, 1], set to 0.01")
             self.cache_ttl_deviation = 0.01
-        self.cache_ttl_max_deviation = int(self.cache_ttl * self.cache_ttl_deviation)
+        self.cache_ttl_max_deviation = self.cache_ttl * self.cache_ttl_deviation
         if self.cache_ttl_max_deviation < 1:
             logging.error("cache_ttl * cache_ttl_deviation is less than 1, \
             please increase cache_ttl or decrease cache_ttl_deviation to avoid cache avalanche")
@@ -136,16 +137,17 @@ class CachedRedis(aioredis.Redis):
 
         # Get value from redis server and set to cache
         # 1. Dup check that value is not in local cache
-        # 2. Clear set cache event and set value to placeholder to block other coroutines trying to read the same key
+        # 2. Set value to placeholder and block other coroutines trying to read the same key
         # 3. Get value and ttl from redis server
         # 4. Check whether the value is deleted by _listen_invalidate
         # 5. Set key, value and expire time to local cache
-        # 6. Notify other coroutines waiting for this key, and clear the event
+        # 6. Notify other coroutines waiting for this key
         if value is None:
             async with self.WRITE_CACHE_LOCK:
                 # Dup check from memory cache
                 value, _ = await self._get_from_local_cache(key)
                 if value is None:
+                    # Block other coroutines trying to read the same key
                     self.READ_CACHE_EVENT.clear()
                     self._local_cache[key] = (self.WRITE_CACHE_PLACEHOLDER, None)
                     try:
@@ -155,7 +157,7 @@ class CachedRedis(aioredis.Redis):
                         self.flush_key(key)
                         raise e
                     finally:
-                        # Notify other coroutines waiting for this key, and clear the event
+                        # Notify other coroutines waiting for this key
                         self.READ_CACHE_EVENT.set()
 
         # Ensure that other tasks on the event loop get a chance to run
@@ -199,12 +201,13 @@ class CachedRedis(aioredis.Redis):
                 if _retry <= 0:
                     logging.info(f"Heavy read-write conflict, retry times exceeded: {key}")
                     return None, True
-            
-            if time.time() <= self._local_cache[key][self.EXPIRE_TIME_SLOT]:
-                value = self._local_cache[key][self.VALUE_SLOT]
-                logging.info(f"Get key from client-side cache: {key}")
+
+            _value, expire_time, insert_time = self._local_cache[key]
+            if time.time() <= expire_time:
+                value = _value
+                logging.info(f"Get key from client-side cache: {key}, expire_time={expire_time}, insert_time={insert_time}")
             else:
-                logging.info(f"Key exists in clien-side cache but expired: {key}")
+                logging.info(f"Key exists in clien-side cache but expired: {key}, expire_time={expire_time}, insert_time={insert_time}")
         return value, False
     
     def _set_to_local_cache(self, key, value, ttl):
@@ -217,13 +220,14 @@ class CachedRedis(aioredis.Redis):
             # use it to keep the expire time consistent. Otherwise, use cache_ttl and 
             # make it a little bit random to avoid cache avalanche.
             if ttl < 0 and ttl > self.cache_ttl:
-                ttl = self.cache_ttl - random.randint(0, self.cache_ttl_max_deviation)
+                ttl = self.cache_ttl - random.random() * self.cache_ttl_max_deviation
 
             # Check if the value is deleted by _listen_invalidate
-            if self._local_cache.get(key, (None, None))[self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER and self._pubsub_is_alive:
+            if self._local_cache.get(key, (None, None, None))[self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER and self._pubsub_is_alive:
                 # If it's not deleted, set the value to local cache
-                self._local_cache[key] = (value, time.time()+ttl)
-                logging.info(f"Set key to client-side cache: {key}, ttl={ttl}")
+                insert_time = time.time()
+                self._local_cache[key] = (value, insert_time+ttl, insert_time)
+                logging.info(f"Set key to client-side cache: {key}, ttl={ttl}, insert_time={insert_time}")
             else:
                 # If it's deleted, flush the key from local cache and return the stale value
                 self.flush_key(key)
