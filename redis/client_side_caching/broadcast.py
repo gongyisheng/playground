@@ -121,7 +121,7 @@ class CachedRedis(aioredis.Redis):
         # If pubsub is not alive, get value from redis server
         _pubsub_skip_flag = not self._pubsub_is_alive
         # If key prefix is not in prefix list, get value from redis server
-        _key_prefix_skip_flag = not key.startswith(self.prefix_tuple)
+        _key_prefix_skip_flag = (not self.prefix_tuple) | (not key.startswith(self.prefix_tuple))
 
         logging.info(f"Get key: {key}, pubsub_skip_flag: {_pubsub_skip_flag}, key_prefix_skip_flag: {_key_prefix_skip_flag}")
 
