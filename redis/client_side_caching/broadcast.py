@@ -59,8 +59,12 @@ class CachedRedis(aioredis.Redis):
         self._pubsub = None
         self._pubsub_client_id = None
         self._pubsub_is_alive = False
-        self.prefix = kwargs.pop("prefix", [])
-        self.prefix_tuple = tuple(self.prefix)
+
+        # Cache prefix related
+        self.cache_prefix = kwargs.pop("prefix", []) # empty means cache all keys
+        self.cache_prefix_tuple = tuple(self.cache_prefix)
+        self.cache_noevict_prefix = kwargs.pop("nonevict_prefix", []) # empty means all keys can be evicted
+        self.cache_noevict_prefix_tuple = tuple(self.cache_noevict_prefix)
         
         # Local cache related
         self.cache_size = kwargs.pop("cache_size", 10000)
@@ -120,7 +124,7 @@ class CachedRedis(aioredis.Redis):
         # If pubsub is not alive, get value from redis server
         _pubsub_skip_flag = not self._pubsub_is_alive
         # If key prefix is not in prefix list, get value from redis server
-        _key_prefix_skip_flag = (not self.prefix_tuple) | (not key.startswith(self.prefix_tuple))
+        _key_prefix_skip_flag = (not self.cache_prefix_tuple) | (not key.startswith(self.cache_prefix_tuple))
 
         if _pubsub_skip_flag | _key_prefix_skip_flag:
             logging.info(f"Get value from redis server directly. key: {key}, pubsub_skip_flag: {_pubsub_skip_flag}, key_prefix_skip_flag: {_key_prefix_skip_flag}")
@@ -316,7 +320,7 @@ class CachedRedis(aioredis.Redis):
                     raise Exception(f"SUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
 
             # Client tracking
-            resp = await self.client_tracking_on(clientid=self._pubsub_client_id, bcast=True, prefix=self.prefix)
+            resp = await self.client_tracking_on(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
             if resp != b"OK":
                 raise Exception(f"CLIENT TRACKING failed. resp={resp}")
             
@@ -349,7 +353,7 @@ class CachedRedis(aioredis.Redis):
             self.flush_all()
             if self._pubsub_is_alive:
                 # Client tracking off
-                resp = await self.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.prefix)
+                resp = await self.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
                 if resp != b'OK':
                     raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
 
