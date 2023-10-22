@@ -123,10 +123,8 @@ class CachedRedis(aioredis.Redis):
         # If key prefix is not in prefix list, get value from redis server
         _key_prefix_skip_flag = (not self.prefix_tuple) | (not key.startswith(self.prefix_tuple))
 
-        logging.info(f"Get key: {key}, pubsub_skip_flag: {_pubsub_skip_flag}, key_prefix_skip_flag: {_key_prefix_skip_flag}")
-
         if _pubsub_skip_flag | _key_prefix_skip_flag:
-            logging.info(f"Get value from redis server directly. key: {key}")
+            logging.info(f"Get value from redis server directly. key: {key}, pubsub_skip_flag: {_pubsub_skip_flag}, key_prefix_skip_flag: {_key_prefix_skip_flag}")
             value, _ = await self._get_from_redis(key, only_value=True)
             # Ensure that other tasks on the event loop get a chance to run
             # if we didn't have to block for I/O anywhere.
