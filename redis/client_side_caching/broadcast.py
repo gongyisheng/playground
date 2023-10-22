@@ -48,6 +48,9 @@ class CachedRedis(aioredis.Redis):
 
     def __init__(self, *args, **kwargs):
         """
+        :param cache_prefix: list of key prefix to be cached, empty means cache all keys
+        :param cache_noevict_prefix: list of key prefix that can not be evicted from local cache, 
+                                    empty means all keys can be evicted
         :param cache_size: max number of keys in local cache
         :param cache_ttl: max time to live for keys in local cache
         :param cache_ttl_deviation: deviation for cache_ttl to avoid all keys expire at the same time, 
@@ -61,9 +64,9 @@ class CachedRedis(aioredis.Redis):
         self._pubsub_is_alive = False
 
         # Cache prefix related
-        self.cache_prefix = kwargs.pop("prefix", []) # empty means cache all keys
+        self.cache_prefix = kwargs.pop("cache_prefix", []) # empty means cache all keys
         self.cache_prefix_tuple = tuple(self.cache_prefix)
-        self.cache_noevict_prefix = kwargs.pop("nonevict_prefix", []) # empty means all keys can be evicted
+        self.cache_noevict_prefix = kwargs.pop("cache_noevict_prefix", []) # empty means all keys can be evicted
         self.cache_noevict_prefix_tuple = tuple(self.cache_noevict_prefix)
         
         # Local cache related
