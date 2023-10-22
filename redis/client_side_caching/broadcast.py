@@ -77,6 +77,7 @@ class CachedRedis(aioredis.Redis):
             logging.error("cache_ttl * cache_ttl_deviation is less than 1, \
             please increase cache_ttl or decrease cache_ttl_deviation to avoid cache avalanche")
         self._local_cache = LRU(self.cache_size)
+        self._local_dict_cache = {}
 
         # Listen invalidate related
         self._listen_invalidate_callback = []
@@ -192,25 +193,44 @@ class CachedRedis(aioredis.Redis):
         2. Check if key expire time is not reached
         """
         value = None
-        if key in self._local_cache:
-            _retry = self.RW_CONFLICT_MAX_RETRY
-            while self._local_cache[key][self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER:
-                await self.READ_CACHE_EVENT.wait()
-                _retry -= 1
-                if key not in self._local_cache:
-                    logging.info(f"Key becomes invalid after waiting for READ_CACHE_EVENT: {key}")
-                    return None, False
-                if _retry <= 0:
-                    logging.info(f"Heavy read-write conflict, retry times exceeded: {key}")
-                    return None, True
+        cache = None
 
-            _value, expire_time, insert_time = self._local_cache[key]
-            if time.time() <= expire_time:
-                value = _value
-                logging.info(f"Get key from client-side cache: {key}, expire_time={expire_time}, insert_time={insert_time}")
-            else:
-                logging.info(f"Key exists in clien-side cache but expired: {key}, expire_time={expire_time}, insert_time={insert_time}")
+        # choose cache, either lru cache or dict cache
+        if key in self._local_cache:
+            cache = self._local_cache
+        elif key in self._local_dict_cache:
+            cache = self._local_dict_cache
+        else:
+            return None, False
+        
+        _retry = self.RW_CONFLICT_MAX_RETRY
+        while cache[key][self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER:
+            await self.READ_CACHE_EVENT.wait()
+            _retry -= 1
+            if key not in cache:
+                logging.info(f"Key becomes invalid after waiting for READ_CACHE_EVENT: {key}")
+                return None, False
+            if _retry <= 0:
+                logging.info(f"Heavy read-write conflict, retry times exceeded: {key}")
+                return None, True
+
+        _value, expire_time, insert_time = cache[key]
+        if time.time() <= expire_time:
+            value = _value
+            logging.info(f"Get key from client-side cache: {key}, expire_time={expire_time}, insert_time={insert_time}")
+        else:
+            logging.info(f"Key exists in clien-side cache but expired: {key}, expire_time={expire_time}, insert_time={insert_time}")
         return value, False
+    
+    def _hget_from_local_cache(self, key, field):
+        """
+        Get value associated with field in hash stored at key from local cache
+        """ 
+        _value, rw_conflict_fail = self._get_from_local_cache(key)
+        if rw_conflict_fail | (_value is None):
+            return None, rw_conflict_fail
+        else:
+            return _value.get(field, None), rw_conflict_fail
     
     def _set_to_local_cache(self, key, value, ttl):
         """
