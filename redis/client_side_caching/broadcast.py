@@ -12,7 +12,6 @@ import signal_state_aio as signal_state
 # TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
 # TODO: check if there's problems return bytes
 # TODO: check if there's problems return stale values when it's invalidated
-# TODO: add insert_time for debug
 # TODO: support hget/hset
 # TODO: support set nolppo
 
