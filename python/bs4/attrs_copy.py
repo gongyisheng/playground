@@ -1,4 +1,4 @@
-from copy import deepcopy
+import copy
 from bs4 import BeautifulSoup
 
 def main():
@@ -6,7 +6,7 @@ def main():
     s1 = soup.prettify()
     original_attrs = []
     for tag in soup.find_all(True):
-        original_attrs.append(deepcopy(tag.attrs))
+        original_attrs.append(copy.copy(tag.attrs))
         tag.attrs['test'] = 'test'
     i=0
     for tag in soup.find_all(True):
