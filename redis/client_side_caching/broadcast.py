@@ -4,16 +4,11 @@ import random
 import string
 import time
 import traceback
-from typing import Optional, Union
+from typing import Callable, Optional, Union, Tuple
 
 import redis.asyncio as aioredis
 from lru import LRU
 import signal_state_aio as signal_state
-
-
-# TODO: discuss several timeout/sleep values (search for keyword `timeout` or `sleep`)
-# TODO: support set nolppo
-# TODO: add function type check
 
 # KNOWN ISSUE:
 #  1. if redis server closes the connection, the available connection number will -1
@@ -59,8 +54,16 @@ class CachedRedis(aioredis.Redis):
         :param cache_ttl: max time to live for keys in local cache
         :param cache_ttl_deviation: deviation for cache_ttl to avoid all keys expire at the same time, 
                                     should be in [0, 1], 0.01 means 1% deviation of cache_ttl
-        :param hget_deviation: deviation for hget, to avoid a lot of pods running hget at the same time
+        :param hget_deviation_option: deviation for hget, to avoid a lot of pods running hget at the same time
         """
+        def _validate_option(_dict):
+            for k, v in _dict:
+                if type(k) is not str:
+                    raise TypeError("get_deviation_option key should be str")
+                if type(v) is not float:
+                    raise TypeError("get_deviation_option value should be float")
+                if v <= 0:
+                    raise ValueError("get_deviation_option value should be larger than 0")
 
         # PubSub related
         self._pubsub = None
@@ -75,20 +78,27 @@ class CachedRedis(aioredis.Redis):
         
         # Local cache related
         self.cache_size = kwargs.pop("cache_size", 10000)
+
         self.cache_ttl = kwargs.pop("cache_ttl", 86400)
         if self.cache_ttl <= 0:
             logging.warning("cache_ttl should be larger than 0, set to 86400")
             self.cache_ttl = 86400
+
         self.cache_ttl_deviation = kwargs.pop("cache_ttl_deviation", 0.01)
         if self.cache_ttl_deviation < 0 or self.cache_ttl_deviation > 1:
             logging.warning("cache_ttl_deviation should be in [0, 1], set to 0.01")
             self.cache_ttl_deviation = 0.01
+
         self.cache_ttl_max_deviation = self.cache_ttl * self.cache_ttl_deviation
         if self.cache_ttl_max_deviation < 1:
             logging.error("cache_ttl * cache_ttl_deviation is less than 1, \
-            please increase cache_ttl or decrease cache_ttl_deviation to avoid cache avalanche")
+            please increase cache_ttl or cache_ttl_deviation to avoid cache avalanche")
+
+        self.hget_deviation_option = kwargs.pop("hget_deviation_option", {})
+        _validate_option(self.hget_deviation_option)
+
         self._local_lru_cache = LRU(self.cache_size)
-        self._local_dict_cache = {}
+        self._local_noevict_cache = {}
         self._hashkey_field_map = {} # key -> [hashkey_prefix:key:field] metadata, for listen invalidate of hashkey
 
         # Listen invalidate related
@@ -100,6 +110,7 @@ class CachedRedis(aioredis.Redis):
         if self.health_check_interval <= 0:
             logging.warning("health_check_interval should be larger than 0, set to 60")
             self.health_check_interval = 60
+
         self.health_check_ongoing_flag = False
         self.health_check_timeout = 10
         self._last_health_check_time = 0
@@ -107,35 +118,25 @@ class CachedRedis(aioredis.Redis):
         
         super().__init__(*args, **kwargs)
     
-    def _make_cache_key(self, key: str, field: Optional[str] = None):
+    def _make_cache_key(self, key: str, field: Optional[str] = None) -> str:
         if field is None:
             return key
         else:
             return f"{self.HASHKEY_PREFIX}:{key}:{field}"
     
-    def _choose_cache(self, key: str):
+    def _choose_cache(self, key: str) -> dict:
         if key.startswith(self.cache_noevict_prefix_tuple):
-            cache = self._local_dict_cache
+            cache = self._local_noevict_cache
         else:
             cache = self._local_lru_cache
         return cache
-
-    async def set(self, key: str, value: str):
-        """
-        Set kv pair to redis server, nothing different from redis.set()
-        TODO: add optional parameter to set expire time
-        TODO(optional): add optional parameter to set NOLOOP
-        """
-        await super().set(key, value)
-        # optional: cache writes to local cache
-        # optional: use NOLOOP option to tell the server 
-        # client don't want to receive invalidation messages 
-        # for this keys that it modified.
     
     async def get(self, key: str):
+        logging.info(f"Get key={key}")
         return await self._get(key)
 
     async def hget(self, key: str, field: str):
+        logging.info(f"Hget key={key} field={field}")
         return await self._get(key, field=field)
 
     async def _get(self, key: str, field: Optional[str] = None):
@@ -194,7 +195,7 @@ class CachedRedis(aioredis.Redis):
         await asyncio.sleep(0)
         return value
     
-    async def _get_from_redis(self, key: str, only_value: bool = False, **kwargs):
+    async def _get_from_redis(self, key: str, only_value: bool = False, **kwargs) -> Tuple[Union[bytes, str], int]:
         """
         Get key and ttl (optional) from redis server
         This function may raise exceptions
@@ -211,12 +212,17 @@ class CachedRedis(aioredis.Redis):
         logging.info(f"Get key from redis server: {key}, ttl={ttl}, only_value={only_value}")
         return value, ttl
     
-    async def _hget_from_redis(self, key: str, field: str, only_value: bool = False):
+    async def _hget_from_redis(self, key: str, field: str, only_value: bool = False) -> Tuple[Union[bytes, str], int]:
         """
         Hget key, field from redis server
         This function may raise exceptions
         """
         value = ttl = None
+
+        if key in self.hget_deviation_option:
+            deviation = random.random() * self.hget_deviation_option[key]
+            await asyncio.sleep(deviation)
+
         if only_value:
             value = await super().hget(key, field)
         else:
@@ -228,7 +234,7 @@ class CachedRedis(aioredis.Redis):
         logging.info(f"Hget key, field from redis server: {key}, {field} ttl={ttl}, only_value={only_value}")
         return value, ttl
     
-    async def _get_from_cache(self, key: str, **kwargs):
+    async def _get_from_cache(self, key: str, **kwargs) -> Tuple[Union[bytes, str], bool]:
         """
         Get value from local cache
         1. Check if key exist in local cache. 
@@ -264,7 +270,7 @@ class CachedRedis(aioredis.Redis):
             logging.info(f"Key exists in clien-side cache but expired: {key}, expire_time={expire_time}, insert_time={insert_time}")
         return value, False
     
-    async def _hget_from_cache(self, key: str, field: str):
+    async def _hget_from_cache(self, key: str, field: str) -> Tuple[Union[bytes, str], bool]:
         """
         Get value associated with field in hash stored at key from local cache
         """ 
@@ -275,7 +281,7 @@ class CachedRedis(aioredis.Redis):
         else:
             return _value, rw_conflict_fail
     
-    def _set_to_cache(self, key: str, value: str, ttl: Union[int, float], **kwargs):
+    def _set_to_cache(self, key: str, value: str, ttl: Union[int, float], **kwargs) -> None:
         """
         Set key, value and expire time to local cache
         """
@@ -303,7 +309,7 @@ class CachedRedis(aioredis.Redis):
             self.flush_key(key)
             logging.info(f"Key not exist in redis server: {key}")
 
-    def _hset_to_cache(self, key: str, value: str, ttl: Union[int, float], field: str):
+    def _hset_to_cache(self, key: str, value: str, ttl: Union[int, float], field: str) -> None:
         """
         Set hashed key-field, value and expire time to local cache
         """
@@ -313,7 +319,7 @@ class CachedRedis(aioredis.Redis):
         self._hashkey_field_map[key].add(cache_key)
         self._set_to_cache(cache_key, value, ttl)
     
-    async def _cache_key(self, key: str, field: Optional[str] = None):
+    async def _cache_key(self, key: str, field: Optional[str] = None) -> Optional[str]:
 
         gmode = "hget" if field else "get"
         smode = "hset" if field else "set"
@@ -338,15 +344,15 @@ class CachedRedis(aioredis.Redis):
             self.READ_CACHE_EVENT.set()
         return value
     
-    def flush_all(self):
+    def flush_all(self) -> None:
         """
         Flush the whole local cache
         """
         self._local_lru_cache.clear()
-        self._local_dict_cache.clear()
+        self._local_noevict_cache.clear()
         logging.info("Flush ALL client-side cache")
     
-    def flush_key(self, key: str):
+    def flush_key(self, key: str) -> None:
         """
         Delete key from local cache
         """
@@ -365,7 +371,7 @@ class CachedRedis(aioredis.Redis):
 
         logging.info(f"Flush key from client-side cache: {key}")
     
-    async def _background_listen_invalidate(self):
+    async def _background_listen_invalidate(self) -> None:
         """
         Create another listen invalidate coroutine in case the current connection is broken
         """
@@ -380,7 +386,7 @@ class CachedRedis(aioredis.Redis):
         finally:
             logging.info("Exit _background_listen_invalidate")
     
-    async def _listen_invalidate_on_open(self):
+    async def _listen_invalidate_on_open(self) -> None:
         """
         Steps to open listen invalidate coroutine
         1. Create pubsub object
@@ -421,7 +427,7 @@ class CachedRedis(aioredis.Redis):
             self._pubsub_client_id = None
             self._pubsub_is_alive = False
     
-    async def _listen_invalidate_on_close(self):
+    async def _listen_invalidate_on_close(self) -> None:
         """
         Steps to close listen invalidate coroutine
         1. Flush whole client side cache
@@ -466,7 +472,7 @@ class CachedRedis(aioredis.Redis):
             self._pubsub_client_id = None
             logging.info("PubSub reset complete")
 
-    async def _listen_invalidate(self):
+    async def _listen_invalidate(self) -> None:
         """
         Listen invalidate message from redis server 
         as well as connection health check
@@ -518,14 +524,14 @@ class CachedRedis(aioredis.Redis):
         await self._listen_invalidate_on_close()
         self.LISTEN_INVALIDATE_COROUTINE_EVENT.set()
     
-    def register_listen_invalidate_callback(self, func, *args, **kwargs):
+    def register_listen_invalidate_callback(self, func: Callable, *args, **kwargs) -> None:
         """
         Register callback function for listen invalidate
         """
         self._listen_invalidate_callback_enabled = True
         self._listen_invalidate_callback.append([func, args, kwargs])
     
-    def run_listen_invalidate_callback(self, message_resp: dict):
+    def run_listen_invalidate_callback(self, message_resp: dict) -> None:
         """
         Run all callback functions
         """
@@ -533,7 +539,7 @@ class CachedRedis(aioredis.Redis):
             for func, args, kwargs in self._listen_invalidate_callback:
                 func(message_resp, *args, **kwargs)
     
-    async def run(self):
+    async def run(self) -> None:
         task_list = [asyncio.create_task(self._background_listen_invalidate(), name=self.TASK_NAME)]
         await asyncio.gather(*task_list)
 
