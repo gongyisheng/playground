@@ -33,7 +33,7 @@ class CachedRedis(aioredis.Redis):
     READ_CACHE_EVENT = asyncio.Event()
     RW_CONFLICT_MAX_RETRY = 5
 
-    HASHKEY_SUFFIX = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))
+    HASHKEY_PREFIX = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))
 
     LISTEN_INVALIDATE_COROUTINE_EVENT = asyncio.Event()
 
@@ -71,7 +71,7 @@ class CachedRedis(aioredis.Redis):
         self.cache_prefix = kwargs.pop("cache_prefix", []) # empty means cache all keys
         self.cache_prefix_tuple = tuple(self.cache_prefix)
         self.cache_noevict_prefix = kwargs.pop("cache_noevict_prefix", []) # empty means all keys can be evicted
-        self.cache_noevict_prefix_tuple = tuple(self.cache_noevict_prefix)
+        self.cache_noevict_prefix_tuple = tuple([f"{self.HASHKEY_PREFIX}:{p}" for p in self.cache_noevict_prefix] + self.cache_noevict_prefix)
         
         # Local cache related
         self.cache_size = kwargs.pop("cache_size", 10000)
@@ -111,7 +111,7 @@ class CachedRedis(aioredis.Redis):
         if field is None:
             return key
         else:
-            return f"{key}:{field}:{self.HASHKEY_SUFFIX}"
+            return f"{self.HASHKEY_PREFIX}:{key}:{field}"
     
     def _choose_cache(self, key: str):
         if key.startswith(self.cache_noevict_prefix_tuple):
@@ -322,7 +322,7 @@ class CachedRedis(aioredis.Redis):
         cache_setter = getattr(self, f"_{smode}_to_cache")
         
         cache_key = self._make_cache_key(key, field)
-        cache = self._choose_cache(cache_key)
+        cache = self._choose_cache(key)
 
         # Block other coroutines trying to read the same key
         self.READ_CACHE_EVENT.clear()

@@ -184,7 +184,7 @@ async def test_concurrent_hget():
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
 
-async def test_nonevict_get():
+async def test_noevict_get():
     async def _get(key: str, expected_value: bytes):
         while signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split('-')[0])
@@ -204,7 +204,7 @@ async def test_nonevict_get():
     task += [asyncio.create_task(_get("my_key_no_evict", b"my_value_no_evict"))]
     await asyncio.gather(daemon_task, *task)
 
-async def test_nonevict_hget():
+async def test_noevict_hget():
     async def _hget(key: str, field: str, expected_value: bytes):
         while signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split('-')[0])
