@@ -6,7 +6,6 @@ import time
 import traceback
 from typing import Callable, Optional, Union, Tuple
 
-import redis.asyncio as aioredis
 from lru import LRU
 import signal_state_aio as signal_state
 
