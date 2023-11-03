@@ -17,7 +17,7 @@ import signal_state_aio as signal_state
 #  2. If redis is shutdown and rebooted, it's recommend to restart the client. 
 #     The closed connection in the pool will not be reconnected, and there're chances 
 #     to cause "No connection available" error.
-class CachedRedis(aioredis.Redis):
+class CachedRedis(object):
 
     VALUE_SLOT = 0
     EXPIRE_TIME_SLOT = 1
@@ -45,7 +45,7 @@ class CachedRedis(aioredis.Redis):
         'data': 0
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, redis, **kwargs):
         """
         :param cache_prefix: list of key prefix to be cached, empty means cache all keys
         :param cache_noevict_prefix: list of key prefix that can not be evicted from local cache, 
@@ -64,6 +64,8 @@ class CachedRedis(aioredis.Redis):
                     raise TypeError("get_deviation_option value should be float")
                 if v <= 0:
                     raise ValueError("get_deviation_option value should be larger than 0")
+
+        self._redis = redis
 
         # PubSub related
         self._pubsub = None
@@ -115,8 +117,6 @@ class CachedRedis(aioredis.Redis):
         self.health_check_timeout = 10
         self._last_health_check_time = 0
         self._next_health_check_time = 0
-        
-        super().__init__(*args, **kwargs)
     
     def _make_cache_key(self, key: str, field: Optional[str] = None) -> str:
         if field is None:
@@ -138,6 +138,12 @@ class CachedRedis(aioredis.Redis):
     async def hget(self, key: str, field: str):
         logging.info(f"Hget key={key} field={field}")
         return await self._get(key, field=field)
+    
+    async def set(self, *args, **kwargs):
+        return await self._redis.set(*args, **kwargs)
+
+    async def hset(self, *args, **kwargs):
+        return await self._redis.hset(*args, **kwargs)
 
     async def _get(self, key: str, field: Optional[str] = None):
         """
@@ -202,10 +208,10 @@ class CachedRedis(aioredis.Redis):
         """
         value = ttl = None
         if only_value:
-            value = await super().get(key)
+            value = await self._redis.get(key)
         else:
             # Use pipeline to execute a transaction
-            pipe = super().pipeline()
+            pipe = self._redis.pipeline()
             pipe.get(key)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
@@ -224,10 +230,10 @@ class CachedRedis(aioredis.Redis):
             await asyncio.sleep(deviation)
 
         if only_value:
-            value = await super().hget(key, field)
+            value = await self._redis.hget(key, field)
         else:
             # Use pipeline to execute a transaction
-            pipe = super().pipeline()
+            pipe = self._redis.pipeline()
             pipe.hget(key, field)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
@@ -397,7 +403,7 @@ class CachedRedis(aioredis.Redis):
         """
         try:
             # Create pubsub object
-            self._pubsub = self.pubsub()
+            self._pubsub = self._redis.pubsub()
 
             # Get client id
             await self._pubsub.execute_command("CLIENT ID")
@@ -413,7 +419,7 @@ class CachedRedis(aioredis.Redis):
                     raise Exception(f"SUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
 
             # Client tracking
-            resp = await self.client_tracking_on(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
+            resp = await self._redis.client_tracking_on(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
             if resp != b"OK":
                 raise Exception(f"CLIENT TRACKING failed. resp={resp}")
             
@@ -446,7 +452,7 @@ class CachedRedis(aioredis.Redis):
             self.flush_all()
             if self._pubsub_is_alive:
                 # Client tracking off
-                resp = await self.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
+                resp = await self._redis.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
                 if resp != b'OK':
                     raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
 
