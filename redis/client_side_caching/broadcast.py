@@ -149,11 +149,11 @@ class CachedRedis(object):
         return cache
     
     async def get(self, key: str):
-        logging.info(f"Get key={key}")
+        logging.debug(f"Get key={key}")
         return await self._get(key)
 
     async def hget(self, key: str, field: str):
-        logging.info(f"Hget key={key} field={field}")
+        logging.debug(f"Hget key={key} field={field}")
         return await self._get(key, field=field)
     
     async def set(self, *args, **kwargs):
@@ -184,7 +184,7 @@ class CachedRedis(object):
         _key_prefix_skip_flag = (len(self.cache_prefix_tuple) > 0) & (not key.startswith(self.cache_prefix_tuple))
 
         if _pubsub_skip_flag | _key_prefix_skip_flag:
-            logging.info(f"Get value from redis server directly. key: {key}, pubsub_skip_flag: {_pubsub_skip_flag}, key_prefix_skip_flag: {_key_prefix_skip_flag}")
+            logging.debug(f"Get value from redis server directly. key: {key}, pubsub_skip_flag: {_pubsub_skip_flag}, key_prefix_skip_flag: {_key_prefix_skip_flag}")
             value, _ = await redis_getter(key, field=field, only_value=True)
             # Ensure that other tasks on the event loop get a chance to run
             # if we didn't have to block for I/O anywhere.
@@ -196,7 +196,7 @@ class CachedRedis(object):
         # If read-write conflict is heavy, get value from redis server
         value, rw_conflict_fail = await cache_getter(cache, key, field=field)
         if rw_conflict_fail:
-            logging.info(f"Heavy read-write conflict, get value from redis server, key: {key}")
+            logging.warning(f"Heavy read-write conflict, get value from redis server, key: {key}")
             value, _ = await redis_getter(key, only_value=True, field=field)
             return value
 
@@ -233,7 +233,7 @@ class CachedRedis(object):
             pipe.get(key)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
-        logging.info(f"Get key from redis server: {key}, ttl={ttl}, only_value={only_value}")
+        logging.debug(f"Get key from redis server: {key}, ttl={ttl}, only_value={only_value}")
         return value, ttl
     
     async def _hget_from_redis(self, key: str, field: str, only_value: bool = False) -> Tuple[Union[bytes, str], int]:
@@ -255,7 +255,7 @@ class CachedRedis(object):
             pipe.hget(key, field)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
-        logging.info(f"Hget key, field from redis server: {key}, {field} ttl={ttl}, only_value={only_value}")
+        logging.debug(f"Hget key, field from redis server: {key}, {field} ttl={ttl}, only_value={only_value}")
         return value, ttl
     
     async def _get_from_cache(self, cache: dict, key: str, **kwargs) -> Tuple[Union[bytes, str], bool]:
@@ -275,19 +275,19 @@ class CachedRedis(object):
             await self.__get_read_cache_event().wait()
             _retry -= 1
             if key not in cache:
-                logging.info(f"Key becomes invalid after waiting for READ_CACHE_EVENT: {key}")
+                logging.debug(f"Key becomes invalid after waiting for READ_CACHE_EVENT: {key}")
                 return None, False
             if _retry <= 0:
-                logging.info(f"Heavy read-write conflict, retry times exceeded: {key}")
+                logging.debug(f"Heavy read-write conflict, retry times exceeded: {key}")
                 return None, True
 
         _value, expire_time, insert_time = cache[key]
         if time.time() <= expire_time:
             value = _value
-            logging.info(f"Get key from client-side cache: {key}, expire_time={expire_time}, insert_time={insert_time}")
+            logging.debug(f"Get key from client-side cache: {key}, expire_time={expire_time}, insert_time={insert_time}")
         else:
             self.flush_key(key)
-            logging.info(f"Key exists in clien-side cache but expired: {key}, expire_time={expire_time}, insert_time={insert_time}")
+            logging.debug(f"Key exists in clien-side cache but expired: {key}, expire_time={expire_time}, insert_time={insert_time}")
         return value, False
     
     async def _hget_from_cache(self, cache: dict, key: str, field: str) -> Tuple[Union[bytes, str], bool]:
@@ -318,15 +318,15 @@ class CachedRedis(object):
                 # If it's not deleted, set the value to local cache
                 insert_time = time.time()
                 cache[key] = (value, insert_time+ttl, insert_time)
-                logging.info(f"Set key to client-side cache: {key}, ttl={ttl}, insert_time={insert_time}")
+                logging.debug(f"Set key to client-side cache: {key}, ttl={ttl}, insert_time={insert_time}")
             else:
                 # If it's deleted, flush the key from local cache and return the stale value
                 self.flush_key(key)
-                logging.info(f"Key becomes invalid before set to cache, return the stale value: {key}")
+                logging.debug(f"Key becomes invalid before set to cache, return the stale value: {key}")
         else: 
             # Key not exist
             self.flush_key(key)
-            logging.info(f"Key not exist in redis server: {key}")
+            logging.debug(f"Key not exist in redis server: {key}")
 
     def _hset_to_cache(self, cache: dict, key: str, value: str, ttl: Union[int, float], field: str) -> None:
         """

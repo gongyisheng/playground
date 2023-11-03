@@ -39,7 +39,7 @@ def setup_logger():
     sh = logging.StreamHandler()
     sh.setFormatter(formatter)
     sh.addFilter(filter)
-    sh.setLevel(logging.INFO)
+    sh.setLevel(logging.DEBUG)
     logger.addHandler(sh)
 
     logger.setLevel(logging.DEBUG)
