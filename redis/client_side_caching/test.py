@@ -47,7 +47,7 @@ def setup_logger():
 async def init(**kwargs):
     signal_state.register_exit_signal()
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
-    redis = Redis(connection_pool=pool)
+    redis = Redis(connection_pool=pool) # You can also test decode_responses=True, it should also work
     client = CachedRedis(redis, **kwargs)
     daemon_task = asyncio.create_task(client.run())
     await redis.flushdb()
