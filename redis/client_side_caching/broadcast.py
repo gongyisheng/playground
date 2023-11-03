@@ -158,6 +158,9 @@ class CachedRedis(object):
 
     async def hset(self, *args, **kwargs):
         return await self._redis.hset(*args, **kwargs)
+    
+    async def setnx(self, *args, **kwargs):
+        return await self._redis.setnx(*args, **kwargs)
 
     async def _get(self, key: str, field: Optional[str] = None):
         """
