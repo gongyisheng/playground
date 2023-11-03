@@ -337,5 +337,22 @@ if __name__ == "__main__":
     setup_logger()
     loop = asyncio.get_event_loop()
     func_name = sys.argv[1]
-    loop.run_until_complete(globals()[func_name]())
+    profiling = sys.argv[2] == "1"
+
+    if not profiling:
+        loop.run_until_complete(globals()[func_name]())
+    else:
+        import cProfile
+        import pstats
+
+        profiler = cProfile.Profile(timer=time.process_time)
+        profiler.enable()
+        loop.run_until_complete(globals()[func_name]())
+        profiler.disable()
+
+        stream = open('profiling_output.log', 'w')
+        stats = pstats.Stats(profiler, stream=stream).sort_stats('cumulative')
+        stats.sort_stats('cumtime')
+        s = stats.print_stats()
+        stream.close()
     
