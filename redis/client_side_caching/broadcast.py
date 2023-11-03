@@ -16,6 +16,10 @@ import signal_state_aio as signal_state
 #  2. If redis is shutdown and rebooted, it's recommend to restart the client. 
 #     The closed connection in the pool will not be reconnected, and there're chances 
 #     to cause "No connection available" error.
+# TODO:
+#  1. test asyncio.run()
+#  2. improve choose_cache
+#  3. improve log
 class CachedRedis(object):
 
     VALUE_SLOT = 0
