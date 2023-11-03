@@ -17,7 +17,6 @@ import signal_state_aio as signal_state
 #     The closed connection in the pool will not be reconnected, and there're chances 
 #     to cause "No connection available" error.
 # TODO:
-#  1. test asyncio.run()
 #  2. improve choose_cache
 #  3. improve log
 class CachedRedis(object):
@@ -192,9 +191,10 @@ class CachedRedis(object):
             await asyncio.sleep(0)
             return value
         
+        cache = self._choose_cache(key)
         # Get value from local cache
         # If read-write conflict is heavy, get value from redis server
-        value, rw_conflict_fail = await cache_getter(key, field=field)
+        value, rw_conflict_fail = await cache_getter(cache, key, field=field)
         if rw_conflict_fail:
             logging.info(f"Heavy read-write conflict, get value from redis server, key: {key}")
             value, _ = await redis_getter(key, only_value=True, field=field)
@@ -210,9 +210,9 @@ class CachedRedis(object):
         if value is None:
             async with self.__get_write_cache_lock():
                 # Dup check from memory cache
-                value, _ = await cache_getter(key, field=field)
+                value, _ = await cache_getter(cache, key, field=field)
                 if value is None:
-                    value = await self._cache_key(key, field=field)
+                    value = await self._cache_key(cache, key, field=field)
 
         # Ensure that other tasks on the event loop get a chance to run
         # If we didn't have to block for I/O anywhere.
@@ -258,7 +258,7 @@ class CachedRedis(object):
         logging.info(f"Hget key, field from redis server: {key}, {field} ttl={ttl}, only_value={only_value}")
         return value, ttl
     
-    async def _get_from_cache(self, key: str, **kwargs) -> Tuple[Union[bytes, str], bool]:
+    async def _get_from_cache(self, cache: dict, key: str, **kwargs) -> Tuple[Union[bytes, str], bool]:
         """
         Get value from local cache
         1. Check if key exist in local cache. 
@@ -266,14 +266,10 @@ class CachedRedis(object):
         2. Check if key expire time is not reached
         """
         value = None
-        cache = None
 
-        # choose cache, either lru cache or dict cache
-        cache = self._choose_cache(key)
-        
         if key not in cache:
             return None, False
-        
+
         _retry = self.RW_CONFLICT_MAX_RETRY
         while cache[key][self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER:
             await self.__get_read_cache_event().wait()
@@ -294,22 +290,21 @@ class CachedRedis(object):
             logging.info(f"Key exists in clien-side cache but expired: {key}, expire_time={expire_time}, insert_time={insert_time}")
         return value, False
     
-    async def _hget_from_cache(self, key: str, field: str) -> Tuple[Union[bytes, str], bool]:
+    async def _hget_from_cache(self, cache: dict, key: str, field: str) -> Tuple[Union[bytes, str], bool]:
         """
         Get value associated with field in hash stored at key from local cache
         """ 
         cache_key = self._make_cache_key(key, field)
-        _value, rw_conflict_fail = await self._get_from_cache(cache_key)
+        _value, rw_conflict_fail = await self._get_from_cache(cache, cache_key)
         if rw_conflict_fail | (_value is None):
             return None, rw_conflict_fail
         else:
             return _value, rw_conflict_fail
     
-    def _set_to_cache(self, key: str, value: str, ttl: Union[int, float], **kwargs) -> None:
+    def _set_to_cache(self, cache: dict, key: str, value: str, ttl: Union[int, float], **kwargs) -> None:
         """
         Set key, value and expire time to local cache
         """
-        cache = self._choose_cache(key)
         # Key exist
         if value is not None: 
             # If the key has ttl in redis server and less than or equal to cache_ttl, 
@@ -333,7 +328,7 @@ class CachedRedis(object):
             self.flush_key(key)
             logging.info(f"Key not exist in redis server: {key}")
 
-    def _hset_to_cache(self, key: str, value: str, ttl: Union[int, float], field: str) -> None:
+    def _hset_to_cache(self, cache: dict, key: str, value: str, ttl: Union[int, float], field: str) -> None:
         """
         Set hashed key-field, value and expire time to local cache
         """
@@ -341,9 +336,9 @@ class CachedRedis(object):
         if key not in self._hashkey_field_map:
             self._hashkey_field_map[key] = set()
         self._hashkey_field_map[key].add(cache_key)
-        self._set_to_cache(cache_key, value, ttl)
+        self._set_to_cache(cache, cache_key, value, ttl)
     
-    async def _cache_key(self, key: str, field: Optional[str] = None) -> Optional[str]:
+    async def _cache_key(self, cache: dict, key: str, field: Optional[str] = None) -> Optional[str]:
 
         gmode = "hget" if field else "get"
         smode = "hset" if field else "set"
@@ -352,14 +347,13 @@ class CachedRedis(object):
         cache_setter = getattr(self, f"_{smode}_to_cache")
         
         cache_key = self._make_cache_key(key, field)
-        cache = self._choose_cache(key)
 
         # Block other coroutines trying to read the same key
         self.__get_read_cache_event().clear()
         cache[cache_key] = (self.WRITE_CACHE_PLACEHOLDER, None)
         try:
             value, ttl = await redis_getter(key, field=field)
-            cache_setter(key, value, ttl, field=field)
+            cache_setter(cache, key, value, ttl, field=field)
         except Exception as e:
             self.flush_key(key)
             raise e
