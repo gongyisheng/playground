@@ -6,7 +6,7 @@ import time
 import traceback
 import uuid
 
-from redis.asyncio import BlockingConnectionPool, ConnectionError
+from redis.asyncio import Redis, BlockingConnectionPool, ConnectionError
 from broadcast import CachedRedis
 
 request = ContextVar("request")
@@ -47,9 +47,10 @@ def setup_logger():
 async def init(*args, **kwargs):
     signal_state.register_exit_signal()
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
-    client = CachedRedis(*args, connection_pool=pool, **kwargs)
+    redis = Redis(connection_pool=pool)
+    client = CachedRedis(redis, *args, **kwargs)
     daemon_task = asyncio.create_task(client.run())
-    await client.flushdb()
+    await redis.flushdb()
     return client, daemon_task
 
 async def test_get():
@@ -81,7 +82,10 @@ async def test_hget():
     await asyncio.gather(daemon_task)
 
 async def test_prefix():
-    client, daemon_task = await init(prefix=["test", "my"])
+    config = {
+        "prefix": ["test", "my"],
+    }
+    client, daemon_task = await init(**config)
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         request.set(str(uuid.uuid4()).split('-')[0])
