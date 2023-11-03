@@ -26,14 +26,14 @@ class CachedRedis(object):
     EXPIRE_TIME_SLOT = 1
     INSERT_TIME_SLOT = 2
 
-    WRITE_CACHE_LOCK = asyncio.Lock()
+    WRITE_CACHE_LOCK = None
     WRITE_CACHE_PLACEHOLDER = object()
-    READ_CACHE_EVENT = asyncio.Event()
+    READ_CACHE_EVENT = None
     RW_CONFLICT_MAX_RETRY = 5
 
     HASHKEY_PREFIX = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))
 
-    LISTEN_INVALIDATE_COROUTINE_EVENT = asyncio.Event()
+    LISTEN_INVALIDATE_COROUTINE_EVENT = None
 
     TASK_NAME = 'task-cached_redis'
     HEALTH_CHECK_MSG = b'cached-redis-py-health-check'
@@ -121,6 +121,21 @@ class CachedRedis(object):
         self._last_health_check_time = 0
         self._next_health_check_time = 0
     
+    def __get_write_cache_lock(self):
+        if self.WRITE_CACHE_LOCK is None:
+            self.WRITE_CACHE_LOCK = asyncio.Lock()
+        return self.WRITE_CACHE_LOCK
+    
+    def __get_read_cache_event(self):
+        if self.READ_CACHE_EVENT is None:
+            self.READ_CACHE_EVENT = asyncio.Event()
+        return self.READ_CACHE_EVENT
+    
+    def __get_listen_invalidate_coroutine_event(self):
+        if self.LISTEN_INVALIDATE_COROUTINE_EVENT is None:
+            self.LISTEN_INVALIDATE_COROUTINE_EVENT = asyncio.Event()
+        return self.LISTEN_INVALIDATE_COROUTINE_EVENT
+    
     def _make_cache_key(self, key: str, field: Optional[str] = None) -> str:
         if field is None:
             return key
@@ -150,11 +165,11 @@ class CachedRedis(object):
 
     async def _get(self, key: str, field: Optional[str] = None):
         """
-        Get value from redis server or client side cache.
-        1. If value is not in client side cache, get it from redis server and cache it.
+        Generalized get function to retrive value from redis server or client side cache.
+        1. If value is not in client side cache, get it from redis server and cache it, then return it.
         2. If value is in client side cache, return it.
         3. Lock and events are used to prevent race condition.
-        4. Keys in local cache may be evicted for two reasons: LRU full or expire time reached.
+        4. Keys in cache may be removed for two reasons: LRU full or expire time reached.
         """
         
         gmode = "hget" if field else "get"
@@ -193,7 +208,7 @@ class CachedRedis(object):
         # 5. Set key, value and expire time to local cache
         # 6. Notify other coroutines waiting for this key
         if value is None:
-            async with self.WRITE_CACHE_LOCK:
+            async with self.__get_write_cache_lock():
                 # Dup check from memory cache
                 value, _ = await cache_getter(key, field=field)
                 if value is None:
@@ -261,7 +276,7 @@ class CachedRedis(object):
         
         _retry = self.RW_CONFLICT_MAX_RETRY
         while cache[key][self.VALUE_SLOT] == self.WRITE_CACHE_PLACEHOLDER:
-            await self.READ_CACHE_EVENT.wait()
+            await self.__get_read_cache_event().wait()
             _retry -= 1
             if key not in cache:
                 logging.info(f"Key becomes invalid after waiting for READ_CACHE_EVENT: {key}")
@@ -340,7 +355,7 @@ class CachedRedis(object):
         cache = self._choose_cache(key)
 
         # Block other coroutines trying to read the same key
-        self.READ_CACHE_EVENT.clear()
+        self.__get_read_cache_event().clear()
         cache[cache_key] = (self.WRITE_CACHE_PLACEHOLDER, None)
         try:
             value, ttl = await redis_getter(key, field=field)
@@ -350,7 +365,7 @@ class CachedRedis(object):
             raise e
         finally:
             # Notify other coroutines waiting for this key
-            self.READ_CACHE_EVENT.set()
+            self.__get_read_cache_event().set()
         return value
     
     def flush_all(self) -> None:
@@ -388,8 +403,8 @@ class CachedRedis(object):
         try:
             while signal_state.ALIVE:
                 asyncio.create_task(self._listen_invalidate(), name=self.TASK_NAME)
-                self.LISTEN_INVALIDATE_COROUTINE_EVENT.clear()
-                await self.LISTEN_INVALIDATE_COROUTINE_EVENT.wait()
+                self.__get_listen_invalidate_coroutine_event().clear()
+                await self.__get_listen_invalidate_coroutine_event().wait()
         except Exception as e:
             logging.error("Error in _background_listen_invalidate", error=e)
         finally:
@@ -531,7 +546,7 @@ class CachedRedis(object):
                 break
 
         await self._listen_invalidate_on_close()
-        self.LISTEN_INVALIDATE_COROUTINE_EVENT.set()
+        self.__get_listen_invalidate_coroutine_event().set()
     
     def register_listen_invalidate_callback(self, func: Callable, *args, **kwargs) -> None:
         """
