@@ -44,11 +44,11 @@ def setup_logger():
 
     logger.setLevel(logging.DEBUG)
 
-async def init(*args, **kwargs):
+async def init(**kwargs):
     signal_state.register_exit_signal()
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
     redis = Redis(connection_pool=pool)
-    client = CachedRedis(redis, *args, **kwargs)
+    client = CachedRedis(redis, **kwargs)
     daemon_task = asyncio.create_task(client.run())
     await redis.flushdb()
     return client, daemon_task
@@ -83,7 +83,10 @@ async def test_hget():
 
 async def test_prefix():
     config = {
-        "prefix": ["test", "my"],
+        "cache_size": 5000,
+        "cache_ttl": 86400,
+        "cache_noevict_prefix": ["load_config"],
+        "hget_deviation_option": {"load_config": 10},
     }
     client, daemon_task = await init(**config)
     await client.set("my_key", "my_value")

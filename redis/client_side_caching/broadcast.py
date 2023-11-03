@@ -55,12 +55,12 @@ class CachedRedis(object):
                                     should be in [0, 1], 0.01 means 1% deviation of cache_ttl
         :param hget_deviation_option: deviation for hget, to avoid a lot of pods running hget at the same time
         """
-        def _validate_option(_dict):
-            for k, v in _dict:
+        def _validate_option(_dict: dict):
+            for k, v in _dict.items():
                 if type(k) is not str:
                     raise TypeError("get_deviation_option key should be str")
-                if type(v) is not float:
-                    raise TypeError("get_deviation_option value should be float")
+                if type(v) is not float and type(v) is not int:
+                    raise TypeError("get_deviation_option value should be float or int")
                 if v <= 0:
                     raise ValueError("get_deviation_option value should be larger than 0")
 
