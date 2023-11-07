@@ -549,13 +549,13 @@ class CachedRedis(object):
         self._listen_invalidate_callback_enabled = True
         self._listen_invalidate_callback.append([func, args, kwargs])
     
-    def run_listen_invalidate_callback(self, message_resp: dict) -> None:
+    def run_listen_invalidate_callback(self, message: dict) -> None:
         """
         Run all callback functions
         """
         if self._listen_invalidate_callback_enabled:
             for func, args, kwargs in self._listen_invalidate_callback:
-                func(message_resp, *args, **kwargs)
+                func(message=message, *args, **kwargs)
     
     async def run(self) -> None:
         task_list = [asyncio.create_task(self._background_listen_invalidate(), name=self.TASK_NAME)]
