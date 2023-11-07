@@ -46,9 +46,13 @@ def setup_logger():
 
 async def init(**kwargs):
     signal_state.register_exit_signal()
-    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
+    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=2)
     redis = Redis(connection_pool=pool) # You can also test decode_responses=True, it should also work
     client = CachedRedis(redis, **kwargs)
+    callback_funcs = kwargs.get("callback_funcs")
+    if callback_funcs:
+        for func in callback_funcs:
+            client.register_listen_invalidate_callback(func)
     daemon_task = asyncio.create_task(client.run())
     await redis.flushdb()
     return client, daemon_task
@@ -330,6 +334,62 @@ async def test_hget_extreme_case():
     await client.hset("my_key", "my_field", "my_value")
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+
+async def test_get_concurrent_listen_invalidate():
+    class Metric:
+        set_time = 0
+        flush_start_time = 2<<31 - 1
+        flush_end_time = 0
+
+        @classmethod
+        def update_set_time(cls, value):
+            cls.set_time = value
+            cls.flush_start_time = 2<<31 - 1
+            cls.flush_end_time = 0
+        
+        @classmethod
+        def update_flush_start_time(cls, **kwargs):
+            value = time.time()
+            cls.flush_start_time = min(value, cls.flush_start_time)
+        
+        @classmethod
+        def update_flush_end_time(cls, **kwargs):
+            value = time.time()
+            cls.flush_end_time = max(value, cls.flush_end_time)
+
+    metric = Metric()
+
+    async def _get():
+        client, daemon_task = await init(cache_prefix=["test", "my"], cache_ttl=86400, callback_funcs=[metric.update_flush_start_time, metric.update_flush_end_time])
+        await client.set("my_key", "my_value")
+        await asyncio.sleep(1)
+
+        while signal_state.ALIVE:
+            request.set(str(uuid.uuid4()).split('-')[0])
+            try:
+                value = await client.get("my_key")
+                assert value[:8] == b"my_value"
+                await asyncio.sleep(6)
+            except ConnectionError as e:
+                logging.error(e, value)
+            except AssertionError as e:
+                break
+            except Exception as e:
+                logging.error(e, value)
+                break
+
+    async def _set():
+        pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
+        redis = Redis(connection_pool=pool)
+        await asyncio.sleep(5)
+        nonlocal metric
+        metric.update_set_time(time.time())
+        await redis.set("my_key", "not_my_value")
+
+    pool_num = 4000
+    task = [asyncio.create_task(_get()) for _ in range(pool_num)] + [asyncio.create_task(_set())]
+    await asyncio.gather(*task)
+    logging.info(f"start_interval: {metric.flush_start_time - metric.set_time}, end_interval: {metric.flush_end_time - metric.set_time}")
 
 if __name__ == "__main__":
     import sys
