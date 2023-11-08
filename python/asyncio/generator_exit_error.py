@@ -21,4 +21,4 @@ def generator():
 if __name__ == "__main__":
     for x in MyGenIt("foo",range(10)):
         if x == 5:
-            raise ValueError("got 5")
+            break
