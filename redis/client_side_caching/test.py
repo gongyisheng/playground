@@ -367,6 +367,22 @@ async def test_frequent_set():
     end = time.time()
     logging.info(f"SET 1000 times in {end - start} seconds, qps = {int(1000 / (end - start))}")
 
+async def test_concurrent_set():
+    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
+    redis = Redis(connection_pool=pool)
+    await asyncio.sleep(10)
+
+    async def _set():
+        start = time.time()
+        for i in range(1000):
+            await redis.set("my_key", "not_my_value")
+            logging.info(f"SET {i} times")
+        end = time.time()
+        logging.info(f"SET 1000 times in {end - start} seconds, qps = {int(1000 / (end - start))}")
+    pool_size = 5
+    task = [asyncio.create_task(_set()) for _ in range(pool_size)]
+    await asyncio.gather(*task)
+
 if __name__ == "__main__":
     import sys
 
