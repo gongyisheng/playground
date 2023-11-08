@@ -1,5 +1,4 @@
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
 from contextvars import ContextVar
 import logging
 import signal_state_aio as signal_state
