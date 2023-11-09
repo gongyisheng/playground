@@ -62,7 +62,7 @@ async def init(**kwargs):
     return client, daemon_task
 
 async def test_get():
-    client, daemon_task = await init()
+    client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -76,7 +76,7 @@ async def test_get():
     await asyncio.gather(daemon_task)
 
 async def test_hget():
-    client, daemon_task = await init()
+    client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.hset("my_key", "my_field", "my_value")
     while signal_state.ALIVE:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -93,6 +93,7 @@ async def test_prefix():
     config = {
         "cache_size": 5000,
         "cache_ttl": 86400,
+        "cache_prefix": ["my_key", "test"],
         "cache_noevict_prefix": ["load_config"],
         "hget_deviation_option": {"load_config": 10},
     }
@@ -110,7 +111,7 @@ async def test_prefix():
     await asyncio.gather(daemon_task)
 
 async def test_frequent_get():
-    client, daemon_task = await init()
+    client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -123,7 +124,7 @@ async def test_frequent_get():
     await asyncio.gather(daemon_task)
 
 async def test_frequent_hget():
-    client, daemon_task = await init()
+    client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.hset("my_key", "my_field", "my_value")
     while signal_state.ALIVE:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -136,7 +137,7 @@ async def test_frequent_hget():
     await asyncio.gather(daemon_task)
 
 async def test_short_expire_time():
-    client, daemon_task = await init(cache_expire_threshold=2)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_expire_threshold=2)
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -150,7 +151,7 @@ async def test_short_expire_time():
     await asyncio.gather(daemon_task)
 
 async def test_short_health_check():
-    client, daemon_task = await init(pubsub_health_check_interval=2)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], pubsub_health_check_interval=2)
     await client.set("my_key", "my_value")
     while signal_state.ALIVE:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -176,7 +177,7 @@ async def test_concurrent_get():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"])
+    client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.set("my_key", f"my_value_{time.time()}")
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
@@ -194,7 +195,7 @@ async def test_concurrent_hget():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"])
+    client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.hset("my_key", "my_field", f"my_value_{time.time()}")
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
@@ -210,7 +211,7 @@ async def test_noevict_get():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_noevict_prefix=["my_key_no_evict"], cache_size=5)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5)
     await client.set("my_key_no_evict", "my_value_no_evict")
     for i in range(pool_num):
         await client.set(f"my_key_{i}", f"my_value_{i}")
@@ -230,7 +231,7 @@ async def test_noevict_hget():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_noevict_prefix=["my_key"], cache_size=5)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key"], cache_size=5)
     await client.hset("my_key", "my_field_no_evict", "my_value_no_evict")
     for i in range(pool_num):
         await client.hset(f"my_key", f"my_field_{i}", f"my_value_{i}")
@@ -250,7 +251,7 @@ async def test_concurrent_get_short_expire_time():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"], cache_ttl=0.001)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001)
     await client.set("my_key", "my_value")
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
@@ -266,7 +267,7 @@ async def test_concurrent_hget_short_expire_time():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"], cache_ttl=0.001)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001)
     await client.hset("my_key", "my_field", "my_value")
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
@@ -282,7 +283,7 @@ async def test_concurrent_get_short_health_check():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"], health_check_interval=0.001)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], health_check_interval=0.001)
     await client.set("my_key", "my_value")
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
@@ -298,7 +299,7 @@ async def test_concurrent_hget_short_health_check():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"], health_check_interval=0.001)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], health_check_interval=0.001)
     await client.hset("my_key", "my_field", "my_value")
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
@@ -316,7 +317,7 @@ async def test_get_extreme_case():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"], cache_ttl=0.001, health_check_interval=0.001)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
     await client.set("my_key", "my_value")
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
@@ -334,14 +335,14 @@ async def test_hget_extreme_case():
                 logging.error(e, value)
                 raise e
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["test", "my"], cache_ttl=0.001, health_check_interval=0.001)
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
     await client.hset("my_key", "my_field", "my_value")
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
 
 async def test_1000_client_listen_invalidate():
     async def _get():
-        client, daemon_task = await init(cache_prefix=["test", "my"], cache_ttl=86400)
+        client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=86400)
         await client.set("my_key", "my_value")
         await asyncio.sleep(60)
 

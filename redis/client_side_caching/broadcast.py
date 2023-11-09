@@ -6,6 +6,7 @@ import time
 import traceback
 from typing import Callable, Optional, Union, Tuple
 
+from redis import asyncio as aioredis
 from lru import LRU
 import signal_state_aio as signal_state
 
@@ -16,6 +17,7 @@ import signal_state_aio as signal_state
 #  2. If redis is shutdown and rebooted, it's recommend to restart the client. 
 #     The closed connection in the pool will not be reconnected, and there're chances 
 #     to cause "No connection available" error.
+#  3. CachedRedis does not support redis cluster for now.
 class CachedRedis(object):
 
     VALUE_SLOT = 0
@@ -44,9 +46,9 @@ class CachedRedis(object):
         'data': 0
     }
 
-    def __init__(self, redis, **kwargs):
+    def __init__(self, redis: aioredis.Redis, **kwargs):
         """
-        :param cache_prefix: list of key prefix to be cached, empty means cache all keys
+        :param cache_prefix: list of key prefix to be cached, empty list is not allowed
         :param cache_noevict_prefix: list of key prefix that can not be evicted from local cache, 
                                     empty means all keys can be evicted
         :param cache_size: max number of keys in local cache
@@ -72,8 +74,10 @@ class CachedRedis(object):
         self._pubsub_is_alive = False
 
         # Cache prefix related
-        self.cache_prefix = kwargs.pop("cache_prefix", []) # empty means cache all keys
+        self.cache_prefix = kwargs.pop("cache_prefix", []) # empty means cache NO keys
         self.cache_prefix_tuple = tuple(self.cache_prefix)
+        if len(self.cache_prefix) == 0:
+            raise ValueError("cache_prefix is empty, please specify the key prefix to be cached")
         self.cache_noevict_prefix = kwargs.pop("cache_noevict_prefix", []) # empty means all keys can be evicted
         self.cache_noevict_prefix_tuple = tuple([f"{self.HASHKEY_PREFIX}:{p}" for p in self.cache_noevict_prefix] + self.cache_noevict_prefix)
         
@@ -185,7 +189,7 @@ class CachedRedis(object):
 
         if _pubsub_skip_flag | _key_prefix_skip_flag:
             logging.debug(f"Get value from redis server directly. key: {key}, pubsub_skip_flag: {_pubsub_skip_flag}, key_prefix_skip_flag: {_key_prefix_skip_flag}")
-            value, _ = await redis_getter(key, field=field, only_value=True)
+            value, _ = await redis_getter(key, field=field, with_ttl=False)
             # Ensure that other tasks on the event loop get a chance to run
             # if we didn't have to block for I/O anywhere.
             await asyncio.sleep(0)
@@ -197,7 +201,7 @@ class CachedRedis(object):
         value, rw_conflict_fail = await cache_getter(cache, key, field=field)
         if rw_conflict_fail:
             logging.warning(f"Heavy read-write conflict, get value from redis server, key: {key}")
-            value, _ = await redis_getter(key, only_value=True, field=field)
+            value, _ = await redis_getter(key, with_ttl=False, field=field)
             return value
 
         # Get value from redis server and set to cache
@@ -219,24 +223,24 @@ class CachedRedis(object):
         await asyncio.sleep(0)
         return value
     
-    async def _get_from_redis(self, key: str, only_value: bool = False, **kwargs) -> Tuple[Union[bytes, str], int]:
+    async def _get_from_redis(self, key: str, with_ttl: bool = True, **kwargs) -> Tuple[Union[bytes, str], int]:
         """
         Get key and ttl (optional) from redis server
         This function may raise exceptions
         """
         value = ttl = None
-        if only_value:
-            value = await self._redis.get(key)
-        else:
+        if with_ttl:
             # Use pipeline to execute a transaction
             pipe = self._redis.pipeline()
             pipe.get(key)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
-        logging.debug(f"Get key from redis server: {key}, ttl={ttl}, only_value={only_value}")
+        else:
+            value = await self._redis.get(key)
+        logging.debug(f"Get key from redis server: {key}, ttl={ttl}")
         return value, ttl
     
-    async def _hget_from_redis(self, key: str, field: str, only_value: bool = False) -> Tuple[Union[bytes, str], int]:
+    async def _hget_from_redis(self, key: str, field: str, with_ttl: bool = True) -> Tuple[Union[bytes, str], int]:
         """
         Hget key, field from redis server
         This function may raise exceptions
@@ -247,15 +251,15 @@ class CachedRedis(object):
             deviation = random.random() * self.hget_deviation_option[key]
             await asyncio.sleep(deviation)
 
-        if only_value:
-            value = await self._redis.hget(key, field)
-        else:
+        if with_ttl:
             # Use pipeline to execute a transaction
             pipe = self._redis.pipeline()
             pipe.hget(key, field)
             pipe.ttl(key)
             value, ttl = await pipe.execute()
-        logging.debug(f"Hget key, field from redis server: {key}, {field} ttl={ttl}, only_value={only_value}")
+        else:
+            value = await self._redis.hget(key, field)
+        logging.debug(f"Hget key, field from redis server: {key}, {field} ttl={ttl}")
         return value, ttl
     
     async def _get_from_cache(self, cache: dict, key: str, **kwargs) -> Tuple[Union[bytes, str], bool]:
