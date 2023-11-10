@@ -59,6 +59,7 @@ async def init(**kwargs):
             client.register_listen_invalidate_callback(func)
 
     daemon_task = asyncio.create_task(client.run())
+    await asyncio.sleep(1)
     return client, daemon_task
 
 async def test_get():
@@ -171,14 +172,12 @@ async def test_concurrent_get():
             try:
                 value = await client.get("my_key")
                 assert value[:8] == b"my_value"
-                diff = time.time() - float(value.decode('ascii')[9:])
-                logging.info(f"diff: {int(diff*1000)}ms")
             except Exception as e:
                 logging.error(e, value)
                 raise e
     pool_num = 10
     client, daemon_task = await init(cache_prefix=["my_key", "test"])
-    await client.set("my_key", f"my_value_{time.time()}")
+    await client.set("my_key", "my_value")
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
 
@@ -189,14 +188,28 @@ async def test_concurrent_hget():
             try:
                 value = await client.hget("my_key", "my_field")
                 assert value[:8] == b"my_value"
-                diff = time.time() - float(value.decode('ascii')[9:])
-                logging.info(f"diff: {int(diff*1000)}ms")
             except Exception as e:
                 logging.error(e, value)
                 raise e
     pool_num = 10
     client, daemon_task = await init(cache_prefix=["my_key", "test"])
-    await client.hset("my_key", "my_field", f"my_value_{time.time()}")
+    await client.hset("my_key", "my_field", "my_value")
+    task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
+    await asyncio.gather(daemon_task, *task)
+
+async def test_concurrent_hget_with_deviation():
+    async def _hget():
+        while signal_state.ALIVE:
+            request.set(str(uuid.uuid4()).split('-')[0])
+            try:
+                value = await client.hget("my_key", "my_field")
+                assert value[:8] == b"my_value"
+            except Exception as e:
+                logging.error(e, value)
+                raise e
+    pool_num = 10
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], hget_deviation_option={"my_key": 10})
+    await client.hset("my_key", "my_field", f"my_value")
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
 
