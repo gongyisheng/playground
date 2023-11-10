@@ -167,6 +167,9 @@ class CachedRedis(object):
     
     async def setnx(self, *args, **kwargs):
         return await self._redis.setnx(*args, **kwargs)
+    
+    async def expire(self, *args, **kwargs):
+        return await self._redis.expire(*args, **kwargs)
 
     async def _get(self, key: str, field: Optional[str] = None):
         """
