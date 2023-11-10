@@ -45,6 +45,13 @@ def setup_logger():
 
     logger.setLevel(logging.DEBUG)
 
+async def monitor(redis, callback_func=[]):
+    async with redis.monitor() as m:
+        async for info in m.listen():
+            for func in callback_func:
+                func(info)
+            logging.debug(f"monitor redis: command={info.get('command')}, time={info.get('time')}")
+
 async def init(**kwargs):
     signal_state.register_exit_signal()
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
@@ -54,19 +61,29 @@ async def init(**kwargs):
     client = CachedRedis(redis, **kwargs)
     client.TASK_NAME += f"_{uuid.uuid4().hex[:16]}"
     client.HASHKEY_PREFIX = uuid.uuid4().hex[:16]
-    callback_funcs = kwargs.get("callback_funcs")
-    if callback_funcs:
-        for func in callback_funcs:
-            client.register_listen_invalidate_callback(func)
+    callback_funcs = kwargs.get("listen_invalidate_callback", [])
+    for func in callback_funcs:
+        client.register_listen_invalidate_callback(func)
 
+    asyncio.create_task(monitor(redis, kwargs.get("monitor_callback", [])))
+    await asyncio.sleep(0.1)
     daemon_task = asyncio.create_task(client.run())
-    await asyncio.sleep(1)
+
+    await asyncio.sleep(0.5)
     return client, daemon_task
 
 @pytest.mark.asyncio
 async def test_get():
-    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+    GET_COUNT = 0
+    def audit_get(info):
+        nonlocal GET_COUNT
+        if info['command'].startswith("GET"):
+            GET_COUNT += 1
+            assert GET_COUNT <= 1
+
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
+
     for i in range(5):
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
@@ -76,13 +93,23 @@ async def test_get():
             raise e
         assert value[:8] == b"my_value"
         await asyncio.sleep(1)
+
+    logging.info(f"GET COUNT={GET_COUNT}")
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
 @pytest.mark.asyncio
 async def test_hget():
-    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+    HGET_COUNT = 0
+    def audit_hget(info):
+        nonlocal HGET_COUNT
+        if info['command'].startswith("HGET"):
+            HGET_COUNT += 1
+            assert HGET_COUNT <= 1
+
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", "my_value")
+
     for i in range(5):
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
@@ -92,6 +119,8 @@ async def test_hget():
             raise e
         assert value[:8] == b"my_value"
         await asyncio.sleep(1)
+
+    logging.info(f"HGET COUNT={HGET_COUNT}")
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
