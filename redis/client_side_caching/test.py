@@ -30,7 +30,7 @@ def setup_logger():
     formatter = get_log_formatter()
     filter = get_log_filter()
 
-    fh = logging.FileHandler('redis_client_side_caching.log')
+    fh = logging.FileHandler('cached_redis_unittest.log')
     fh.setFormatter(formatter)
     fh.addFilter(filter)
     fh.setLevel(logging.DEBUG)
