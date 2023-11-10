@@ -67,6 +67,8 @@ class CachedRedis(object):
                     raise ValueError("get_deviation_option value should be larger than 0")
 
         self._redis = redis
+        if self._redis is None:
+            raise ValueError("Can't init cached redis because redis is None")
 
         # PubSub related
         self._pubsub = None
