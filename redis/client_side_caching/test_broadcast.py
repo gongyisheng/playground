@@ -1,6 +1,7 @@
 import asyncio
 from contextvars import ContextVar
 import logging
+import pytest
 import signal_state_aio as signal_state
 import time
 import traceback
@@ -62,79 +63,85 @@ async def init(**kwargs):
     await asyncio.sleep(1)
     return client, daemon_task
 
+@pytest.mark.asyncio
 async def test_get():
     client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.set("my_key", "my_value")
-    while signal_state.ALIVE:
+    for i in range(5):
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
             value = await client.get("my_key")
         except Exception as e:
-            logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            break
+            logging.error(f"error={e}, trackback={traceback.format_exc()}")
+            raise e
         assert value[:8] == b"my_value"
         await asyncio.sleep(1)
+    signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
+@pytest.mark.asyncio
 async def test_hget():
     client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.hset("my_key", "my_field", "my_value")
-    while signal_state.ALIVE:
+    for i in range(5):
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
             value = await client.hget("my_key", "my_field")
         except Exception as e:
-            logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            break
+            logging.error(f"error={e}, trackback={traceback.format_exc()}")
+            raise e
         assert value[:8] == b"my_value"
         await asyncio.sleep(1)
+    signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
+# TODO: need a function check if prefix is set in redis command
+@pytest.mark.asyncio
 async def test_prefix():
-    config = {
-        "cache_size": 5000,
-        "cache_ttl": 86400,
-        "cache_prefix": ["my_key", "test"],
-        "cache_noevict_prefix": ["load_config"],
-        "hget_deviation_option": {"load_config": 10},
-    }
-    client, daemon_task = await init(**config)
-    await client.set("my_key", "my_value")
-    while signal_state.ALIVE:
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.get("my_key")
-        except Exception as e:
-            logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            break
-        assert value[:8] == b"my_value"
-        await asyncio.sleep(1)
-    await asyncio.gather(daemon_task)
-
-async def test_frequent_get():
     client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.set("my_key", "my_value")
-    while signal_state.ALIVE:
+    for i in range(5):
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
             value = await client.get("my_key")
         except Exception as e:
-            logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            break
+            logging.error(f"error={e}, trackback={traceback.format_exc()}")
+            raise e
         assert value[:8] == b"my_value"
+        await asyncio.sleep(1)
+    signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
-async def test_frequent_hget():
+@pytest.mark.asyncio
+async def test_synchronized_get():
+    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+    await client.set("my_key", "my_value")
+    start = time.time()
+    while time.time()-start <= 5:
+        request.set(str(uuid.uuid4()).split('-')[0])
+        try:
+            value = await client.get("my_key")
+        except Exception as e:
+            logging.error(f"error={e}, trackback={traceback.format_exc()}")
+            raise e
+        assert value[:8] == b"my_value"
+    signal_state.ALIVE = False
+    await asyncio.gather(daemon_task)
+
+@pytest.mark.asyncio
+async def test_synchronized_hget():
     client, daemon_task = await init(cache_prefix=["my_key", "test"])
     await client.hset("my_key", "my_field", "my_value")
-    while signal_state.ALIVE:
+    start = time.time()
+    while time.time()-start <= 5:
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
             value = await client.hget("my_key", "my_field")
         except Exception as e:
-            logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            break
+            logging.error(f"error={e}, trackback={traceback.format_exc()}")
+            raise e
         assert value[:8] == b"my_value"
+    signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
 async def test_short_expire_time():
