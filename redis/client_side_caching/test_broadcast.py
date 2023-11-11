@@ -115,13 +115,12 @@ async def test_get():
         assert value[:8] == b"my_value"
         await asyncio.sleep(1)
 
-    logging.info(f"GET COUNT={GET_COUNT}")
-    assert GET_COUNT == 1
-
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
-
     monitor_task.cancel()
+
+    assert GET_COUNT == 1
+
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
@@ -146,13 +145,12 @@ async def test_hget():
         assert value[:8] == b"my_value"
         await asyncio.sleep(1)
 
-    logging.info(f"HGET COUNT={HGET_COUNT}")
-    assert HGET_COUNT == 1
-
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
-
     monitor_task.cancel()
+
+    assert HGET_COUNT == 1
+
     await client._redis.close(close_connection_pool=True)
 
 # TODO: test long prefix and many prefix
@@ -188,13 +186,14 @@ async def test_prefix():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+    monitor_task.cancel()
+
     assert CLIENT_TRACKING_ON_COMMAND is not None
     assert CLIENT_TRACKING_OFF_COMMAND is not None
     for prefix in cache_prefix:
         assert prefix in set(CLIENT_TRACKING_ON_COMMAND.split(' '))
         assert prefix in set(CLIENT_TRACKING_OFF_COMMAND.split(' '))
 
-    monitor_task.cancel()
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
@@ -219,13 +218,12 @@ async def test_synchronized_get():
             raise e
         assert value[:8] == b"my_value"
 
-    logging.info(f"GET COUNT={GET_COUNT}")
-    assert GET_COUNT == 1
-
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
-
     monitor_task.cancel()
+
+    assert GET_COUNT == 1
+
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
@@ -250,13 +248,12 @@ async def test_synchronized_hget():
             raise e
         assert value[:8] == b"my_value"
 
-    logging.info(f"HGET COUNT={HGET_COUNT}")
-    assert HGET_COUNT == 1
-
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
-
     monitor_task.cancel()
+
+    assert HGET_COUNT == 1
+
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
@@ -289,8 +286,10 @@ async def test_short_cache_ttl():
     await asyncio.gather(daemon_task)
     monitor_task.cancel()
 
+    max_cache_ttl = CACHE_TTL*(1-client.cache_ttl_deviation)
     for i in range(len(GET_TIMESTAMPS)-1):
-        assert GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i] >= CACHE_TTL*(1-client.cache_ttl_deviation)
+        diff = GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i]
+        assert diff >= max_cache_ttl
     assert len(GET_TIMESTAMPS) == 5//(CACHE_TTL*(1-client.cache_ttl_deviation)) + 1
 
     await client._redis.close(close_connection_pool=True)
@@ -325,7 +324,8 @@ async def test_short_health_check():
     monitor_task.cancel()
 
     for i in range(len(HEALTH_CHECK_TIMESTAMPS)-1):
-        assert HEALTH_CHECK_TIMESTAMPS[i+1] - HEALTH_CHECK_TIMESTAMPS[i] >= HEALTH_CHECK_INTERVAL
+        diff = HEALTH_CHECK_TIMESTAMPS[i+1] - HEALTH_CHECK_TIMESTAMPS[i]
+        assert diff >= HEALTH_CHECK_INTERVAL
     assert len(HEALTH_CHECK_TIMESTAMPS) <= min(5//HEALTH_CHECK_INTERVAL + 1, 6)
 
     await client._redis.close(close_connection_pool=True)
@@ -396,7 +396,6 @@ async def test_concurrent_hget():
 
     pool_num = 10
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
-
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -405,41 +404,107 @@ async def test_concurrent_hget():
 
     await client._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
 async def test_concurrent_hget_with_deviation():
+    HGET_COUNT = 0
+    HGET_SERVER_TIMESTAMP = None
+    HGET_CLIENT_TIMESTAMP = None
+
+    def audit_hget(info):
+        nonlocal HGET_COUNT
+        nonlocal HGET_SERVER_TIMESTAMP
+        if info['command'].startswith("HGET my_key my_field"):
+            HGET_COUNT += 1
+            if HGET_SERVER_TIMESTAMP is None:
+                HGET_SERVER_TIMESTAMP = info['time']
+
+    ERROR = []
     async def _hget():
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        nonlocal HGET_CLIENT_TIMESTAMP
+        try:
+            start = time.time()
+            if HGET_CLIENT_TIMESTAMP is None:
+                HGET_CLIENT_TIMESTAMP = start
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.hget("my_key", "my_field")
                 assert value[:8] == b"my_value"
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], hget_deviation_option={"my_key": 10})
+        except Exception as e:
+            logging.error(e, value)
+            ERROR.append(e)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], hget_deviation_option={"my_key": 10}, monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", f"my_value")
+
+    pool_num = 10
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+    monitor_task.cancel()
 
+    assert HGET_COUNT == 1
+    assert len(ERROR) == 0
+    assert HGET_SERVER_TIMESTAMP is not None
+    assert HGET_CLIENT_TIMESTAMP is not None
+    diff = HGET_SERVER_TIMESTAMP - HGET_CLIENT_TIMESTAMP
+    assert diff >= 0.01 and diff <= 10
+
+    # If don't have hget deviation option, diff is usually less than 0.005
+    # FAILED test_concurrent_hget_with_deviation[1-10] - assert 0.003918886184692383 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[2-10] - assert 0.002978801727294922 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[3-10] - assert 0.0022521018981933594 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[4-10] - assert 0.0016889572143554688 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[5-10] - assert 0.0029039382934570312 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[6-10] - assert 0.003061056137084961 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[7-10] - assert 0.0022199153900146484 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[8-10] - assert 0.0019199848175048828 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[9-10] - assert 0.0018799304962158203 >= 0.01
+    # FAILED test_concurrent_hget_with_deviation[10-10] - assert 0.0030639171600341797 >= 0.01
+
+    await client._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
 async def test_noevict_get():
+    NOEVICT_KEY_GET_COUNT = 0
+    def audit_get(info):
+        nonlocal NOEVICT_KEY_GET_COUNT
+        if info['command'].startswith("GET my_key_no_evict"):
+            NOEVICT_KEY_GET_COUNT += 1
+
+    ERROR = []
     async def _get(key: str, expected_value: bytes):
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.get(key)
                 assert value == expected_value
-            except Exception as e:
-                logging.error(e, value)
-                raise e
+        except Exception as e:
+            logging.error(e, value)
+            ERROR.append(e)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5)
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[audit_get])
     await client.set("my_key_no_evict", "my_value_no_evict")
     for i in range(pool_num):
         await client.set(f"my_key_{i}", f"my_value_{i}")
-    await asyncio.sleep(1)
+    
     task = [asyncio.create_task(_get(f"my_key_{i}", f"my_value_{i}".encode('ascii'))) for i in range(pool_num)]
-    task += [asyncio.create_task(_get("my_key_no_evict", b"my_value_no_evict"))]
-    await asyncio.gather(daemon_task, *task)
+    noevict_task = asyncio.create_task(_get("my_key_no_evict", b"my_value_no_evict"))
+    await asyncio.gather(daemon_task, *task, noevict_task)
+    monitor_task.cancel()
+
+    assert NOEVICT_KEY_GET_COUNT == 1
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
 
 async def test_noevict_hget():
     async def _hget(key: str, field: str, expected_value: bytes):
