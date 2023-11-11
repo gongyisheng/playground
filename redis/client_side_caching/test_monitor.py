@@ -11,16 +11,14 @@ async def freq_update():
             print(command)
 
 async def get_key():
-    while True:
+    for i in range(5):
         await node.get("my_key")
         await asyncio.sleep(1)
     
 async def main():
-    tasks = [
-        asyncio.create_task(freq_update()),
-        asyncio.create_task(get_key())
-    ]
-    await asyncio.gather(*tasks)
+    monitor_task = asyncio.create_task(freq_update())
+    await asyncio.gather(asyncio.create_task(get_key()))
+    print(monitor_task.cancel())
     
 if __name__ == '__main__':
     asyncio.run(main())
