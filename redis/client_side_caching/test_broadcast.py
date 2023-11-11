@@ -284,24 +284,45 @@ async def test_short_cache_ttl():
     monitor_task.cancel()
 
     for i in range(len(GET_TIMESTAMPS)-1):
-        assert GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i] >= CACHE_TTL*client.cache_ttl_deviation
-    assert len(GET_TIMESTAMPS) <= CACHE_TTL//(CACHE_TTL*client.cache_ttl_deviation) + 1
+        assert GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i] >= CACHE_TTL*(1-client.cache_ttl_deviation)
+    assert len(GET_TIMESTAMPS) == 5//(CACHE_TTL*(1-client.cache_ttl_deviation)) + 1
 
     await client._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
 async def test_short_health_check():
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], pubsub_health_check_interval=2)
+    # This function introduces a random value in cache ttl
+    # You can run this test multiple times to make sure that any value in cache ttl is working
+    # pytest -k test_short_cache_ttl --count X
+    HEALTH_CHECK_INTERVAL = random.random() * 5
+    HEALTH_CHECK_TIMESTAMPS = []
+    def audit_health_check(info):
+        nonlocal HEALTH_CHECK_TIMESTAMPS
+        if info['command'].startswith("PING"):
+            HEALTH_CHECK_TIMESTAMPS.append(info['time'])
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[audit_health_check])
     await client.set("my_key", "my_value")
-    while signal_state.ALIVE:
+
+    start = time.time()
+    while time.time()-start <= 5:
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
             value = await client.get("my_key")
         except Exception as e:
             logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            break
+            raise e
         assert value[:8] == b"my_value"
-        await asyncio.sleep(1)
+
+    signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+    monitor_task.cancel()
+
+    for i in range(len(HEALTH_CHECK_TIMESTAMPS)-1):
+        assert HEALTH_CHECK_TIMESTAMPS[i+1] - HEALTH_CHECK_TIMESTAMPS[i] >= HEALTH_CHECK_INTERVAL
+    assert len(HEALTH_CHECK_TIMESTAMPS) <= min(5//HEALTH_CHECK_INTERVAL + 1, 6)
+
+    await client._redis.close(close_connection_pool=True)
 
 async def test_concurrent_get():
     async def _get():
@@ -538,7 +559,6 @@ async def test_concurrent_set():
 if __name__ == "__main__":
     import sys
 
-    setup_logger()
     func_name = sys.argv[1]
     try:
         profiling = sys.argv[2] == "1"
