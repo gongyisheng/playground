@@ -3,6 +3,7 @@ from contextvars import ContextVar
 import logging
 import pytest
 # import pytest_asyncio
+import random
 import signal_state_aio as signal_state
 import time
 import traceback
@@ -248,10 +249,21 @@ async def test_synchronized_hget():
     monitor_task.cancel()
     await client._redis.close(close_connection_pool=True)
 
-async def test_short_expire_time():
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_expire_threshold=2)
+@pytest.mark.asyncio
+async def test_short_cache_ttl():
+    CACHE_TTL = random.random() * 5
+    GET_TIMESTAMPS = []
+
+    def audit_get(info):
+        nonlocal GET_TIMESTAMPS
+        if info['command'].startswith("GET my_key"):
+            GET_TIMESTAMPS.append(info['time'])
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
-    while signal_state.ALIVE:
+
+    start = time.time()
+    while time.time()-start <= 5:
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
             value = await client.get("my_key")
@@ -259,8 +271,16 @@ async def test_short_expire_time():
             logging.warning(f"error={e}, trackback={traceback.format_exc()}")
             break
         assert value[:8] == b"my_value"
-        await asyncio.sleep(1)
+
+    signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+    monitor_task.cancel()
+
+    for i in range(len(GET_TIMESTAMPS)-1):
+        assert GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i] >= CACHE_TTL*client.cache_ttl_deviation
+    assert len(GET_TIMESTAMPS) <= CACHE_TTL//(CACHE_TTL*client.cache_ttl_deviation) + 1
+
+    await client._redis.close(close_connection_pool=True)
 
 async def test_short_health_check():
     client, daemon_task = await init(cache_prefix=["my_key", "test"], pubsub_health_check_interval=2)
