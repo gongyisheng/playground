@@ -19,6 +19,12 @@ from broadcast import CachedRedis
 request = ContextVar("request")
 LOG_SETUP_FLAG = False
 
+# redis configs
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB = 0
+REDIS_MAX_CONNECTIONS = 5
+
 def get_log_formatter():
     formatter = logging.Formatter('%(levelname)s: [%(asctime)s][%(filename)s:%(lineno)s][%(request)s]%(message)s')
     return formatter
@@ -69,7 +75,7 @@ async def init(**kwargs):
     setup_logger()
     signal_state.ALIVE = True
     signal_state.register_exit_signal()
-    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
+    pool = BlockingConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, max_connections=REDIS_MAX_CONNECTIONS)
     redis = Redis(connection_pool=pool) # You can also test decode_responses=True, it should also work
     await redis.flushdb()
 
