@@ -324,37 +324,80 @@ async def test_short_health_check():
 
     await client._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
 async def test_concurrent_get():
+    GET_COUNT = 0
+    def audit_get(info):
+        nonlocal GET_COUNT
+        if info['command'].startswith("GET my_key"):
+            GET_COUNT += 1
+
+    ERROR = []
     async def _get():
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.get("my_key")
                 assert value[:8] == b"my_value"
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+        except Exception as e:
+            logging.error(e, value)
+            ERROR.append(e)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
+
+    pool_num = 10
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+    monitor_task.cancel()
 
+    assert GET_COUNT == 1
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
 async def test_concurrent_hget():
+    HGET_COUNT = 0
+    def audit_hget(info):
+        nonlocal HGET_COUNT
+        if info['command'].startswith("HGET my_key my_field"):
+            HGET_COUNT += 1
+
+    ERROR = []
     async def _hget():
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.hget("my_key", "my_field")
                 assert value[:8] == b"my_value"
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+        except Exception as e:
+            logging.error(e, value)
+            ERROR.append(e)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", "my_value")
+
+    pool_num = 10
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
+
     await asyncio.gather(daemon_task, *task)
+    monitor_task.cancel()
+
+    assert HGET_COUNT == 1
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
 
 async def test_concurrent_hget_with_deviation():
     async def _hget():
