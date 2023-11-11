@@ -76,8 +76,9 @@ async def init(**kwargs):
 async def test_get():
     GET_COUNT = 0
     def audit_get(info):
+        # Expect only one GET my_key command to redis
         nonlocal GET_COUNT
-        if info['command'].startswith("GET"):
+        if info['command'].startswith("GET my_key"):
             GET_COUNT += 1
             assert GET_COUNT <= 1
 
@@ -102,8 +103,9 @@ async def test_get():
 async def test_hget():
     HGET_COUNT = 0
     def audit_hget(info):
+        # Expect only one HGET my_key my_field command to redis
         nonlocal HGET_COUNT
-        if info['command'].startswith("HGET"):
+        if info['command'].startswith("HGET my_key my_field"):
             HGET_COUNT += 1
             assert HGET_COUNT <= 1
 
@@ -124,11 +126,29 @@ async def test_hget():
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
-# TODO: need a function check if prefix is set in redis command
+# TODO: test long prefix and many prefix
 @pytest.mark.asyncio
 async def test_prefix():
-    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+    cache_prefix = ["my_key", "test"]
+    for i in range(62):
+        cache_prefix.append(uuid.uuid4().hex[:16])
+
+    CLIENT_TRACKING_ON_FLAG = False
+    CLIENT_TRACKING_OFF_FLAG = False
+    def audit_client_tracking(info):
+        nonlocal CLIENT_TRACKING_ON_FLAG, CLIENT_TRACKING_OFF_FLAG
+        # Expect only one HGET my_key my_field command to redis
+        if info['command'].startswith("CLIENT TRACKING"):
+            for prefix in cache_prefix:
+                assert f"PREFIX {prefix}" in info['command']
+            if info['command'].startswith("CLIENT TRACKING ON"):
+                CLIENT_TRACKING_ON_FLAG = True
+            elif info['command'].startswith("CLIENT TRACKING OFF"):
+                CLIENT_TRACKING_OFF_FLAG = True
+
+    client, daemon_task = await init(cache_prefix=cache_prefix, monitor_callback=[audit_client_tracking])
     await client.set("my_key", "my_value")
+
     for i in range(5):
         request.set(str(uuid.uuid4()).split('-')[0])
         try:
@@ -138,8 +158,11 @@ async def test_prefix():
             raise e
         assert value[:8] == b"my_value"
         await asyncio.sleep(1)
+
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+    assert CLIENT_TRACKING_ON_FLAG
+    assert CLIENT_TRACKING_OFF_FLAG
 
 @pytest.mark.asyncio
 async def test_synchronized_get():
