@@ -506,25 +506,45 @@ async def test_noevict_get():
 
     await client._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
 async def test_noevict_hget():
+    NOEVICT_KEY_GET_COUNT = 0
+    def audit_hget(info):
+        nonlocal NOEVICT_KEY_GET_COUNT
+        if info['command'].startswith("HGET my_key_no_evict"):
+            NOEVICT_KEY_GET_COUNT += 1
+
+    ERROR = []
     async def _hget(key: str, field: str, expected_value: bytes):
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.hget(key, field)
                 assert value == expected_value
-            except Exception as e:
-                logging.error(e, value)
-                raise e
+        except Exception as e:
+            logging.error(e, value)
+            ERROR.append(e)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
     pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key"], cache_size=5)
-    await client.hset("my_key", "my_field_no_evict", "my_value_no_evict")
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[audit_hget])
+    await client.hset("my_key_no_evict", "my_field_no_evict", "my_value_no_evict")
     for i in range(pool_num):
-        await client.hset(f"my_key", f"my_field_{i}", f"my_value_{i}")
-    await asyncio.sleep(1)
-    task = [asyncio.create_task(_hget("my_key", f"my_field_{i}", f"my_value_{i}".encode('ascii'))) for i in range(pool_num)]
-    task += [asyncio.create_task(_hget("my_key", "my_field_no_evict", b"my_value_no_evict"))]
-    await asyncio.gather(daemon_task, *task)
+        await client.hset(f"my_key_{i}", f"my_field_{i}", f"my_value_{i}")
+
+    task = [asyncio.create_task(_hget(f"my_key_{i}", f"my_field_{i}", f"my_value_{i}".encode('ascii'))) for i in range(pool_num)]
+    noevict_task = asyncio.create_task(_hget("my_key_no_evict", "my_field_no_evict", b"my_value_no_evict"))
+    await asyncio.gather(daemon_task, *task, noevict_task)
+    monitor_task.cancel()
+
+    assert NOEVICT_KEY_GET_COUNT == 1
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
 
 async def test_concurrent_get_short_expire_time():
     async def _get():
