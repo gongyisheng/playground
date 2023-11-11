@@ -56,6 +56,7 @@ class CachedRedis(object):
         :param cache_ttl_deviation: deviation for cache_ttl to avoid all keys expire at the same time, 
                                     should be in [0, 1], 0.01 means 1% deviation of cache_ttl
         :param hget_deviation_option: deviation for hget, to avoid a lot of pods running hget at the same time
+        :param health_check_interval: interval for health check, default is 60s
         """
         def _validate_option(_dict: dict):
             for k, v in _dict.items():
@@ -514,7 +515,7 @@ class CachedRedis(object):
                 # Health check
                 if self.health_check_ongoing_flag:
                     if now-self._last_health_check_time > self.health_check_timeout:
-                        raise Exception(f"check health timeout. now={now}, last_health_check_time={self._last_health_check_time}")
+                        raise Exception(f"health check timeout. now={now}, last_health_check_time={self._last_health_check_time}")
                 elif now > self._next_health_check_time:
                     await self._pubsub.ping(message=self.HEALTH_CHECK_MSG)
                     self._last_health_check_time = now
