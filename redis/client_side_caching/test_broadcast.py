@@ -1,3 +1,7 @@
+# Before running this test, you need to start redis server first
+# Test Dependencies:
+#   pip install pytest pytest-asyncio pytest-repeat
+
 import asyncio
 from contextvars import ContextVar
 import logging
