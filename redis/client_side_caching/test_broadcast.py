@@ -251,6 +251,9 @@ async def test_synchronized_hget():
 
 @pytest.mark.asyncio
 async def test_short_cache_ttl():
+    # This function introduces a random value in cache ttl
+    # You can run this test multiple times to make sure that any value in cache ttl is working
+    # pytest -k test_short_cache_ttl --count X
     CACHE_TTL = random.random() * 5
     GET_TIMESTAMPS = []
 
