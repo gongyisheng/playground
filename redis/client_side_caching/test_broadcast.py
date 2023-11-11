@@ -166,8 +166,17 @@ async def test_prefix():
 
 @pytest.mark.asyncio
 async def test_synchronized_get():
-    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+    GET_COUNT = 0
+    def audit_get(info):
+        # Expect only one GET my_key command to redis
+        nonlocal GET_COUNT
+        if info['command'].startswith("GET my_key"):
+            GET_COUNT += 1
+            assert GET_COUNT <= 1
+
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
+
     start = time.time()
     while time.time()-start <= 5:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -177,13 +186,24 @@ async def test_synchronized_get():
             logging.error(f"error={e}, trackback={traceback.format_exc()}")
             raise e
         assert value[:8] == b"my_value"
+
+    logging.info(f"GET COUNT={GET_COUNT}")
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
 @pytest.mark.asyncio
 async def test_synchronized_hget():
-    client, daemon_task = await init(cache_prefix=["my_key", "test"])
+    HGET_COUNT = 0
+    def audit_hget(info):
+        # Expect only one HGET my_key my_field command to redis
+        nonlocal HGET_COUNT
+        if info['command'].startswith("HGET my_key my_field"):
+            HGET_COUNT += 1
+            assert HGET_COUNT <= 1
+
+    client, daemon_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", "my_value")
+
     start = time.time()
     while time.time()-start <= 5:
         request.set(str(uuid.uuid4()).split('-')[0])
@@ -193,6 +213,8 @@ async def test_synchronized_hget():
             logging.error(f"error={e}, trackback={traceback.format_exc()}")
             raise e
         assert value[:8] == b"my_value"
+
+    logging.info(f"HGET COUNT={HGET_COUNT}")
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
 
