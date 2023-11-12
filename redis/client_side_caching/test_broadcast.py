@@ -261,7 +261,7 @@ async def test_short_cache_ttl():
     # This function introduces a random value in cache ttl
     # You can run this test multiple times to make sure that any value in cache ttl is working
     # pytest -k test_short_cache_ttl --count X
-    CACHE_TTL = random.random() * 5
+    CACHE_TTL = max(random.random() * 5, 0.1)
     GET_TIMESTAMPS = []
 
     def audit_get(info):
@@ -296,10 +296,10 @@ async def test_short_cache_ttl():
 
 @pytest.mark.asyncio
 async def test_short_health_check():
-    # This function introduces a random value in cache ttl
+    # This function introduces a random value in health check interval
     # You can run this test multiple times to make sure that any value in cache ttl is working
     # pytest -k test_short_cache_ttl --count X
-    HEALTH_CHECK_INTERVAL = random.random() * 5
+    HEALTH_CHECK_INTERVAL = max(random.random() * 5, 0.1)
     HEALTH_CHECK_TIMESTAMPS = []
     def audit_health_check(info):
         nonlocal HEALTH_CHECK_TIMESTAMPS
@@ -551,7 +551,7 @@ async def test_concurrent_get_short_expire_time():
     # This function introduces a random value in cache ttl
     # You can run this test multiple times to make sure that any value in cache ttl is working
     # pytest -k test_short_cache_ttl --count X
-    CACHE_TTL = random.random() * 5
+    CACHE_TTL = max(random.random() * 5, 0.1)
     GET_TIMESTAMPS = []
     def audit_get(info):
         nonlocal GET_TIMESTAMPS
