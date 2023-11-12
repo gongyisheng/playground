@@ -99,8 +99,7 @@ class CachedRedis(object):
 
         self.cache_ttl_max_deviation = self.cache_ttl * self.cache_ttl_deviation
         if self.cache_ttl_max_deviation < 1:
-            logging.error("cache_ttl * cache_ttl_deviation is less than 1, \
-            please increase cache_ttl or cache_ttl_deviation to avoid cache avalanche")
+            logging.error("cache_ttl * cache_ttl_deviation is less than 1, please increase cache_ttl or cache_ttl_deviation to avoid cache avalanche")
 
         self.hget_deviation_option = kwargs.pop("hget_deviation_option", {})
         _validate_option(self.hget_deviation_option)
