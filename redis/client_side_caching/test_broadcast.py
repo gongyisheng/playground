@@ -546,22 +546,50 @@ async def test_noevict_hget():
 
     await client._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
 async def test_concurrent_get_short_expire_time():
+    # This function introduces a random value in cache ttl
+    # You can run this test multiple times to make sure that any value in cache ttl is working
+    # pytest -k test_short_cache_ttl --count X
+    CACHE_TTL = random.random() * 5
+    GET_TIMESTAMPS = []
+    def audit_get(info):
+        nonlocal GET_TIMESTAMPS
+        if info['command'].startswith("GET my_key"):
+            GET_TIMESTAMPS.append(info['time'])
+
+    ERROR = []
     async def _get():
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.get("my_key")
                 assert value[:8] == b"my_value"
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001)
+        except Exception as e:
+            logging.error(e, value)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
+
+    pool_num = 10
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+    monitor_task.cancel()
 
+    max_cache_ttl = CACHE_TTL*(1-client.cache_ttl_deviation)
+    for i in range(len(GET_TIMESTAMPS)-1):
+        diff = GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i]
+        assert diff >= max_cache_ttl
+    assert len(GET_TIMESTAMPS) == 5//(CACHE_TTL*(1-client.cache_ttl_deviation)) + 1
+
+    await client._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
 async def test_concurrent_hget_short_expire_time():
     async def _hget():
         while signal_state.ALIVE:
