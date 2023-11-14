@@ -541,7 +541,7 @@ class CachedRedis(object):
                 elif resp['type'] == 'pong':
                     if resp['data'] == self.HEALTH_CHECK_MSG:
                         self.health_check_ongoing_flag = False
-                        logging.info("Receive health check message from redis server, interval=%.3fms" % ((now-self._last_health_check_time)*1000))
+                        logging.info("Receive health check message from redis server, interval=%.3fms" % ((time.time()-self._last_health_check_time)*1000))
             except Exception as e:
                 # If any exception occurs, set _pubsub_is_alive to False
                 self._pubsub_is_alive = False
