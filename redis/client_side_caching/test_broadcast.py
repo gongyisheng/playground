@@ -303,7 +303,7 @@ async def test_short_health_check():
     HEALTH_CHECK_TIMESTAMPS = []
     def audit_health_check(info):
         nonlocal HEALTH_CHECK_TIMESTAMPS
-        if info['command'].startswith("PING"):
+        if info['command'].startswith(f"PING"):
             HEALTH_CHECK_TIMESTAMPS.append(info['time'])
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[audit_health_check])
@@ -644,37 +644,53 @@ async def test_concurrent_hget_short_expire_time():
 
     await client._redis.close(close_connection_pool=True)
 
-async def test_concurrent_get_short_health_check():
+@pytest.mark.asyncio
+async def test_concurrent_short_health_check():
+    # This function introduces a random value in cache ttl
+    # You can run this test multiple times to make sure that any value in cache ttl is working
+    # pytest -k test_concurrent_hget_short_expire_time --count X
+    HEALTH_CHECK_INTERVAL = max(random.random() * 5, 0.1)
+    HEALTH_CHECK_TIMESTAMPS = []
+    def audit_ping(info):
+        nonlocal HEALTH_CHECK_TIMESTAMPS
+        if info['command'].startswith("PING"):
+            HEALTH_CHECK_TIMESTAMPS.append(info['time'])
+    
+    GET_COUNT = 0
+    def audit_get(info):
+        nonlocal GET_COUNT
+        if info['command'].startswith("GET my_key"):
+            GET_COUNT += 1
+
+    ERROR = []
     async def _get():
-        request.set(str(uuid.uuid4()).split('-')[0])
-        while signal_state.ALIVE:
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.get("my_key")
                 assert value[:8] == b"my_value"
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], health_check_interval=0.001)
+        except Exception as e:
+            logging.error(e, value)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[audit_ping, audit_get])
     await client.set("my_key", "my_value")
+
+    pool_num = 10
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+    monitor_task.cancel()
 
-async def test_concurrent_hget_short_health_check():
-    async def _hget():
-        request.set(str(uuid.uuid4()).split('-')[0])
-        while signal_state.ALIVE:
-            try:
-                value = await client.hget("my_key", "my_field")
-                assert value[:8] == b"my_value"
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], health_check_interval=0.001)
-    await client.hset("my_key", "my_field", "my_value")
-    task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
-    await asyncio.gather(daemon_task, *task)
+    assert len(ERROR) == 0
+    assert GET_COUNT == 1
+    for i in range(0, len(HEALTH_CHECK_TIMESTAMPS)-1):
+        assert HEALTH_CHECK_TIMESTAMPS[i+1] - HEALTH_CHECK_TIMESTAMPS[i] >= HEALTH_CHECK_INTERVAL
+
+    await client._redis.close(close_connection_pool=True)
 
 async def test_get_extreme_case():
     async def _get():
@@ -714,7 +730,7 @@ async def test_hget_extreme_case():
 
 async def test_1000_client_listen_invalidate():
     async def _get():
-        client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=86400)
+        client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=86400)
         await client.set("my_key", "my_value")
         await asyncio.sleep(60)
 
@@ -725,8 +741,9 @@ async def test_1000_client_listen_invalidate():
         await redis.set("my_key", "not_my_value")
 
     pool_num = 1000
-    task = [asyncio.create_task(_get()) for _ in range(pool_num)] + [asyncio.create_task(_set())]
-    await asyncio.gather(*task)
+    get_task = [asyncio.create_task(_get()) for _ in range(pool_num)] 
+    set_task = asyncio.create_task(_set())
+    await asyncio.gather(*get_task, set_task)
 
 async def test_frequent_set():
     pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=1)
