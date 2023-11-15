@@ -25,6 +25,8 @@ def main():
             db = binlogevent.schema
             table = binlogevent.table
             time = binlogevent.timestamp
+            log_file = stream.log_file
+            log_pos = stream.log_pos
             for row in binlogevent.rows:
                 if isinstance(binlogevent, DeleteRowsEvent):
                     print("Delete Event")
@@ -35,7 +37,7 @@ def main():
                 elif isinstance(binlogevent, WriteRowsEvent):
                     print("Insert Event")
                     message_body = row["values"]
-                print(f"[{db}.{table}] time={time}, body={message_body}")
+                print(f"[{log_file}-{log_pos}][{db}.{table}] time={time}, body={message_body}")
     except KeyboardInterrupt:
         stream.close()
 
