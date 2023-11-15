@@ -1,6 +1,8 @@
 # Before running this test, you need to start redis server first
+#    redis-server --maxclients 65535
+#    ulimit -n 65535 (avoid OSError: [Errno 24] Too many open files)
 # Test Dependencies:
-#   pip install pytest pytest-asyncio pytest-repeat
+#    pip install pytest pytest-asyncio pytest-repeat
 
 import asyncio
 from contextvars import ContextVar
@@ -20,7 +22,7 @@ request = ContextVar("request")
 LOG_SETUP_FLAG = False
 
 # redis configs
-REDIS_HOST = "localhost"
+REDIS_HOST = "127.0.0.1"
 REDIS_PORT = 6379
 REDIS_DB = 0
 REDIS_MAX_CONNECTIONS = 5
@@ -728,50 +730,126 @@ async def test_hget_extreme_case():
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
 
-async def test_1000_client_listen_invalidate():
-    async def _get():
-        client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=86400)
-        await client.set("my_key", "my_value")
-        await asyncio.sleep(60)
-
-    async def _set():
-        pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=1)
-        redis = Redis(connection_pool=pool)
-        await asyncio.sleep(10)
-        await redis.set("my_key", "not_my_value")
-
+async def start_1000_clients():
+    signal_state.register_exit_signal()
     pool_num = 1000
-    get_task = [asyncio.create_task(_get()) for _ in range(pool_num)] 
-    set_task = asyncio.create_task(_set())
-    await asyncio.gather(*get_task, set_task)
 
-async def test_frequent_set():
-    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=1)
+    async def _get():
+        pool = BlockingConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, max_connections=5)
+        redis = Redis(connection_pool=pool)
+
+        client = CachedRedis(redis, cache_prefix=["my_key", "test"])
+        client.TASK_NAME += f"_{uuid.uuid4().hex[:16]}"
+        client.HASHKEY_PREFIX = uuid.uuid4().hex[:16]
+
+        await client.run()
+
+    get_task = [asyncio.create_task(_get()) for _ in range(pool_num)]
+    await asyncio.sleep(20)
+
+    signal_state.ALIVE = False
+    await asyncio.gather(*get_task)
+
+@pytest.mark.asyncio
+async def test_1000_client_listen_invalidate_once():
+    pool = BlockingConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, max_connections=1)
     redis = Redis(connection_pool=pool)
-    await asyncio.sleep(10)
+    await redis.flushdb()
+
+    start = time.time()
+    await redis.set("my_key", "not_my_value")
+    end = time.time()
+
+    print(f"SET 1 time cost: {(end-start)*1000} ms")
+    
+    proc = await asyncio.create_subprocess_exec("python", "test_broadcast.py", "start_1000_clients")
+    proc_task = asyncio.create_task(proc.communicate())
+    await asyncio.sleep(2)
+
+    start = time.time()
+    await redis.set("my_key", "not_my_value")
+    end = time.time()
+
+    assert end-start < 1
+    print(f"SET 1 time and send invalidate message to 1000 clients cost: {(end-start)*1000} ms")
+
+    await redis.close(close_connection_pool=True)
+    try:
+        proc.kill()
+        proc_task.cancel()
+    except Exception as e:
+        pass
+
+@pytest.mark.asyncio
+async def test_1000_client_listen_invalidate_multi():
+    pool = BlockingConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, max_connections=1)
+    redis = Redis(connection_pool=pool)
+    await redis.flushdb()
 
     start = time.time()
     for i in range(1000):
         await redis.set("my_key", "not_my_value")
-        logging.info(f"SET {i} times")
     end = time.time()
-    logging.info(f"SET 1000 times in {end - start} seconds, qps = {int(1000 / (end - start))}")
 
-async def test_concurrent_set():
-    pool = BlockingConnectionPool(host="localhost", port=6379, db=0, max_connections=5)
+    print(f"SET 1000 time cost: avg = {(end-start)} ms, qps = {int(1000/(end-start))}")
+
+    proc = await asyncio.create_subprocess_exec("python", "test_broadcast.py", "start_1000_clients")
+    proc_task = asyncio.create_task(proc.communicate())
+    await asyncio.sleep(2)
+
+    start = time.time()
+    for i in range(1000):
+        await redis.set("my_key", "not_my_value")
+    end = time.time()
+
+    assert end-start < 1000
+    print(f"SET 1000 time and send invalidate message to 1000 clients cost: avg = {(end-start)} ms, qps = {int(1000/(end-start))}")
+
+    await redis.close(close_connection_pool=True)
+    try:
+        proc.kill()
+        proc_task.cancel()
+    except Exception as e:
+        pass
+
+@pytest.mark.asyncio
+async def test_1000_client_listen_invalidate_concurrent():
+    pool = BlockingConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, max_connections=10)
     redis = Redis(connection_pool=pool)
-    await asyncio.sleep(10)
+    await redis.flushdb()
 
+    RUMTIME = []
     async def _set():
         start = time.time()
         for i in range(1000):
             await redis.set("my_key", "not_my_value")
-            logging.info(f"SET {i} times")
         end = time.time()
-        logging.info(f"SET 1000 times in {end - start} seconds, qps = {int(1000 / (end - start))}")
-    pool_size = 5
+        RUMTIME.append(end-start)
+    
+    pool_size = 10
+
     task = [asyncio.create_task(_set()) for _ in range(pool_size)]
     await asyncio.gather(*task)
+
+    print(f"SET 1000 time concurrently cost: avg = {sum(RUMTIME)/len(RUMTIME)} ms, qps = {int(1000/(sum(RUMTIME)/len(RUMTIME)))}")
+    RUMTIME.clear()
+    
+    proc = await asyncio.create_subprocess_exec("python", "test_broadcast.py", "start_1000_clients")
+    proc_task = asyncio.create_task(proc.communicate())
+    await asyncio.sleep(2)
+    
+    task = [asyncio.create_task(_set()) for _ in range(pool_size)]
+    await asyncio.gather(*task)
+
+    assert sum(RUMTIME)/len(RUMTIME) < 1000
+    print(f"SET 1000 time concurrently and send invalidate message to 1000 clients cost: avg = {sum(RUMTIME)/len(RUMTIME)} ms, qps = {int(1000/(sum(RUMTIME)/len(RUMTIME)))}")
+
+    await redis.close(close_connection_pool=True)
+    try:
+        proc.kill()
+        proc_task.cancel()
+    except Exception as e:
+        pass
 
 if __name__ == "__main__":
     import sys
