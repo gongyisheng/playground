@@ -14,6 +14,8 @@ REDIS_MAX_CONNECTIONS = 5
 #    pytest -k <test function name>
 #    pytest -k <test function name> --count 10 (repeat 10 times)
 #    pytest -k <test function name> -s (show print)
+#    python <test function name> run test function directly, usually for demo
+#    python <test function name> run test function directly and profiling it
 
 import asyncio
 from contextvars import ContextVar

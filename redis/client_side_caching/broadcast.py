@@ -11,7 +11,7 @@ from lru import LRU
 import signal_state_aio as signal_state
 
 # KNOWN ISSUE:
-#  1. if redis server closes the connection, the available connection number will -1
+#  1. If redis server closes the connection, the available connection number will -1
 #     but the connection pool will not create new connection to replace it.
 #     This will cause "No connection available" error if all the connections are closed.
 #  2. If redis is shutdown and rebooted, it's recommend to restart the client. 
