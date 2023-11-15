@@ -4,11 +4,16 @@ from pymysqlreplication.row_event import (
     UpdateRowsEvent,
     WriteRowsEvent,
 )
+import time
+import sys
 from config import MYSQL_SETTINGS
 
 # Before running this script, you need to run the following command in mysql:
 # SET GLOBAL binlog_row_metadata = "FULL"
 # SET GLOBAL binlog_row_image = "FULL"
+
+LOG_FILE = sys.argv[1] if len(sys.argv) > 1 else None
+LOG_POS = int(sys.argv[2]) if len(sys.argv) > 2 else None
 
 def main():
     # server_id is your slave identifier, it should be unique.
@@ -24,7 +29,7 @@ def main():
         for binlogevent in stream:
             db = binlogevent.schema
             table = binlogevent.table
-            time = binlogevent.timestamp
+            timestamp = binlogevent.timestamp
             log_file = stream.log_file
             log_pos = stream.log_pos
             for row in binlogevent.rows:
@@ -37,7 +42,8 @@ def main():
                 elif isinstance(binlogevent, WriteRowsEvent):
                     print("Insert Event")
                     message_body = row["values"]
-                print(f"[{log_file}-{log_pos}][{db}.{table}] time={time}, body={message_body}")
+                print(f"[{log_file}-{log_pos}][{db}.{table}] time={timestamp}, body={message_body}")
+            time.sleep(1)
     except KeyboardInterrupt:
         stream.close()
 
