@@ -694,41 +694,65 @@ async def test_concurrent_short_health_check():
 
     await client._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
 async def test_get_extreme_case():
+    ERROR = []
     async def _get():
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.get("my_key")
                 assert value[:8] == b"my_value"
-            except ConnectionError as e:
-                logging.error(e, value)
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
+        except Exception as e:
+            logging.error(e, value)
+            ERROR.append(e)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
     await client.set("my_key", "my_value")
+
+    pool_num = 10
     task = [asyncio.create_task(_get()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+    monitor_task.cancel()
 
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
 async def test_hget_extreme_case():
+    ERROR = []
     async def _hget():
-        while signal_state.ALIVE:
-            request.set(str(uuid.uuid4()).split('-')[0])
-            try:
+        nonlocal ERROR
+        try:
+            start = time.time()
+            while time.time()-start <= 5 and signal_state.ALIVE:
+                request.set(str(uuid.uuid4()).split('-')[0])
                 value = await client.hget("my_key", "my_field")
                 assert value[:8] == b"my_value"
-            except ConnectionError as e:
-                logging.error(e, value)
-            except Exception as e:
-                logging.error(e, value)
-                raise e
-    pool_num = 10
-    client, daemon_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
+        except Exception as e:
+            logging.error(e, value)
+            ERROR.append(e)
+            raise e
+        finally:
+            signal_state.ALIVE = False
+
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
     await client.hset("my_key", "my_field", "my_value")
+
+    pool_num = 10
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+    monitor_task.cancel()
+
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
 
 async def start_1000_clients():
     signal_state.register_exit_signal()
