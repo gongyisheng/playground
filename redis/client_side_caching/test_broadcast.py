@@ -11,6 +11,7 @@ REDIS_MAX_CONNECTIONS = 5
 # Test command:
 #    pytest
 #    pytest -v -s (show print)
+#    pytest -lf 
 #    pytest -k <test function name>
 #    pytest -k <test function name> --count 10 (repeat 10 times)
 #    pytest -k <test function name> -s (show print)
@@ -25,6 +26,7 @@ import random
 import signal_state_aio as signal_state
 import time
 import traceback
+from typing import Optional
 import uuid
 
 from redis.asyncio import Redis, BlockingConnectionPool, ConnectionError
@@ -100,6 +102,44 @@ async def init(**kwargs):
     await asyncio.sleep(0.5)
     return client, daemon_task, monitor_task
 
+async def _synchronized_get(client: CachedRedis, key: str, expected_value: str, error_return: Optional[list] = None, raise_error: bool = True, sleep: Optional[int] = None):
+    try:
+        start = time.time()
+        expected_value = expected_value.encode('ascii')
+        while time.time()-start <= 5 and signal_state.ALIVE:
+            request.set(str(uuid.uuid4()).split('-')[0])
+            value = await client.get(key)
+            assert value == expected_value
+            if sleep is not None:
+                await asyncio.sleep(sleep)
+    except Exception as e:
+        logging.error(f"Got error during get test: key={key}, expected_value={expected_value}, actual_value={value}", exc_info=True)
+        if error_return is not None:
+            error_return.append((time.time(), e))
+        if raise_error:
+            raise e
+    finally:
+        signal_state.ALIVE = False
+
+async def _synchronized_hget(client: CachedRedis, key: str, field: str, expected_value: str, error_return: Optional[list] = None, raise_error: bool = True, sleep: Optional[int] = None):
+    try:
+        start = time.time()
+        expected_value = expected_value.encode('ascii')
+        while time.time()-start <= 5 and signal_state.ALIVE:
+            request.set(str(uuid.uuid4()).split('-')[0])
+            value = await client.hget(key, field)
+            assert value == expected_value
+            if sleep is not None:
+                await asyncio.sleep(sleep)
+    except Exception as e:
+        logging.error(f"Got error during hget test: key={key}, field={field}, expected_value={expected_value}, actual_value={value}", exc_info=True)
+        if error_return is not None:
+            error_return.append((time.time(), e))
+        if raise_error:
+            raise e
+    finally:
+        signal_state.ALIVE = False
+
 @pytest.mark.asyncio
 async def test_get():
     GET_COUNT = 0
@@ -111,16 +151,7 @@ async def test_get():
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
-
-    for i in range(5):
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.get("my_key")
-        except Exception as e:
-            logging.error(f"error={e}, trackback={traceback.format_exc()}")
-            raise e
-        assert value[:8] == b"my_value"
-        await asyncio.sleep(1)
+    await _synchronized_get(client, "my_key", "my_value", sleep=1)
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
@@ -141,16 +172,7 @@ async def test_hget():
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", "my_value")
-
-    for i in range(5):
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.hget("my_key", "my_field")
-        except Exception as e:
-            logging.error(f"error={e}, trackback={traceback.format_exc()}")
-            raise e
-        assert value[:8] == b"my_value"
-        await asyncio.sleep(1)
+    await _synchronized_hget(client, "my_key", "my_field", "my_value", sleep=1)
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
@@ -180,16 +202,7 @@ async def test_prefix():
 
     client, daemon_task, monitor_task = await init(cache_prefix=cache_prefix, monitor_callback=[audit_client_tracking])
     await client.set("my_key", "my_value")
-
-    for i in range(5):
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.get("my_key")
-        except Exception as e:
-            logging.error(f"error={e}, trackback={traceback.format_exc()}")
-            raise e
-        assert value[:8] == b"my_value"
-        await asyncio.sleep(1)
+    await _synchronized_get(client, "my_key", "my_value", sleep=1)
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
@@ -214,16 +227,7 @@ async def test_synchronized_get():
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
-
-    start = time.time()
-    while time.time()-start <= 5:
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.get("my_key")
-        except Exception as e:
-            logging.error(f"error={e}, trackback={traceback.format_exc()}")
-            raise e
-        assert value[:8] == b"my_value"
+    await _synchronized_get(client, "my_key", "my_value")
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
@@ -244,16 +248,7 @@ async def test_synchronized_hget():
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", "my_value")
-
-    start = time.time()
-    while time.time()-start <= 5:
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.hget("my_key", "my_field")
-        except Exception as e:
-            logging.error(f"error={e}, trackback={traceback.format_exc()}")
-            raise e
-        assert value[:8] == b"my_value"
+    await _synchronized_hget(client, "my_key", "my_field", "my_value")
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
@@ -278,16 +273,7 @@ async def test_short_cache_ttl():
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
-
-    start = time.time()
-    while time.time()-start <= 5:
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.get("my_key")
-        except Exception as e:
-            logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            break
-        assert value[:8] == b"my_value"
+    await _synchronized_get(client, "my_key", "my_value")
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
@@ -316,16 +302,7 @@ async def test_short_health_check():
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[audit_health_check])
     await client.set("my_key", "my_value")
-
-    start = time.time()
-    while time.time()-start <= 5:
-        request.set(str(uuid.uuid4()).split('-')[0])
-        try:
-            value = await client.get("my_key")
-        except Exception as e:
-            logging.warning(f"error={e}, trackback={traceback.format_exc()}")
-            raise e
-        assert value[:8] == b"my_value"
+    await _synchronized_get(client, "my_key", "my_value")
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
@@ -347,26 +324,11 @@ async def test_concurrent_get():
             GET_COUNT += 1
 
     ERROR = []
-    async def _get():
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.get("my_key")
-                assert value[:8] == b"my_value"
-        except Exception as e:
-            logging.error(e, value)
-            ERROR.append(e)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
 
     pool_num = 10
-    task = [asyncio.create_task(_get()) for _ in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR)) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -384,26 +346,11 @@ async def test_concurrent_hget():
             HGET_COUNT += 1
 
     ERROR = []
-    async def _hget():
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.hget("my_key", "my_field")
-                assert value[:8] == b"my_value"
-        except Exception as e:
-            logging.error(e, value)
-            ERROR.append(e)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", "my_value")
 
     pool_num = 10
-    task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_hget(client, "my_key", "my_field", "my_value", error_return=ERROR)) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -430,20 +377,10 @@ async def test_concurrent_hget_with_deviation():
     async def _hget():
         nonlocal ERROR
         nonlocal HGET_CLIENT_TIMESTAMP
-        try:
-            start = time.time()
-            if HGET_CLIENT_TIMESTAMP is None:
-                HGET_CLIENT_TIMESTAMP = start
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.hget("my_key", "my_field")
-                assert value[:8] == b"my_value"
-        except Exception as e:
-            logging.error(e, value)
-            ERROR.append(e)
-            raise e
-        finally:
-            signal_state.ALIVE = False
+        start = time.time()
+        if HGET_CLIENT_TIMESTAMP is None:
+            HGET_CLIENT_TIMESTAMP = start
+        await _synchronized_hget(client, "my_key", "my_field", "my_value", error_return=ERROR)
 
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], hget_deviation_option={"my_key": 10}, monitor_callback=[audit_hget])
     await client.hset("my_key", "my_field", f"my_value")
@@ -483,29 +420,14 @@ async def test_noevict_get():
             NOEVICT_KEY_GET_COUNT += 1
 
     ERROR = []
-    async def _get(key: str, expected_value: bytes):
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.get(key)
-                assert value == expected_value
-        except Exception as e:
-            logging.error(e, value)
-            ERROR.append(e)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     pool_num = 10
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[audit_get])
     await client.set("my_key_no_evict", "my_value_no_evict")
     for i in range(pool_num):
         await client.set(f"my_key_{i}", f"my_value_{i}")
     
-    task = [asyncio.create_task(_get(f"my_key_{i}", f"my_value_{i}".encode('ascii'))) for i in range(pool_num)]
-    noevict_task = asyncio.create_task(_get("my_key_no_evict", b"my_value_no_evict"))
+    task = [asyncio.create_task(_synchronized_get(client, f"my_key_{i}", f"my_value_{i}", error_return=ERROR)) for i in range(pool_num)]
+    noevict_task = asyncio.create_task(_synchronized_get(client, "my_key_no_evict", "my_value_no_evict", error_return=ERROR))
     await asyncio.gather(daemon_task, *task, noevict_task)
     monitor_task.cancel()
 
@@ -526,20 +448,6 @@ async def test_noevict_hget():
             NOEVICT_KEY_HGET_COUNT[field] += 1
 
     ERROR = []
-    async def _hget(key: str, field: str, expected_value: bytes):
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.hget(key, field)
-                assert value == expected_value
-        except Exception as e:
-            logging.error(e, value)
-            ERROR.append(e)
-            raise e
-        finally:
-            signal_state.ALIVE = False
 
     pool_num = 10
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[audit_hget])
@@ -547,8 +455,8 @@ async def test_noevict_hget():
         await client.hset("my_key_no_evict", f"my_field_no_evict_{i}", f"my_value_no_evict_{i}")
         await client.hset(f"my_key_{i}", f"my_field_{i}", f"my_value_{i}")
 
-    task = [asyncio.create_task(_hget(f"my_key_{i}", f"my_field_{i}", f"my_value_{i}".encode('ascii'))) for i in range(pool_num)]
-    noevict_task = [asyncio.create_task(_hget("my_key_no_evict", f"my_field_no_evict_{i}", f"my_value_no_evict_{i}".encode('ascii'))) for i in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_hget(client, f"my_key_{i}", f"my_field_{i}", f"my_value_{i}", error_return=ERROR)) for i in range(pool_num)]
+    noevict_task = [asyncio.create_task(_synchronized_hget(client, "my_key_no_evict", f"my_field_no_evict_{i}", f"my_value_no_evict_{i}", error_return=ERROR)) for i in range(pool_num)]
     await asyncio.gather(daemon_task, *task, *noevict_task)
     monitor_task.cancel()
 
@@ -572,25 +480,11 @@ async def test_concurrent_get_short_expire_time():
             GET_TIMESTAMPS.append(info['time'])
 
     ERROR = []
-    async def _get():
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.get("my_key")
-                assert value[:8] == b"my_value"
-        except Exception as e:
-            logging.error(e, value)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[audit_get])
     await client.set("my_key", "my_value")
 
     pool_num = 10
-    task = [asyncio.create_task(_get()) for _ in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR)) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -619,26 +513,12 @@ async def test_concurrent_hget_short_expire_time():
             HGET_TIMESTAMPS[field].append(info['time'])
 
     ERROR = []
-    async def _hget(i):
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.hget("my_key", f"my_field_{i}")
-                assert value == f"my_value_{i}".encode('ascii')
-        except Exception as e:
-            logging.error(e, value)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     pool_num = 10
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[audit_hget])
     for i in range(pool_num):
         await client.hset("my_key", f"my_field_{i}", f"my_value_{i}")
 
-    task = [asyncio.create_task(_hget(i)) for i in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_hget(client, "my_key", f"my_field_{i}", f"my_value_{i}", error_return=ERROR)) for i in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -673,25 +553,11 @@ async def test_concurrent_short_health_check():
             GET_COUNT += 1
 
     ERROR = []
-    async def _get():
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.get("my_key")
-                assert value[:8] == b"my_value"
-        except Exception as e:
-            logging.error(e, value)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[audit_ping, audit_get])
     await client.set("my_key", "my_value")
 
     pool_num = 10
-    task = [asyncio.create_task(_get()) for _ in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR)) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -705,26 +571,11 @@ async def test_concurrent_short_health_check():
 @pytest.mark.asyncio
 async def test_get_extreme_case():
     ERROR = []
-    async def _get():
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.get("my_key")
-                assert value[:8] == b"my_value"
-        except Exception as e:
-            logging.error(e, value)
-            ERROR.append(e)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
     await client.set("my_key", "my_value")
 
     pool_num = 10
-    task = [asyncio.create_task(_get()) for _ in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR)) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -735,26 +586,11 @@ async def test_get_extreme_case():
 @pytest.mark.asyncio
 async def test_hget_extreme_case():
     ERROR = []
-    async def _hget():
-        nonlocal ERROR
-        try:
-            start = time.time()
-            while time.time()-start <= 5 and signal_state.ALIVE:
-                request.set(str(uuid.uuid4()).split('-')[0])
-                value = await client.hget("my_key", "my_field")
-                assert value[:8] == b"my_value"
-        except Exception as e:
-            logging.error(e, value)
-            ERROR.append(e)
-            raise e
-        finally:
-            signal_state.ALIVE = False
-
     client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=0.001, health_check_interval=0.001)
     await client.hset("my_key", "my_field", "my_value")
 
     pool_num = 10
-    task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
+    task = [asyncio.create_task(_synchronized_hget(client, "my_key", "my_field", "my_value", error_return=ERROR)) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
@@ -885,7 +721,6 @@ async def test_1000_client_listen_invalidate_concurrent():
 
 @pytest.mark.asyncio
 async def test_synchronized_get_close_connection_single():
-
     pass
 
 @pytest.mark.asyncio
