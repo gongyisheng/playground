@@ -883,6 +883,35 @@ async def test_1000_client_listen_invalidate_concurrent():
     except Exception as e:
         pass
 
+@pytest.mark.asyncio
+async def test_synchronized_get_close_connection_single():
+
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_close_connection_single():
+    pass
+
+@pytest.mark.asyncio
+async def test_synchronized_get_close_connection_multi():
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_close_connection_multi():
+    pass
+
+@pytest.mark.asyncio
+async def test_redis_down():
+    pass
+
+@pytest.mark.asyncio
+async def test_redis_down_and_up():
+    pass
+
+@pytest.mark.asyncio
+async def test_short_key_ttl():
+    pass
+
 if __name__ == "__main__":
     import sys
 
