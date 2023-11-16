@@ -9,8 +9,6 @@ CREATE TABLE binlog_test(
 INSERT INTO binlog_test VALUES (1, 'payload', 1, 1);
 INSERT INTO binlog_test VALUES (2, 'payload', 2, 2);
 INSERT INTO binlog_test VALUES (3, 'payload', 3, 3);
--- INSERT INTO binlog_test (`id`, `payload`, `insert_time`, `update_time`) VALUES (4, 'payload', 4, 4);
--- INSERT INTO binlog_test (`payload`) VALUES ('payload');
 
 UPDATE binlog_test SET payload = 'payload2' WHERE id = 1;
 UPDATE binlog_test SET payload = 'payload2' WHERE id = 2;
