@@ -875,9 +875,12 @@ async def test_1000_client_listen_invalidate_multi():
         await redis.set("my_key", "not_my_value")
     end = time.time()
 
+    avg_rumtime = end - start
+    qps = int(1000 / avg_rumtime)
     assert end - start < 1000
+
     print(
-        f"SET 1000 time and send invalidate message to 1000 clients cost: avg = {(end-start)} ms, qps = {int(1000/(end-start))}"
+        f"SET 1000 time and send invalidate message to 1000 clients cost: avg = {(avg_rumtime)} ms, qps = {qps}"
     )
 
     await redis.close(close_connection_pool=True)
