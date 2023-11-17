@@ -9,7 +9,7 @@ REDIS_MAX_CONNECTIONS = 5
 # Test Dependencies:
 #    pip install pytest pytest-asyncio pytest-repeat
 # Test command:
-#    pytest
+#    pytest -v
 #    pytest -v -s (show print)
 #    pytest -k <test function name>
 #    pytest -k <test function name> --count 10 (repeat 10 times)
@@ -228,6 +228,8 @@ async def demo():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     await client._redis.close(close_connection_pool=True)
@@ -247,6 +249,8 @@ async def test_get():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_DATA_RETURN) == 1
@@ -270,6 +274,8 @@ async def test_hget():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_DATA_RETURN) == 1
@@ -291,7 +297,7 @@ async def test_prefix():
             partial(
                 _audit,
                 data_return=AUDIT_RETURN,
-                keywords=CLIENT_TRACKING_AUDIT_KEYWORDS,
+                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
             )
         ],
     )
@@ -300,6 +306,8 @@ async def test_prefix():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 4
@@ -336,6 +344,8 @@ async def test_synchronized_get():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 1
@@ -357,6 +367,8 @@ async def test_synchronized_hget():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 1
@@ -383,6 +395,8 @@ async def test_short_cache_ttl():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     max_cache_ttl = CACHE_TTL * (1 - client.cache_ttl_deviation)
@@ -412,6 +426,8 @@ async def test_short_health_check():
 
     signal_state.ALIVE = False
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     for i in range(len(AUDIT_RETURN) - 1):
@@ -442,6 +458,8 @@ async def test_concurrent_get():
         for _ in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 1
@@ -472,6 +490,8 @@ async def test_concurrent_hget():
         for _ in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 1
@@ -508,6 +528,8 @@ async def test_concurrent_hget_with_deviation():
     pool_num = 10
     task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 1
@@ -563,6 +585,8 @@ async def test_noevict_get():
         )
     )
     await asyncio.gather(daemon_task, *task, noevict_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 1
@@ -616,6 +640,8 @@ async def test_noevict_hget():
         for i in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task, *noevict_task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     FIELD_COUNT = {}
@@ -655,6 +681,8 @@ async def test_concurrent_get_short_expire_time():
         for _ in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     max_cache_ttl = CACHE_TTL * (1 - client.cache_ttl_deviation)
@@ -702,6 +730,8 @@ async def test_concurrent_hget_short_expire_time():
         for i in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     max_cache_ttl = CACHE_TTL * (1 - client.cache_ttl_deviation)
@@ -744,6 +774,8 @@ async def test_concurrent_short_health_check():
         for _ in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(ERROR) == 0
@@ -773,6 +805,8 @@ async def test_get_extreme_case():
         for _ in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(ERROR) == 0
@@ -798,6 +832,8 @@ async def test_hget_extreme_case():
         for _ in range(pool_num)
     ]
     await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(ERROR) == 0
