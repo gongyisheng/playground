@@ -910,9 +910,9 @@ async def test_1000_client_listen_invalidate_concurrent():
     task = [asyncio.create_task(_set()) for _ in range(pool_size)]
     await asyncio.gather(*task)
 
-    print(
-        f"SET 1000 time concurrently cost: avg = {sum(RUMTIME)/len(RUMTIME)} ms, qps = {int(1000/(sum(RUMTIME)/len(RUMTIME)))}"
-    )
+    avg_runtime = sum(RUMTIME) / len(RUMTIME)
+    qps = int(1000 / (sum(RUMTIME) / len(RUMTIME)))
+    print(f"SET 1000 time concurrently cost: avg = {avg_runtime} ms, qps = {qps}")
     RUMTIME.clear()
 
     proc = await asyncio.create_subprocess_exec(
@@ -924,9 +924,11 @@ async def test_1000_client_listen_invalidate_concurrent():
     task = [asyncio.create_task(_set()) for _ in range(pool_size)]
     await asyncio.gather(*task)
 
-    assert sum(RUMTIME) / len(RUMTIME) < 1000
+    avg_runtime = sum(RUMTIME) / len(RUMTIME)
+    qps = int(1000 / (sum(RUMTIME) / len(RUMTIME)))
+    assert avg_runtime < 1000
     print(
-        f"SET 1000 time concurrently and send invalidate message to 1000 clients cost: avg = {sum(RUMTIME)/len(RUMTIME)} ms, qps = {int(1000/(sum(RUMTIME)/len(RUMTIME)))}"
+        f"SET 1000 time concurrently and send invalidate message to 1000 clients cost: avg = {avg_runtime} ms, qps = {qps}"
     )
 
     await redis.close(close_connection_pool=True)
