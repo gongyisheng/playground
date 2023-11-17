@@ -134,11 +134,12 @@ async def _synchronized_get(
     error_return: Optional[list] = None,
     raise_error: bool = True,
     sleep: Optional[int] = None,
+    duration: int = 5,
 ):
     try:
         start = time.time()
         expected_value = expected_value.encode("ascii")
-        while time.time() - start <= 5 and signal_state.ALIVE:
+        while time.time() - start <= duration and signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split("-")[0])
             value = await client.get(key)
             assert value == expected_value
@@ -165,11 +166,12 @@ async def _synchronized_hget(
     error_return: Optional[list] = None,
     raise_error: bool = True,
     sleep: Optional[int] = None,
+    duration: int = 5,
 ):
     try:
         start = time.time()
         expected_value = expected_value.encode("ascii")
-        while time.time() - start <= 5 and signal_state.ALIVE:
+        while time.time() - start <= duration and signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split("-")[0])
             value = await client.hget(key, field)
             assert value == expected_value
@@ -215,6 +217,20 @@ CLIENT_TRACKING_AUDIT_KEYWORDS = {
     "SUBSCRIBE __redis__:invalidate",
     "UNSUBSCRIBE __redis__:invalidate",
 }
+
+
+async def demo():
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+    )
+    await client.set("my_key", "my_value")
+    await _synchronized_get(client, "my_key", "my_value", sleep=1, duration=60)
+
+    signal_state.ALIVE = False
+    await asyncio.gather(daemon_task)
+    monitor_task.cancel()
+
+    await client._redis.close(close_connection_pool=True)
 
 
 @pytest.mark.asyncio
