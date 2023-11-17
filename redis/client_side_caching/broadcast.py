@@ -133,11 +133,6 @@ class CachedRedis(object):
             self.READ_CACHE_EVENT = asyncio.Event()
         return self.READ_CACHE_EVENT
     
-    def __get_listen_invalidate_coroutine_event(self):
-        if self.LISTEN_INVALIDATE_COROUTINE_EVENT is None:
-            self.LISTEN_INVALIDATE_COROUTINE_EVENT = asyncio.Event()
-        return self.LISTEN_INVALIDATE_COROUTINE_EVENT
-    
     def _make_cache_key(self, key: str, field: Optional[str] = None) -> str:
         if field is None:
             return key
@@ -405,9 +400,9 @@ class CachedRedis(object):
         logging.info("Start _background_listen_invalidate")
         try:
             while signal_state.ALIVE:
-                asyncio.create_task(self._listen_invalidate(), name=self.TASK_NAME)
-                self.__get_listen_invalidate_coroutine_event().clear()
-                await self.__get_listen_invalidate_coroutine_event().wait()
+                task = asyncio.create_task(self._listen_invalidate(), name=self.TASK_NAME)
+                await asyncio.gather(task)
+                await asyncio.sleep(1)
         except Exception as e:
             logging.error("Error in _background_listen_invalidate", error=e)
         finally:
@@ -549,7 +544,6 @@ class CachedRedis(object):
                 break
 
         await self._listen_invalidate_on_close()
-        self.__get_listen_invalidate_coroutine_event().set()
     
     def register_listen_invalidate_callback(self, func: Callable, *args, **kwargs) -> None:
         """
