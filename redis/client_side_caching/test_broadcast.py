@@ -11,7 +11,6 @@ REDIS_MAX_CONNECTIONS = 5
 # Test command:
 #    pytest
 #    pytest -v -s (show print)
-#    pytest -lf 
 #    pytest -k <test function name>
 #    pytest -k <test function name> --count 10 (repeat 10 times)
 #    pytest -k <test function name> -s (show print)
@@ -20,13 +19,13 @@ REDIS_MAX_CONNECTIONS = 5
 
 import asyncio
 from contextvars import ContextVar
+from functools import partial
 import logging
 import pytest
 import random
 import signal_state_aio as signal_state
 import time
-import traceback
-from typing import Optional
+from typing import Optional, Union
 import uuid
 
 from redis.asyncio import Redis, BlockingConnectionPool, ConnectionError
@@ -81,6 +80,9 @@ async def monitor(redis, callback_func=[]):
                 func(info)
             logging.debug(f"monitor redis: command={info.get('command')}, time={info.get('time')}")
 
+async def kill_client(redis: Redis, client_id: int):
+    await redis.client_kill(client_id)
+
 async def init(**kwargs):
     setup_logger()
     signal_state.ALIVE = True
@@ -102,6 +104,7 @@ async def init(**kwargs):
     await asyncio.sleep(0.5)
     return client, daemon_task, monitor_task
 
+# Utils get/hget functions for test
 async def _synchronized_get(client: CachedRedis, key: str, expected_value: str, error_return: Optional[list] = None, raise_error: bool = True, sleep: Optional[int] = None):
     try:
         start = time.time()
@@ -140,16 +143,31 @@ async def _synchronized_hget(client: CachedRedis, key: str, field: str, expected
     finally:
         signal_state.ALIVE = False
 
+# Monitor audit functions
+def _audit(info: dict, data_return: Optional[list] = None, keyword: Union[set, str, None] = None):
+    if data_return is None or keyword is None:
+        return
+    if isinstance(keyword, str):
+        keyword = {keyword}
+    for k in keyword:
+        if info['command'].startswith(k):
+            data_return.append({
+                "command": info['command'],
+                "time": info['time'],
+            })
+            break
+
+CLIENT_TRACKING_AUDIT_KEYWORDS = {
+    "CLIENT TRACKING ON",
+    "CLIENT TRACKING OFF",
+    "SUBSCRIBE __redis__:invalidate",
+    "UNSUBSCRIBE __redis__:invalidate",
+}
+
 @pytest.mark.asyncio
 async def test_get():
-    GET_COUNT = 0
-    def audit_get(info):
-        # Expect only one GET my_key command to redis
-        nonlocal GET_COUNT
-        if info['command'].startswith("GET my_key"):
-            GET_COUNT += 1
-
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
+    AUDIT_DATA_RETURN = []
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[partial(_audit, data_return=AUDIT_DATA_RETURN, keyword="GET my_key")])
     await client.set("my_key", "my_value")
     await _synchronized_get(client, "my_key", "my_value", sleep=1)
 
@@ -157,20 +175,14 @@ async def test_get():
     await asyncio.gather(daemon_task)
     monitor_task.cancel()
 
-    assert GET_COUNT == 1
+    assert len(AUDIT_DATA_RETURN) == 1
 
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
 async def test_hget():
-    HGET_COUNT = 0
-    def audit_hget(info):
-        # Expect only one HGET my_key my_field command to redis
-        nonlocal HGET_COUNT
-        if info['command'].startswith("HGET my_key my_field"):
-            HGET_COUNT += 1
-
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
+    AUDIT_DATA_RETURN = []
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[partial(_audit, data_return=AUDIT_DATA_RETURN, keyword="HGET my_key my_field")])
     await client.hset("my_key", "my_field", "my_value")
     await _synchronized_hget(client, "my_key", "my_field", "my_value", sleep=1)
 
@@ -178,29 +190,19 @@ async def test_hget():
     await asyncio.gather(daemon_task)
     monitor_task.cancel()
 
-    assert HGET_COUNT == 1
+    assert len(AUDIT_DATA_RETURN) == 1
 
     await client._redis.close(close_connection_pool=True)
 
 # TODO: test long prefix and many prefix
 @pytest.mark.asyncio
 async def test_prefix():
+    AUDIT_RETURN = []
     cache_prefix = ["my_key", "test"]
     for i in range(62):
         cache_prefix.append(uuid.uuid4().hex[:16])
 
-    CLIENT_TRACKING_ON_COMMAND = None
-    CLIENT_TRACKING_OFF_COMMAND = None
-    def audit_client_tracking(info):
-        nonlocal CLIENT_TRACKING_ON_COMMAND
-        nonlocal CLIENT_TRACKING_OFF_COMMAND
-        # Expect only one HGET my_key my_field command to redis
-        if info['command'].startswith("CLIENT TRACKING ON"):
-            CLIENT_TRACKING_ON_COMMAND = info['command']
-        elif info['command'].startswith("CLIENT TRACKING OFF"):
-            CLIENT_TRACKING_OFF_COMMAND = info['command']
-
-    client, daemon_task, monitor_task = await init(cache_prefix=cache_prefix, monitor_callback=[audit_client_tracking])
+    client, daemon_task, monitor_task = await init(cache_prefix=cache_prefix, monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keywords=CLIENT_TRACKING_AUDIT_KEYWORDS)])
     await client.set("my_key", "my_value")
     await _synchronized_get(client, "my_key", "my_value", sleep=1)
 
@@ -208,24 +210,21 @@ async def test_prefix():
     await asyncio.gather(daemon_task)
     monitor_task.cancel()
 
-    assert CLIENT_TRACKING_ON_COMMAND is not None
-    assert CLIENT_TRACKING_OFF_COMMAND is not None
+    assert len(AUDIT_RETURN) == 4
+    CLIENT_TRACKING_ON_COMMANDS = [d['command'] for d in AUDIT_RETURN if d['command'].startswith("CLIENT TRACKING ON")]
+    CLIENT_TRACKING_OFF_COMMANDS = [d['command'] for d in AUDIT_RETURN if d['command'].startswith("CLIENT TRACKING OFF")]
+    assert len(CLIENT_TRACKING_ON_COMMANDS) == 1
+    assert len(CLIENT_TRACKING_OFF_COMMANDS) == 1
     for prefix in cache_prefix:
-        assert prefix in set(CLIENT_TRACKING_ON_COMMAND.split(' '))
-        assert prefix in set(CLIENT_TRACKING_OFF_COMMAND.split(' '))
+        assert prefix in set(CLIENT_TRACKING_ON_COMMANDS[0].split(' '))
+        assert prefix in set(CLIENT_TRACKING_OFF_COMMANDS[0].split(' '))
 
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
 async def test_synchronized_get():
-    GET_COUNT = 0
-    def audit_get(info):
-        # Expect only one GET my_key command to redis
-        nonlocal GET_COUNT
-        if info['command'].startswith("GET my_key"):
-            GET_COUNT += 1
-
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")])
     await client.set("my_key", "my_value")
     await _synchronized_get(client, "my_key", "my_value")
 
@@ -233,20 +232,14 @@ async def test_synchronized_get():
     await asyncio.gather(daemon_task)
     monitor_task.cancel()
 
-    assert GET_COUNT == 1
+    assert len(AUDIT_RETURN) == 1
 
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
 async def test_synchronized_hget():
-    HGET_COUNT = 0
-    def audit_hget(info):
-        # Expect only one HGET my_key my_field command to redis
-        nonlocal HGET_COUNT
-        if info['command'].startswith("HGET my_key my_field"):
-            HGET_COUNT += 1
-
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key my_field")])
     await client.hset("my_key", "my_field", "my_value")
     await _synchronized_hget(client, "my_key", "my_field", "my_value")
 
@@ -254,7 +247,7 @@ async def test_synchronized_hget():
     await asyncio.gather(daemon_task)
     monitor_task.cancel()
 
-    assert HGET_COUNT == 1
+    assert len(AUDIT_RETURN) == 1
 
     await client._redis.close(close_connection_pool=True)
 
@@ -264,14 +257,8 @@ async def test_short_cache_ttl():
     # You can run this test multiple times to make sure that any value in cache ttl is working
     # pytest -k test_short_cache_ttl --count X
     CACHE_TTL = max(random.random() * 5, 0.1)
-    GET_TIMESTAMPS = []
-
-    def audit_get(info):
-        nonlocal GET_TIMESTAMPS
-        if info['command'].startswith("GET my_key"):
-            GET_TIMESTAMPS.append(info['time'])
-
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[audit_get])
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")])
     await client.set("my_key", "my_value")
     await _synchronized_get(client, "my_key", "my_value")
 
@@ -280,11 +267,11 @@ async def test_short_cache_ttl():
     monitor_task.cancel()
 
     max_cache_ttl = CACHE_TTL*(1-client.cache_ttl_deviation)
-    for i in range(len(GET_TIMESTAMPS)-1):
-        diff = GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i]
+    for i in range(len(AUDIT_RETURN)-1):
+        diff = AUDIT_RETURN[i+1]["time"] - AUDIT_RETURN[i]["time"]
         assert diff >= max_cache_ttl
     expected_count = 5//(CACHE_TTL*(1-client.cache_ttl_deviation)) + 1
-    assert len(GET_TIMESTAMPS) in [expected_count-1, expected_count]
+    assert len(AUDIT_RETURN) in [expected_count-1, expected_count]
 
     await client._redis.close(close_connection_pool=True)
 
@@ -294,13 +281,8 @@ async def test_short_health_check():
     # You can run this test multiple times to make sure that any value in cache ttl is working
     # pytest -k test_short_health_check --count X
     HEALTH_CHECK_INTERVAL = max(random.random() * 5, 0.1)
-    HEALTH_CHECK_TIMESTAMPS = []
-    def audit_health_check(info):
-        nonlocal HEALTH_CHECK_TIMESTAMPS
-        if info['command'].startswith(f"PING"):
-            HEALTH_CHECK_TIMESTAMPS.append(info['time'])
-
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[audit_health_check])
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="PING")])
     await client.set("my_key", "my_value")
     await _synchronized_get(client, "my_key", "my_value")
 
@@ -308,23 +290,18 @@ async def test_short_health_check():
     await asyncio.gather(daemon_task)
     monitor_task.cancel()
 
-    for i in range(len(HEALTH_CHECK_TIMESTAMPS)-1):
-        diff = HEALTH_CHECK_TIMESTAMPS[i+1] - HEALTH_CHECK_TIMESTAMPS[i]
+    for i in range(len(AUDIT_RETURN)-1):
+        diff = AUDIT_RETURN[i+1]["time"] - AUDIT_RETURN[i]["time"]
         assert diff >= HEALTH_CHECK_INTERVAL
-    assert len(HEALTH_CHECK_TIMESTAMPS) <= min(5//HEALTH_CHECK_INTERVAL + 1, 6)
+    assert len(AUDIT_RETURN) <= min(5//HEALTH_CHECK_INTERVAL + 1, 6)
 
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
 async def test_concurrent_get():
-    GET_COUNT = 0
-    def audit_get(info):
-        nonlocal GET_COUNT
-        if info['command'].startswith("GET my_key"):
-            GET_COUNT += 1
-
+    AUDIT_RETURN = []
     ERROR = []
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_get])
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")])
     await client.set("my_key", "my_value")
 
     pool_num = 10
@@ -332,21 +309,16 @@ async def test_concurrent_get():
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
-    assert GET_COUNT == 1
+    assert len(AUDIT_RETURN) == 1
     assert len(ERROR) == 0
 
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
 async def test_concurrent_hget():
-    HGET_COUNT = 0
-    def audit_hget(info):
-        nonlocal HGET_COUNT
-        if info['command'].startswith("HGET my_key my_field"):
-            HGET_COUNT += 1
-
+    AUDIT_RETURN = []
     ERROR = []
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[audit_hget])
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key my_field")])
     await client.hset("my_key", "my_field", "my_value")
 
     pool_num = 10
@@ -354,25 +326,15 @@ async def test_concurrent_hget():
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
-    assert HGET_COUNT == 1
+    assert len(AUDIT_RETURN) == 1
     assert len(ERROR) == 0
 
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
 async def test_concurrent_hget_with_deviation():
-    HGET_COUNT = 0
-    HGET_SERVER_TIMESTAMP = None
     HGET_CLIENT_TIMESTAMP = None
-
-    def audit_hget(info):
-        nonlocal HGET_COUNT
-        nonlocal HGET_SERVER_TIMESTAMP
-        if info['command'].startswith("HGET my_key my_field"):
-            HGET_COUNT += 1
-            if HGET_SERVER_TIMESTAMP is None:
-                HGET_SERVER_TIMESTAMP = info['time']
-
+    AUDIT_RETURN = []
     ERROR = []
     async def _hget():
         nonlocal ERROR
@@ -382,7 +344,7 @@ async def test_concurrent_hget_with_deviation():
             HGET_CLIENT_TIMESTAMP = start
         await _synchronized_hget(client, "my_key", "my_field", "my_value", error_return=ERROR)
 
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], hget_deviation_option={"my_key": 10}, monitor_callback=[audit_hget])
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], hget_deviation_option={"my_key": 10}, monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key my_field")])
     await client.hset("my_key", "my_field", f"my_value")
 
     pool_num = 10
@@ -390,10 +352,10 @@ async def test_concurrent_hget_with_deviation():
     await asyncio.gather(daemon_task, *task)
     monitor_task.cancel()
 
-    assert HGET_COUNT == 1
+    assert len(AUDIT_RETURN) == 1
     assert len(ERROR) == 0
+    HGET_SERVER_TIMESTAMP = AUDIT_RETURN[0]["time"]
     assert HGET_SERVER_TIMESTAMP is not None
-    assert HGET_CLIENT_TIMESTAMP is not None
     diff = HGET_SERVER_TIMESTAMP - HGET_CLIENT_TIMESTAMP
     assert diff >= 0.01 and diff <= 10
 
@@ -413,15 +375,10 @@ async def test_concurrent_hget_with_deviation():
 
 @pytest.mark.asyncio
 async def test_noevict_get():
-    NOEVICT_KEY_GET_COUNT = 0
-    def audit_get(info):
-        nonlocal NOEVICT_KEY_GET_COUNT
-        if info['command'].startswith("GET my_key_no_evict"):
-            NOEVICT_KEY_GET_COUNT += 1
-
+    AUDIT_RETURN = []
     ERROR = []
     pool_num = 10
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[audit_get])
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key_no_evict")])
     await client.set("my_key_no_evict", "my_value_no_evict")
     for i in range(pool_num):
         await client.set(f"my_key_{i}", f"my_value_{i}")
@@ -431,26 +388,18 @@ async def test_noevict_get():
     await asyncio.gather(daemon_task, *task, noevict_task)
     monitor_task.cancel()
 
-    assert NOEVICT_KEY_GET_COUNT == 1
+    assert len(AUDIT_RETURN) == 1
     assert len(ERROR) == 0
 
     await client._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
 async def test_noevict_hget():
-    NOEVICT_KEY_HGET_COUNT = {}
-    def audit_hget(info):
-        nonlocal NOEVICT_KEY_HGET_COUNT
-        if info['command'].startswith("HGET my_key_no_evict"):
-            field = info['command'].split(' ')[2]
-            if field not in NOEVICT_KEY_HGET_COUNT:
-                NOEVICT_KEY_HGET_COUNT[field] = 0
-            NOEVICT_KEY_HGET_COUNT[field] += 1
-
+    AUDIT_RETURN = []
     ERROR = []
 
     pool_num = 10
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[audit_hget])
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_noevict_prefix=["my_key_no_evict"], cache_size=5, monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key_no_evict")])
     for i in range(pool_num):
         await client.hset("my_key_no_evict", f"my_field_no_evict_{i}", f"my_value_no_evict_{i}")
         await client.hset(f"my_key_{i}", f"my_field_{i}", f"my_value_{i}")
@@ -460,9 +409,13 @@ async def test_noevict_hget():
     await asyncio.gather(daemon_task, *task, *noevict_task)
     monitor_task.cancel()
 
-    for field in NOEVICT_KEY_HGET_COUNT:
-        assert NOEVICT_KEY_HGET_COUNT[field] == 1
-    assert len(NOEVICT_KEY_HGET_COUNT) == pool_num
+    FIELD_COUNT = {}
+    for data in AUDIT_RETURN:
+        field = data["command"].split(" ")[2]
+        FIELD_COUNT[field] = FIELD_COUNT.get(field, 0) + 1
+    for field in FIELD_COUNT:
+        assert FIELD_COUNT[field] == 1
+    assert len(FIELD_COUNT) == pool_num
     assert len(ERROR) == 0
 
     await client._redis.close(close_connection_pool=True)
@@ -473,14 +426,9 @@ async def test_concurrent_get_short_expire_time():
     # You can run this test multiple times to make sure that any value in cache ttl is working
     # pytest -k test_concurrent_get_short_expire_time --count X
     CACHE_TTL = max(random.random() * 5, 0.1)
-    GET_TIMESTAMPS = []
-    def audit_get(info):
-        nonlocal GET_TIMESTAMPS
-        if info['command'].startswith("GET my_key"):
-            GET_TIMESTAMPS.append(info['time'])
-
+    AUDIT_RETURN = []
     ERROR = []
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[audit_get])
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], cache_ttl=CACHE_TTL, monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")])
     await client.set("my_key", "my_value")
 
     pool_num = 10
@@ -489,11 +437,11 @@ async def test_concurrent_get_short_expire_time():
     monitor_task.cancel()
 
     max_cache_ttl = CACHE_TTL*(1-client.cache_ttl_deviation)
-    for i in range(len(GET_TIMESTAMPS)-1):
-        diff = GET_TIMESTAMPS[i+1] - GET_TIMESTAMPS[i]
+    for i in range(len(AUDIT_RETURN)-1):
+        diff = AUDIT_RETURN[i+1]["time"] - AUDIT_RETURN[i]["time"]
         assert diff >= max_cache_ttl
     expected_count = 5//(CACHE_TTL*(1-client.cache_ttl_deviation)) + 1
-    assert len(GET_TIMESTAMPS) in [expected_count-1, expected_count]
+    assert len(AUDIT_RETURN) in [expected_count-1, expected_count]
 
     await client._redis.close(close_connection_pool=True)
 
@@ -540,20 +488,10 @@ async def test_concurrent_short_health_check():
     # You can run this test multiple times to make sure that any value in cache ttl is working
     # pytest -k test_concurrent_short_health_check --count X
     HEALTH_CHECK_INTERVAL = max(random.random() * 5, 0.1)
-    HEALTH_CHECK_TIMESTAMPS = []
-    def audit_ping(info):
-        nonlocal HEALTH_CHECK_TIMESTAMPS
-        if info['command'].startswith("PING"):
-            HEALTH_CHECK_TIMESTAMPS.append(info['time'])
-    
-    GET_COUNT = 0
-    def audit_get(info):
-        nonlocal GET_COUNT
-        if info['command'].startswith("GET my_key"):
-            GET_COUNT += 1
-
+    PING_AUDIT_RETURN = []
+    GET_AUDIT_RETURN = []
     ERROR = []
-    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[audit_ping, audit_get])
+    client, daemon_task, monitor_task = await init(cache_prefix=["my_key", "test"], health_check_interval=HEALTH_CHECK_INTERVAL, monitor_callback=[partial(_audit, data_return=PING_AUDIT_RETURN, keyword="PING"), partial(_audit, data_return=GET_AUDIT_RETURN, keyword="GET my_key")])
     await client.set("my_key", "my_value")
 
     pool_num = 10
@@ -562,9 +500,9 @@ async def test_concurrent_short_health_check():
     monitor_task.cancel()
 
     assert len(ERROR) == 0
-    assert GET_COUNT == 1
-    for i in range(0, len(HEALTH_CHECK_TIMESTAMPS)-1):
-        assert HEALTH_CHECK_TIMESTAMPS[i+1] - HEALTH_CHECK_TIMESTAMPS[i] >= HEALTH_CHECK_INTERVAL
+    assert len(GET_AUDIT_RETURN) == 1
+    for i in range(0, len(PING_AUDIT_RETURN)-1):
+        assert PING_AUDIT_RETURN[i+1]["time"] - PING_AUDIT_RETURN[i]["time"] >= HEALTH_CHECK_INTERVAL
 
     await client._redis.close(close_connection_pool=True)
 
