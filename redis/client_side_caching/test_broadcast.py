@@ -91,7 +91,9 @@ async def monitor(redis, callback_func=[]):
             )
 
 
-async def kill_listen_invalidate(client: CachedRedis, repeat: Optional[int] = 1, sleep: int = 1):
+async def kill_listen_invalidate(
+    client: CachedRedis, repeat: Optional[int] = 1, sleep: int = 1
+):
     i = 0
     while (repeat is None or i < repeat) and signal_state.ALIVE:
         await asyncio.sleep(sleep)
@@ -109,7 +111,7 @@ async def init(**kwargs):
         host=REDIS_HOST,
         port=REDIS_PORT,
         db=REDIS_DB,
-        max_connections=kwargs.get("max_connections", REDIS_MAX_CONNECTIONS+1),
+        max_connections=kwargs.get("max_connections", REDIS_MAX_CONNECTIONS + 1),
         timeout=30,
     )
     redis = Redis(
@@ -983,6 +985,7 @@ async def test_1000_client_listen_invalidate_concurrent():
     except Exception as e:
         pass
 
+
 # Known issue with close connection test:
 #   After connection is intentionally closed, the next time we restart client tracking on, client may get following error:
 #      Prefix 'my_key' overlaps with an existing prefix 'my_key'. Prefixes for a single client must not overlap.
@@ -996,25 +999,41 @@ async def test_synchronized_get_close_connection_single():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=CLIENT_TRACKING_AUDIT_RETURN, keyword=CLIENT_TRACKING_AUDIT_KEYWORDS),
+            partial(
+                _audit,
+                data_return=CLIENT_TRACKING_AUDIT_RETURN,
+                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+            ),
             partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
 
-    kill_task = asyncio.create_task(kill_listen_invalidate(client, repeat=1, sleep=KILL_INTERVAL))
-    get_task = asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR, sleep=0.1))
+    kill_task = asyncio.create_task(
+        kill_listen_invalidate(client, repeat=1, sleep=KILL_INTERVAL)
+    )
+    get_task = asyncio.create_task(
+        _synchronized_get(client, "my_key", "my_value", error_return=ERROR, sleep=0.1)
+    )
     await asyncio.gather(get_task, kill_task, daemon_task)
 
     assert monitor_task.done() is False
     monitor_task.cancel()
-    
+
     assert len(ERROR) == 0
-    ON_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING ON")]
-    OFF_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING OFF")]
+    ON_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING ON")
+    ]
+    OFF_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING OFF")
+    ]
     logging.info(f"ON_EVENT: {ON_EVENT}")
     logging.info(f"OFF_EVENT: {OFF_EVENT}")
-    assert len(ON_EVENT) in [2, 3] 
+    assert len(ON_EVENT) in [2, 3]
     assert len(OFF_EVENT) in [2, 3]
     assert len(ON_EVENT) == len(OFF_EVENT)
     assert ON_EVENT[1]["time"] - ON_EVENT[0]["time"] >= KILL_INTERVAL
@@ -1032,23 +1051,44 @@ async def test_concurrent_get_close_connection_single():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=CLIENT_TRACKING_AUDIT_RETURN, keyword=CLIENT_TRACKING_AUDIT_KEYWORDS),
+            partial(
+                _audit,
+                data_return=CLIENT_TRACKING_AUDIT_RETURN,
+                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+            ),
             partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
 
     pool_size = 10
-    kill_task = asyncio.create_task(kill_listen_invalidate(client, repeat=1, sleep=KILL_INTERVAL))
-    get_task = [asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR, sleep=0.1)) for _ in range(pool_size)]
+    kill_task = asyncio.create_task(
+        kill_listen_invalidate(client, repeat=1, sleep=KILL_INTERVAL)
+    )
+    get_task = [
+        asyncio.create_task(
+            _synchronized_get(
+                client, "my_key", "my_value", error_return=ERROR, sleep=0.1
+            )
+        )
+        for _ in range(pool_size)
+    ]
     await asyncio.gather(*get_task, kill_task, daemon_task)
 
     assert monitor_task.done() is False
     monitor_task.cancel()
-    
+
     assert len(ERROR) == 0
-    ON_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING ON")]
-    OFF_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING OFF")]
+    ON_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING ON")
+    ]
+    OFF_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING OFF")
+    ]
     logging.info(f"ON_EVENT: {ON_EVENT}")
     logging.info(f"OFF_EVENT: {OFF_EVENT}")
     assert len(ON_EVENT) in [2, 3]
@@ -1069,28 +1109,51 @@ async def test_synchronized_get_close_connection_multi():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=CLIENT_TRACKING_AUDIT_RETURN, keyword=CLIENT_TRACKING_AUDIT_KEYWORDS),
+            partial(
+                _audit,
+                data_return=CLIENT_TRACKING_AUDIT_RETURN,
+                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+            ),
             partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
 
-    kill_task = asyncio.create_task(kill_listen_invalidate(client, repeat=KILL_REPEAT, sleep=KILL_INTERVAL))
-    get_task = asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR, duration=KILL_INTERVAL*KILL_REPEAT+5, sleep=0.1))
+    kill_task = asyncio.create_task(
+        kill_listen_invalidate(client, repeat=KILL_REPEAT, sleep=KILL_INTERVAL)
+    )
+    get_task = asyncio.create_task(
+        _synchronized_get(
+            client,
+            "my_key",
+            "my_value",
+            error_return=ERROR,
+            duration=KILL_INTERVAL * KILL_REPEAT + 5,
+            sleep=0.1,
+        )
+    )
     await asyncio.gather(get_task, kill_task, daemon_task)
 
     assert monitor_task.done() is False
     monitor_task.cancel()
-    
+
     assert len(ERROR) == 0
-    ON_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING ON")]
-    OFF_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING OFF")]
+    ON_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING ON")
+    ]
+    OFF_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING OFF")
+    ]
     logging.info(f"ON_EVENT: {ON_EVENT}")
     logging.info(f"OFF_EVENT: {OFF_EVENT}")
-    assert len(ON_EVENT) >= KILL_REPEAT+1 and len(ON_EVENT) <= KILL_REPEAT*2 + 1 
-    assert len(OFF_EVENT) >= KILL_REPEAT+1 and len(OFF_EVENT) <= KILL_REPEAT*2 + 1
+    assert len(ON_EVENT) >= KILL_REPEAT + 1 and len(ON_EVENT) <= KILL_REPEAT * 2 + 1
+    assert len(OFF_EVENT) >= KILL_REPEAT + 1 and len(OFF_EVENT) <= KILL_REPEAT * 2 + 1
     assert len(ON_EVENT) == len(OFF_EVENT)
-    assert len(GET_AUDIT_RETURN) <= KILL_REPEAT+1
+    assert len(GET_AUDIT_RETURN) <= KILL_REPEAT + 1
 
     await client._redis.close(close_connection_pool=True)
 
@@ -1105,29 +1168,55 @@ async def test_concurrent_get_close_connection_multi():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=CLIENT_TRACKING_AUDIT_RETURN, keyword=CLIENT_TRACKING_AUDIT_KEYWORDS),
+            partial(
+                _audit,
+                data_return=CLIENT_TRACKING_AUDIT_RETURN,
+                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+            ),
             partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
 
     pool_size = 10
-    kill_task = asyncio.create_task(kill_listen_invalidate(client, repeat=KILL_REPEAT, sleep=KILL_INTERVAL))
-    get_task = [asyncio.create_task(_synchronized_get(client, "my_key", "my_value", error_return=ERROR, duration=KILL_INTERVAL*KILL_REPEAT+5, sleep=0.1)) for _ in range(pool_size)]
+    kill_task = asyncio.create_task(
+        kill_listen_invalidate(client, repeat=KILL_REPEAT, sleep=KILL_INTERVAL)
+    )
+    get_task = [
+        asyncio.create_task(
+            _synchronized_get(
+                client,
+                "my_key",
+                "my_value",
+                error_return=ERROR,
+                duration=KILL_INTERVAL * KILL_REPEAT + 5,
+                sleep=0.1,
+            )
+        )
+        for _ in range(pool_size)
+    ]
     await asyncio.gather(*get_task, kill_task, daemon_task)
 
     assert monitor_task.done() is False
     monitor_task.cancel()
-    
+
     assert len(ERROR) == 0
-    ON_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING ON")]
-    OFF_EVENT = [event for event in CLIENT_TRACKING_AUDIT_RETURN if event["command"].startswith("CLIENT TRACKING OFF")]
+    ON_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING ON")
+    ]
+    OFF_EVENT = [
+        event
+        for event in CLIENT_TRACKING_AUDIT_RETURN
+        if event["command"].startswith("CLIENT TRACKING OFF")
+    ]
     logging.info(f"ON_EVENT: {ON_EVENT}")
     logging.info(f"OFF_EVENT: {OFF_EVENT}")
-    assert len(ON_EVENT) >= KILL_REPEAT+1 and len(ON_EVENT) <= KILL_REPEAT*2 + 1 
-    assert len(OFF_EVENT) >= KILL_REPEAT+1 and len(OFF_EVENT) <= KILL_REPEAT*2 + 1
+    assert len(ON_EVENT) >= KILL_REPEAT + 1 and len(ON_EVENT) <= KILL_REPEAT * 2 + 1
+    assert len(OFF_EVENT) >= KILL_REPEAT + 1 and len(OFF_EVENT) <= KILL_REPEAT * 2 + 1
     assert len(ON_EVENT) == len(OFF_EVENT)
-    assert len(GET_AUDIT_RETURN) <= KILL_REPEAT+1
+    assert len(GET_AUDIT_RETURN) <= KILL_REPEAT + 1
 
     await client._redis.close(close_connection_pool=True)
 
@@ -1146,9 +1235,11 @@ async def test_redis_down_and_up():
 async def test_short_key_ttl():
     pass
 
+
 @pytest.mark.asyncio
 async def test_set_key():
     pass
+
 
 @pytest.mark.asyncio
 async def test_hset_key():
