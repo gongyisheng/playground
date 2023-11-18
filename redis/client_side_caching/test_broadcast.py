@@ -1146,6 +1146,14 @@ async def test_redis_down_and_up():
 async def test_short_key_ttl():
     pass
 
+@pytest.mark.asyncio
+async def test_set_key():
+    pass
+
+@pytest.mark.asyncio
+async def test_hset_key():
+    pass
+
 
 if __name__ == "__main__":
     import sys
