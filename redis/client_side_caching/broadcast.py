@@ -513,7 +513,8 @@ class CachedRedis(object):
                             self.flush_all()
                         else:
                             for key in resp['data']:
-                                key = key.decode('ascii')
+                                if isinstance(key, bytes):
+                                    key = key.decode('ascii')
                                 self.flush_key(key)
                                 logging.info(f"Invalidate key {key} because received invalidate message from redis server")
                     self.run_listen_invalidate_callback(resp)
@@ -529,20 +530,27 @@ class CachedRedis(object):
 
         await self._listen_invalidate_on_close()
     
-    def register_listen_invalidate_callback(self, func: Callable, *args, **kwargs) -> None:
+    def register_listen_invalidate_callback(self, func: Callable) -> None:
         """
         Register callback function for listen invalidate
         """
         self._listen_invalidate_callback_enabled = True
-        self._listen_invalidate_callback.append([func, args, kwargs])
+        self._listen_invalidate_callback.append(func)
     
     def run_listen_invalidate_callback(self, message: dict) -> None:
         """
-        Run all callback functions
+        Run all callback functions when receive invalidate message from redis server
+        Message example:
+        {
+            'type': 'message', 
+            'pattern': None, 
+            'channel': b'__redis__:invalidate', 
+            'data': [b'my_key']
+        }
         """
         if self._listen_invalidate_callback_enabled:
-            for func, args, kwargs in self._listen_invalidate_callback:
-                func(message=message, *args, **kwargs)
+            for func in self._listen_invalidate_callback:
+                func(message=message)
     
     async def run(self) -> None:
         task_list = [asyncio.create_task(self._background_listen_invalidate(), name=self.TASK_NAME)]
