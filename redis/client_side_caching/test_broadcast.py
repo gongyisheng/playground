@@ -371,6 +371,61 @@ async def test_synchronized_hget():
 
     await client._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
+async def test_set():
+    pass
+
+@pytest.mark.asyncio
+async def test_hset():
+    pass
+
+@pytest.mark.asyncio
+async def test_synchronized_get_with_set_single():
+    pass
+
+@pytest.mark.asyncio
+async def test_synchronized_hget_with_hset_single():
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_with_set_single():
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_with_hset_single():
+    pass
+
+@pytest.mark.asyncio
+async def test_synchronized_get_with_set_multi():
+    pass
+
+@pytest.mark.asyncio
+async def test_synchronized_hget_with_hset_multi():
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_with_set_multi():
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_with_hset_multi():
+    pass
+
+@pytest.mark.asyncio
+async def test_synchronized_get_with_set_concurrent():
+    pass
+
+@pytest.mark.asyncio
+async def test_synchronized_hget_with_hset_concurrent():
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_with_set_concurrent():
+    pass
+
+@pytest.mark.asyncio
+async def test_concurrent_get_with_hset_concurrent():
+    pass
 
 @pytest.mark.asyncio
 async def test_short_cache_ttl():
