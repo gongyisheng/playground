@@ -3,7 +3,6 @@ import logging
 import random
 import string
 import time
-import traceback
 from typing import Callable, Optional, Union, Tuple
 
 from redis import asyncio as aioredis
@@ -17,7 +16,10 @@ import signal_state_aio as signal_state
 #  2. If redis is shutdown and rebooted, it's recommend to restart the client. 
 #     The closed connection in the pool will not be reconnected, and there're chances 
 #     to cause "No connection available" error.
-#  3. CachedRedis does not support redis cluster for now.
+#  3. One connection will be used for subscribing invalidation channel, make sure there're
+#     enough connections in the pool (at least 2 available connections) otherwise it will
+#     raise "No connection available" error.
+#  4. CachedRedis does not support redis cluster for now.
 class CachedRedis(object):
 
     VALUE_SLOT = 0
@@ -400,11 +402,10 @@ class CachedRedis(object):
         logging.info("Start _background_listen_invalidate")
         try:
             while signal_state.ALIVE:
-                task = asyncio.create_task(self._listen_invalidate(), name=self.TASK_NAME)
-                await asyncio.gather(task)
+                await asyncio.gather(asyncio.create_task(self._listen_invalidate(), name=self.TASK_NAME))
                 await asyncio.sleep(1)
         except Exception as e:
-            logging.error("Error in _background_listen_invalidate", error=e)
+            logging.error(f"Error in _background_listen_invalidate. error={e}", exec_info=True)
         finally:
             logging.info("Exit _background_listen_invalidate")
     
@@ -437,16 +438,14 @@ class CachedRedis(object):
             # Client tracking
             resp = await self._redis.client_tracking_on(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
             if resp != b"OK":
-                raise Exception(f"CLIENT TRACKING failed. resp={resp}")
+                raise Exception(f"CLIENT TRACKING ON failed. resp={resp}")
             
             # Disable built-in health check interval
             self._pubsub.connection.health_check_interval = None
             self._pubsub_is_alive = True
             logging.info(f"Listen invalidate on open success. client_id={self._pubsub_client_id}, channel={self.LISTEN_INVALIDATE_CHANNEL}")
         except Exception as e:
-            logging.error(f"Listen invalidate on open failed. error={e}, traceback={traceback.format_exc()}")
-            self._pubsub = None
-            self._pubsub_client_id = None
+            logging.error(f"Listen invalidate on open failed. error={e}", exc_info=True)
             self._pubsub_is_alive = False
     
     async def _listen_invalidate_on_close(self) -> None:
@@ -464,35 +463,36 @@ class CachedRedis(object):
         """
         # Flush whole client side cache
         # Set _pubsub_is_alive to false to prevent read/write message from local cache
+        self.flush_all()
+        # Client tracking off
         try:
-            self.flush_all()
-            if self._pubsub_is_alive:
-                # Client tracking off
-                resp = await self._redis.client_tracking_off(clientid=self._pubsub_client_id, bcast=True, prefix=self.cache_prefix)
-                if resp != b'OK':
-                    raise Exception(f"CLIENT TRACKING off failed. resp={resp}")
-
-                # Unsubscribe __redis__:invalidate
-                await self._pubsub.unsubscribe(self.LISTEN_INVALIDATE_CHANNEL)
-                resp = await self._pubsub.get_message(timeout=1)
-                while resp is not None:
-                    if resp['type'] != 'unsubscribe':
-                        # Read out other messages that are left in the channel
-                        resp = await self._pubsub.get_message(timeout=1)
-                    else:
-                        for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
-                            if k not in resp or v != resp[k]:
-                                raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
-                        break
-                logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
-            else:
-                logging.info("Listen invalidate on close skipped. _pubsub_is_alive=False")
+            resp = await self._redis.client_tracking_off(bcast=True, prefix=self.cache_prefix)
+            if resp != b'OK':
+                raise Exception(f"CLIENT TRACKING OFF resp is not OK. resp={resp}")
         except Exception as e:
-            logging.warning(f"Listen invalidate on close failed. error={e}, traceback={traceback.format_exc()}")
-        finally:
-            self._pubsub = None
-            self._pubsub_client_id = None
-            logging.info("PubSub reset complete")
+            logging.info(f"CLIENT TRACKING OFF failed. error={e}", exc_info=True)
+
+        # Unsubscribe __redis__:invalidate
+        try:
+            await self._pubsub.unsubscribe(self.LISTEN_INVALIDATE_CHANNEL)
+            resp = await self._pubsub.get_message(timeout=1)
+            while resp is not None:
+                if resp['type'] != 'unsubscribe':
+                    # Read out other messages that are left in the channel
+                    resp = await self._pubsub.get_message(timeout=1)
+                else:
+                    for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
+                        if k not in resp or v != resp[k]:
+                            raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
+                    break
+            logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
+        except Exception as e:
+            logging.info(f"Listen invalidate on close complete with error. error={e}", exc_info=True)
+
+        self._pubsub = None
+        self._pubsub_client_id = None
+        self._pubsub_is_alive = False
+        logging.info("PubSub reset complete")
 
     async def _listen_invalidate(self) -> None:
         """
@@ -540,7 +540,7 @@ class CachedRedis(object):
             except Exception as e:
                 # If any exception occurs, set _pubsub_is_alive to False
                 self._pubsub_is_alive = False
-                logging.error(f"Listen invalidate failed. error={e}, traceback={traceback.format_exc()}")
+                logging.error(f"Listen invalidate failed. error={e}", exc_info=True)
                 break
 
         await self._listen_invalidate_on_close()
@@ -572,4 +572,4 @@ class CachedRedis(object):
         except asyncio.TimeoutError:
             logging.error('Timeout when finish CachedRedis task')
         except Exception as e:
-            logging.error('CachedRedis task error', error=e)
+            logging.error(f"CachedRedis task exit error. error={e}", exc_info=True)
