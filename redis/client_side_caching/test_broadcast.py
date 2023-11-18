@@ -26,7 +26,7 @@ import pytest
 import random
 import signal_state_aio as signal_state
 import time
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 import uuid
 
 from redis.asyncio import Redis, BlockingConnectionPool
@@ -486,8 +486,8 @@ async def test_synchronized_hget():
 
 @pytest.mark.asyncio
 async def test_synchronized_get_with_set_multi():
-    SET_INTERVAL = random.randint(10, 100)/100
-    SET_REPEAT = max(10//SET_INTERVAL, 1)
+    SET_INTERVAL = max(random.random() * 10, 0.1)
+    SET_REPEAT = max(10 // SET_INTERVAL, 1)
 
     SET_AUDIT_RETURN = []
     LISTEN_INVALIDATE_AUDIT_RETURN = []
@@ -519,10 +519,12 @@ async def test_synchronized_get_with_set_multi():
             callback_func=partial(
                 _audit_client_get, data_return=CLIENT_GET_AUDIT_RETURN
             ),
-            duration=SET_REPEAT*SET_INTERVAL + 5,
+            duration=SET_REPEAT * SET_INTERVAL + 5,
         )
     )
-    set_task = asyncio.create_task(set(client, "my_key", "my_value", repeat=SET_REPEAT, sleep=SET_INTERVAL))
+    set_task = asyncio.create_task(
+        set(client, "my_key", "my_value", repeat=SET_REPEAT, sleep=SET_INTERVAL)
+    )
     await asyncio.gather(daemon_task, get_task, set_task)
 
     assert monitor_task.done() is False
@@ -548,16 +550,20 @@ async def test_synchronized_get_with_set_multi():
         server_set_time = SET_AUDIT_RETURN[i]["time"]
         invalidate_time = LISTEN_INVALIDATE_AUDIT_RETURN[i]["time"]
         server_get_time = SERVER_GET_AUDIT_RETURN[i]["time"]
-        client_get_current_version_first_seen = CLIENT_GET_AUDIT_RETURN[pair][version]["first_seen"]
+        client_get_current_version_first_seen = CLIENT_GET_AUDIT_RETURN[pair][version][
+            "first_seen"
+        ]
         client_get_last_version_last_seen = (
             CLIENT_GET_AUDIT_RETURN[pair][last_version]["last_seen"]
             if last_version is not None
             else None
         )
- 
+
         client_get_last_version_last_seen_display = "***"
         if last_version is not None:
-            client_get_last_version_last_seen_display = int((client_get_last_version_last_seen-server_set_time)*10000)/10
+            client_get_last_version_last_seen_display = (
+                int((client_get_last_version_last_seen - server_set_time) * 10000) / 10
+            )
         debug_info = {
             "key": set_key,
             "value": set_value,
@@ -577,17 +583,21 @@ async def test_synchronized_get_with_set_multi():
         assert server_get_time > invalidate_time
         assert client_get_current_version_first_seen > invalidate_time
         if (last_version is not None) and (
-            invalidate_time + 0.01 < client_get_last_version_last_seen 
+            invalidate_time + 0.01 < client_get_last_version_last_seen
         ):
             # Because we have asyncio.sleep(0) in CachedRedis.get(), so the last_seen time is not always accurate
             # It should be accurate in log
             PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT += 1
         last_version = version
     logging.info(f"SET_REPEAT: {SET_REPEAT}, SET_INTERVAL: {SET_INTERVAL}")
-    logging.info(f"PROBLEMATIC_INVALIDATE_TIME_COUNT: {PROBLEMATIC_INVALIDATE_TIME_COUNT}")
-    logging.info(f"PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT: {PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT}")
-    assert PROBLEMATIC_INVALIDATE_TIME_COUNT <= max(SET_REPEAT//10, 1)
-    assert PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT <= max(SET_REPEAT//10, 1)
+    logging.info(
+        f"PROBLEMATIC_INVALIDATE_TIME_COUNT: {PROBLEMATIC_INVALIDATE_TIME_COUNT}"
+    )
+    logging.info(
+        f"PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT: {PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT}"
+    )
+    assert PROBLEMATIC_INVALIDATE_TIME_COUNT <= max(SET_REPEAT // 10, 1)
+    assert PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT <= max(SET_REPEAT // 10, 1)
 
     await client._redis.close(close_connection_pool=True)
 
