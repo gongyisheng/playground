@@ -42,11 +42,6 @@ class CachedRedis(object):
         'type':"subscribe", 
         'channel': LISTEN_INVALIDATE_CHANNEL
     }
-    UNSUBSCRIBE_SUCCESS_MSG = {
-        'type':"unsubscribe",
-        'channel': LISTEN_INVALIDATE_CHANNEL,
-        'data': 0
-    }
 
     def __init__(self, redis: aioredis.Redis, **kwargs):
         """
@@ -74,7 +69,7 @@ class CachedRedis(object):
             raise ValueError("Can't init cached redis because redis is None")
 
         # PubSub related
-        self._pubsub = None
+        self._pubsub = self._redis.pubsub()
         self._pubsub_client_id = None
         self._pubsub_is_alive = False
 
@@ -400,14 +395,14 @@ class CachedRedis(object):
         Create another listen invalidate coroutine in case the current connection is broken
         """
         logging.info("Start _background_listen_invalidate")
-        try:
-            while signal_state.ALIVE:
+        while signal_state.ALIVE:
+            try:
                 await asyncio.gather(asyncio.create_task(self._listen_invalidate(), name=self.TASK_NAME))
+            except Exception as e:
+                logging.error(f"Error in _background_listen_invalidate. error={e}", exc_info=True)
+            finally:
                 await asyncio.sleep(1)
-        except Exception as e:
-            logging.error(f"Error in _background_listen_invalidate. error={e}", exec_info=True)
-        finally:
-            logging.info("Exit _background_listen_invalidate")
+        logging.info("Exit _background_listen_invalidate")
     
     async def _listen_invalidate_on_open(self) -> None:
         """
@@ -419,9 +414,6 @@ class CachedRedis(object):
         If any step failed, set self._pubsub_is_alive to None to trigger a new listen invalidate coroutine
         """
         try:
-            # Create pubsub object
-            self._pubsub = self._redis.pubsub()
-
             # Get client id
             await self._pubsub.execute_command("CLIENT ID")
             self._pubsub_client_id = await self._pubsub.parse_response(block=False, timeout=1)
@@ -472,27 +464,19 @@ class CachedRedis(object):
         except Exception as e:
             logging.info(f"CLIENT TRACKING OFF failed. error={e}", exc_info=True)
 
-        # Unsubscribe __redis__:invalidate
+        # Unsubscribe __redis__:invalidate and reset connection
         try:
-            await self._pubsub.unsubscribe(self.LISTEN_INVALIDATE_CHANNEL)
-            resp = await self._pubsub.get_message(timeout=1)
-            while resp is not None:
-                if resp['type'] != 'unsubscribe':
-                    # Read out other messages that are left in the channel
-                    resp = await self._pubsub.get_message(timeout=1)
-                else:
-                    for k,v in self.UNSUBSCRIBE_SUCCESS_MSG.items():
-                        if k not in resp or v != resp[k]:
-                            raise Exception(f"UNSUBCRIBE {self.LISTEN_INVALIDATE_CHANNEL} failed. resp={resp}")
-                    break
-            logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
+            await self._pubsub.reset()
+            logging.info(f"Pubsub reset complete.")
         except Exception as e:
-            logging.info(f"Listen invalidate on close complete with error. error={e}", exc_info=True)
+            logging.info(f"Pubsub reset complete with error. error={e}", exc_info=True)
 
-        self._pubsub = None
+        logging.info(f"Listen invalidate on close complete. client_id={self._pubsub_client_id}")
         self._pubsub_client_id = None
         self._pubsub_is_alive = False
-        logging.info("PubSub reset complete")
+        self.health_check_ongoing_flag = False
+        self._last_health_check_time = 0
+        self._next_health_check_time = 0
 
     async def _listen_invalidate(self) -> None:
         """
