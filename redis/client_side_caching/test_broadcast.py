@@ -20,19 +20,22 @@ REDIS_MAX_CONNECTIONS = 5
 import asyncio
 from contextvars import ContextVar
 from functools import partial
+import json
 import logging
 import pytest
 import random
 import signal_state_aio as signal_state
 import time
-from typing import Optional, Union
+from typing import Callable, List, Optional, Union
 import uuid
 
-from redis.asyncio import Redis, BlockingConnectionPool, ConnectionError
+from redis.asyncio import Redis, BlockingConnectionPool
 from broadcast import CachedRedis
 
 request = ContextVar("request")
 LOG_SETUP_FLAG = False
+# separator for internal test usage, please don't use it for value in your test case
+SEPARATOR = ":::"
 
 
 def get_log_formatter():
@@ -85,9 +88,9 @@ async def monitor(redis, callback_func=[]):
     async with redis.monitor() as m:
         async for info in m.listen():
             for func in callback_func:
-                func(info)
+                func(message=info)
             logging.debug(
-                f"monitor redis: command={info.get('command')}, time={info.get('time')}"
+                f"server side monitor: command={info.get('command')}, time={info.get('time')}"
             )
 
 
@@ -100,6 +103,31 @@ async def kill_listen_invalidate(
         if client._pubsub_is_alive:
             client_id = client._pubsub_client_id
             await client._redis.client_kill_filter(_id=client_id)
+        i += 1
+
+
+async def set(
+    client: CachedRedis, key: str, value: str, repeat: Optional[int] = 1, sleep: int = 1
+):
+    i = 0
+    while (repeat is None or i < repeat) and signal_state.ALIVE:
+        await asyncio.sleep(sleep)
+        await client.set(key, f"{value}{SEPARATOR}{time.time()}")
+        i += 1
+
+
+async def hset(
+    client: CachedRedis,
+    key: str,
+    value: str,
+    field: str,
+    repeat: Optional[int] = 1,
+    sleep: int = 1,
+):
+    i = 0
+    while (repeat is None or i < repeat) and signal_state.ALIVE:
+        await asyncio.sleep(sleep)
+        await client.hset(key, field, f"{value}{SEPARATOR}{time.time()}")
         i += 1
 
 
@@ -144,14 +172,29 @@ async def _synchronized_get(
     raise_error: bool = True,
     sleep: Optional[int] = None,
     duration: int = 5,
+    callback_func: Optional[Callable] = None,
 ):
     try:
         start = time.time()
-        expected_value = expected_value.encode("ascii")
         while time.time() - start <= duration and signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split("-")[0])
-            value = await client.get(key)
-            # assert value == expected_value
+            _value = await client.get(key)
+            get_time = time.time()
+            if isinstance(_value, bytes):
+                _value = _value.decode("ascii")
+            _value = _value.split(SEPARATOR)
+            value = _value[0]
+            version = float(_value[1]) if len(_value) > 1 else None
+            assert value == expected_value
+            if callback_func is not None:
+                callback_func(
+                    message={
+                        "key": key,
+                        "value": value,
+                        "version": version,
+                        "get_time": get_time,
+                    }
+                )
             if sleep is not None:
                 await asyncio.sleep(sleep)
     except Exception as e:
@@ -176,14 +219,30 @@ async def _synchronized_hget(
     raise_error: bool = True,
     sleep: Optional[int] = None,
     duration: int = 5,
+    callback_func: Optional[Callable] = None,
 ):
     try:
         start = time.time()
-        expected_value = expected_value.encode("ascii")
         while time.time() - start <= duration and signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split("-")[0])
-            value = await client.hget(key, field)
+            _value = await client.hget(key, field)
+            hget_time = time.time()
+            if isinstance(_value, bytes):
+                _value = _value.decode("ascii")
+            _value = _value.split(SEPARATOR)
+            value = _value[0]
+            version = float(_value[1]) if len(_value) > 1 else None
             assert value == expected_value
+            if callback_func is not None:
+                callback_func(
+                    message={
+                        "key": key,
+                        "field": field,
+                        "value": value,
+                        "version": version,
+                        "hget_time": hget_time,
+                    }
+                )
             if sleep is not None:
                 await asyncio.sleep(sleep)
     except Exception as e:
@@ -200,27 +259,76 @@ async def _synchronized_hget(
 
 
 # Monitor audit functions
-def _audit(
-    info: dict,
+def _audit_monitor(
+    message: dict,
     data_return: Optional[list] = None,
-    keyword: Union[list, str, None] = None,
+    prefix: Union[list, str, None] = None,
 ):
-    if data_return is None or keyword is None:
+    if message is None or data_return is None or prefix is None:
         return
-    if isinstance(keyword, str):
-        keyword = [keyword]
-    for k in keyword:
-        if info["command"].startswith(k):
+    if isinstance(prefix, str):
+        prefix = [prefix]
+    for p in prefix:
+        if message["command"].startswith(p):
             data_return.append(
                 {
-                    "command": info["command"],
-                    "time": info["time"],
+                    "command": message["command"],
+                    "time": message["time"],
                 }
             )
             break
 
 
-CLIENT_TRACKING_AUDIT_KEYWORDS = [
+def _audit_listen_invalidate(
+    message: Optional[dict] = None,
+    data_return: Optional[dict] = None,
+    prefix: Union[list, str, None] = None,
+):
+    flush_time = time.time()
+    if (
+        message is None
+        or data_return is None
+        or message["channel"] != b"__redis__:invalidate"
+    ):
+        return
+    if isinstance(prefix, str):
+        prefix = [prefix]
+    for key in message["data"]:
+        key = key.decode("ascii") if isinstance(key, bytes) else key
+        for p in prefix:
+            if key.startswith(p):
+                data_return.append(
+                    {
+                        "key": key,
+                        "time": flush_time,
+                    }
+                )
+
+
+def _audit_client_get(
+    message: Optional[dict] = None, data_return: Optional[dict] = None
+):
+    if data_return is None:
+        return
+    key = message["key"]
+    value = message["value"]
+    pair = f"{key}{SEPARATOR}{value}"
+    version = message["version"]
+    if pair not in data_return:
+        data_return[pair] = {}
+    if version not in data_return[pair]:
+        data_return[pair][version] = {
+            "first_seen": message["get_time"],
+            "last_seen": message["get_time"],
+            "count": 1,
+        }
+    else:
+        if data_return[pair][version]["last_seen"] < message["get_time"]:
+            data_return[pair][version]["last_seen"] = message["get_time"]
+        data_return[pair][version]["count"] += 1
+
+
+CLIENT_TRACKING_AUDIT_PREFIX = [
     "SUBSCRIBE __redis__:invalidate",
     "CLIENT TRACKING ON",
     "CLIENT TRACKING OFF",
@@ -247,7 +355,7 @@ async def test_get():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_DATA_RETURN, keyword="GET my_key")
+            partial(_audit_monitor, data_return=AUDIT_DATA_RETURN, prefix="GET my_key")
         ],
     )
     await client.set("my_key", "my_value")
@@ -269,7 +377,9 @@ async def test_hget():
         cache_prefix=["my_key", "test"],
         monitor_callback=[
             partial(
-                _audit, data_return=AUDIT_DATA_RETURN, keyword="HGET my_key my_field"
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix="HGET my_key my_field",
             )
         ],
     )
@@ -297,9 +407,9 @@ async def test_prefix():
         cache_prefix=cache_prefix,
         monitor_callback=[
             partial(
-                _audit,
+                _audit_monitor,
                 data_return=AUDIT_RETURN,
-                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
             )
         ],
     )
@@ -336,7 +446,7 @@ async def test_synchronized_get():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="GET my_key")
         ],
     )
     await client.set("my_key", "my_value")
@@ -357,7 +467,9 @@ async def test_synchronized_hget():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key my_field")
+            partial(
+                _audit_monitor, data_return=AUDIT_RETURN, prefix="HGET my_key my_field"
+            )
         ],
     )
     await client.hset("my_key", "my_field", "my_value")
@@ -371,61 +483,149 @@ async def test_synchronized_hget():
 
     await client._redis.close(close_connection_pool=True)
 
-@pytest.mark.asyncio
-async def test_set():
-    pass
-
-@pytest.mark.asyncio
-async def test_hset():
-    pass
-
-@pytest.mark.asyncio
-async def test_synchronized_get_with_set_single():
-    pass
-
-@pytest.mark.asyncio
-async def test_synchronized_hget_with_hset_single():
-    pass
-
-@pytest.mark.asyncio
-async def test_concurrent_get_with_set_single():
-    pass
-
-@pytest.mark.asyncio
-async def test_concurrent_get_with_hset_single():
-    pass
 
 @pytest.mark.asyncio
 async def test_synchronized_get_with_set_multi():
-    pass
+    SET_INTERVAL = random.randint(10, 100)/100
+    SET_REPEAT = max(10//SET_INTERVAL, 1)
+
+    SET_AUDIT_RETURN = []
+    LISTEN_INVALIDATE_AUDIT_RETURN = []
+    SERVER_GET_AUDIT_RETURN = []
+    CLIENT_GET_AUDIT_RETURN = {}
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(
+                _audit_monitor, data_return=SERVER_GET_AUDIT_RETURN, prefix="GET my_key"
+            ),
+            partial(_audit_monitor, data_return=SET_AUDIT_RETURN, prefix=f"SET my_key"),
+        ],
+        listen_invalidate_callback=[
+            partial(
+                _audit_listen_invalidate,
+                data_return=LISTEN_INVALIDATE_AUDIT_RETURN,
+                prefix="my_key",
+            ),
+        ],
+    )
+
+    await client.set("my_key", f"my_value{SEPARATOR}{time.time()}")
+    get_task = asyncio.create_task(
+        _synchronized_get(
+            client,
+            "my_key",
+            "my_value",
+            callback_func=partial(
+                _audit_client_get, data_return=CLIENT_GET_AUDIT_RETURN
+            ),
+            duration=SET_REPEAT*SET_INTERVAL + 5,
+        )
+    )
+    set_task = asyncio.create_task(set(client, "my_key", "my_value", repeat=SET_REPEAT, sleep=SET_INTERVAL))
+    await asyncio.gather(daemon_task, get_task, set_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(SET_AUDIT_RETURN) == SET_REPEAT + 1
+    assert len(SERVER_GET_AUDIT_RETURN) == SET_REPEAT + 1
+    assert len(SET_AUDIT_RETURN) == len(LISTEN_INVALIDATE_AUDIT_RETURN)
+
+    last_version = None
+    PROBLEMATIC_INVALIDATE_TIME_COUNT = 0
+    PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT = 0
+
+    for i in range(len(SET_AUDIT_RETURN)):
+        set_command = SET_AUDIT_RETURN[i]["command"]
+        set_key = set_command.split(" ")[1]
+        _set_value = set_command.split(" ")[2].split(SEPARATOR)
+        assert len(_set_value) == 2
+        set_value = _set_value[0]
+        version = float(_set_value[1])
+        pair = f"{set_key}{SEPARATOR}{set_value}"
+
+        server_set_time = SET_AUDIT_RETURN[i]["time"]
+        invalidate_time = LISTEN_INVALIDATE_AUDIT_RETURN[i]["time"]
+        server_get_time = SERVER_GET_AUDIT_RETURN[i]["time"]
+        client_get_current_version_first_seen = CLIENT_GET_AUDIT_RETURN[pair][version]["first_seen"]
+        client_get_last_version_last_seen = (
+            CLIENT_GET_AUDIT_RETURN[pair][last_version]["last_seen"]
+            if last_version is not None
+            else None
+        )
+ 
+        client_get_last_version_last_seen_display = "***"
+        if last_version is not None:
+            client_get_last_version_last_seen_display = int((client_get_last_version_last_seen-server_set_time)*10000)/10
+        debug_info = {
+            "key": set_key,
+            "value": set_value,
+            "version": version,
+            "server_set_time": "0ms",
+            "invalidate_time": f"{int((invalidate_time-server_set_time)*10000)/10}ms",
+            "server_get_time": f"{int((server_get_time-server_set_time)*10000)/10}ms",
+            "client_get_current_version_first_seen": f"{int((client_get_current_version_first_seen-server_set_time)*10000)/10}ms",
+            "client_get_last_version_last_seen": f"{client_get_last_version_last_seen_display}ms",
+        }
+        logging.info(json.dumps(debug_info, indent=4))
+
+        # set -> invalidate -> get
+        # last_version_last_seen -> invalidate -> current_version_first_seen
+        if invalidate_time - server_set_time >= 0.1:
+            PROBLEMATIC_INVALIDATE_TIME_COUNT += 1
+        assert server_get_time > invalidate_time
+        assert client_get_current_version_first_seen > invalidate_time
+        if (last_version is not None) and (
+            invalidate_time + 0.01 < client_get_last_version_last_seen 
+        ):
+            # Because we have asyncio.sleep(0) in CachedRedis.get(), so the last_seen time is not always accurate
+            # It should be accurate in log
+            PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT += 1
+        last_version = version
+    logging.info(f"SET_REPEAT: {SET_REPEAT}, SET_INTERVAL: {SET_INTERVAL}")
+    logging.info(f"PROBLEMATIC_INVALIDATE_TIME_COUNT: {PROBLEMATIC_INVALIDATE_TIME_COUNT}")
+    logging.info(f"PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT: {PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT}")
+    assert PROBLEMATIC_INVALIDATE_TIME_COUNT <= max(SET_REPEAT//10, 1)
+    assert PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT <= max(SET_REPEAT//10, 1)
+
+    await client._redis.close(close_connection_pool=True)
+
 
 @pytest.mark.asyncio
 async def test_synchronized_hget_with_hset_multi():
     pass
 
+
 @pytest.mark.asyncio
 async def test_concurrent_get_with_set_multi():
     pass
+
 
 @pytest.mark.asyncio
 async def test_concurrent_get_with_hset_multi():
     pass
 
+
 @pytest.mark.asyncio
 async def test_synchronized_get_with_set_concurrent():
     pass
+
 
 @pytest.mark.asyncio
 async def test_synchronized_hget_with_hset_concurrent():
     pass
 
+
 @pytest.mark.asyncio
 async def test_concurrent_get_with_set_concurrent():
     pass
 
+
 @pytest.mark.asyncio
 async def test_concurrent_get_with_hset_concurrent():
     pass
+
 
 @pytest.mark.asyncio
 async def test_short_cache_ttl():
@@ -438,7 +638,7 @@ async def test_short_cache_ttl():
         cache_prefix=["my_key", "test"],
         cache_ttl=CACHE_TTL,
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="GET my_key")
         ],
     )
     await client.set("my_key", "my_value")
@@ -468,7 +668,9 @@ async def test_short_health_check():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         health_check_interval=HEALTH_CHECK_INTERVAL,
-        monitor_callback=[partial(_audit, data_return=AUDIT_RETURN, keyword="PING")],
+        monitor_callback=[
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="PING")
+        ],
     )
     await client.set("my_key", "my_value")
     await _synchronized_get(client, "my_key", "my_value")
@@ -492,7 +694,7 @@ async def test_concurrent_get():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="GET my_key")
         ],
     )
     await client.set("my_key", "my_value")
@@ -522,7 +724,9 @@ async def test_concurrent_hget():
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key my_field")
+            partial(
+                _audit_monitor, data_return=AUDIT_RETURN, prefix="HGET my_key my_field"
+            )
         ],
     )
     await client.hset("my_key", "my_field", "my_value")
@@ -567,7 +771,9 @@ async def test_concurrent_hget_with_deviation():
         cache_prefix=["my_key", "test"],
         hget_deviation_option={"my_key": 10},
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key my_field")
+            partial(
+                _audit_monitor, data_return=AUDIT_RETURN, prefix="HGET my_key my_field"
+            )
         ],
     )
     await client.hset("my_key", "my_field", f"my_value")
@@ -611,7 +817,9 @@ async def test_noevict_get():
         cache_noevict_prefix=["my_key_no_evict"],
         cache_size=5,
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key_no_evict")
+            partial(
+                _audit_monitor, data_return=AUDIT_RETURN, prefix="GET my_key_no_evict"
+            )
         ],
     )
     await client.set("my_key_no_evict", "my_value_no_evict")
@@ -653,7 +861,9 @@ async def test_noevict_hget():
         cache_noevict_prefix=["my_key_no_evict"],
         cache_size=5,
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="HGET my_key_no_evict")
+            partial(
+                _audit_monitor, data_return=AUDIT_RETURN, prefix="HGET my_key_no_evict"
+            )
         ],
     )
     for i in range(pool_num):
@@ -715,7 +925,7 @@ async def test_concurrent_get_short_expire_time():
         cache_prefix=["my_key", "test"],
         cache_ttl=CACHE_TTL,
         monitor_callback=[
-            partial(_audit, data_return=AUDIT_RETURN, keyword="GET my_key")
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="GET my_key")
         ],
     )
     await client.set("my_key", "my_value")
@@ -807,8 +1017,8 @@ async def test_concurrent_short_health_check():
         cache_prefix=["my_key", "test"],
         health_check_interval=HEALTH_CHECK_INTERVAL,
         monitor_callback=[
-            partial(_audit, data_return=PING_AUDIT_RETURN, keyword="PING"),
-            partial(_audit, data_return=GET_AUDIT_RETURN, keyword="GET my_key"),
+            partial(_audit_monitor, data_return=PING_AUDIT_RETURN, prefix="PING"),
+            partial(_audit_monitor, data_return=GET_AUDIT_RETURN, prefix="GET my_key"),
         ],
     )
     await client.set("my_key", "my_value")
@@ -1055,11 +1265,11 @@ async def test_synchronized_get_close_connection_single():
         cache_prefix=["my_key", "test"],
         monitor_callback=[
             partial(
-                _audit,
+                _audit_monitor,
                 data_return=CLIENT_TRACKING_AUDIT_RETURN,
-                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
             ),
-            partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
+            partial(_audit_monitor, data_return=GET_AUDIT_RETURN, prefix="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
@@ -1107,11 +1317,11 @@ async def test_concurrent_get_close_connection_single():
         cache_prefix=["my_key", "test"],
         monitor_callback=[
             partial(
-                _audit,
+                _audit_monitor,
                 data_return=CLIENT_TRACKING_AUDIT_RETURN,
-                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
             ),
-            partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
+            partial(_audit_monitor, data_return=GET_AUDIT_RETURN, prefix="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
@@ -1165,11 +1375,11 @@ async def test_synchronized_get_close_connection_multi():
         cache_prefix=["my_key", "test"],
         monitor_callback=[
             partial(
-                _audit,
+                _audit_monitor,
                 data_return=CLIENT_TRACKING_AUDIT_RETURN,
-                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
             ),
-            partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
+            partial(_audit_monitor, data_return=GET_AUDIT_RETURN, prefix="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
@@ -1224,11 +1434,11 @@ async def test_concurrent_get_close_connection_multi():
         cache_prefix=["my_key", "test"],
         monitor_callback=[
             partial(
-                _audit,
+                _audit_monitor,
                 data_return=CLIENT_TRACKING_AUDIT_RETURN,
-                keyword=CLIENT_TRACKING_AUDIT_KEYWORDS,
+                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
             ),
-            partial(_audit, data_return=GET_AUDIT_RETURN, keyword="TTL my_key"),
+            partial(_audit_monitor, data_return=GET_AUDIT_RETURN, prefix="TTL my_key"),
         ],
     )
     await client.set("my_key", "my_value")
