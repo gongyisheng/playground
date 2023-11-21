@@ -119,8 +119,8 @@ async def set(
 async def hset(
     client: CachedRedis,
     key: str,
-    value: str,
     field: str,
+    value: str,
     repeat: Optional[int] = 1,
     sleep: int = 1,
 ):
@@ -305,6 +305,13 @@ def _audit_listen_invalidate(
                 )
 
 
+CLIENT_TRACKING_AUDIT_PREFIX = [
+    "SUBSCRIBE __redis__:invalidate",
+    "CLIENT TRACKING ON",
+    "CLIENT TRACKING OFF",
+]
+
+
 def _audit_client_get(
     message: Optional[dict] = None, data_return: Optional[dict] = None
 ):
@@ -328,11 +335,28 @@ def _audit_client_get(
         data_return[pair][version]["count"] += 1
 
 
-CLIENT_TRACKING_AUDIT_PREFIX = [
-    "SUBSCRIBE __redis__:invalidate",
-    "CLIENT TRACKING ON",
-    "CLIENT TRACKING OFF",
-]
+def _audit_client_hget(
+    message: Optional[dict] = None, data_return: Optional[dict] = None
+):
+    if data_return is None:
+        return
+    key = message["key"]
+    field = message["field"]
+    value = message["value"]
+    pair = f"{key}{SEPARATOR}{field}{SEPARATOR}{value}"
+    version = message["version"]
+    if pair not in data_return:
+        data_return[pair] = {}
+    if version not in data_return[pair]:
+        data_return[pair][version] = {
+            "first_seen": message["hget_time"],
+            "last_seen": message["hget_time"],
+            "count": 1,
+        }
+    else:
+        if data_return[pair][version]["last_seen"] < message["hget_time"]:
+            data_return[pair][version]["last_seen"] = message["hget_time"]
+        data_return[pair][version]["count"] += 1
 
 
 async def demo():
@@ -604,7 +628,136 @@ async def test_synchronized_get_with_set_multi():
 
 @pytest.mark.asyncio
 async def test_synchronized_hget_with_hset_multi():
-    pass
+    HSET_INTERVAL = max(random.random() * 10, 0.1)
+    HSET_REPEAT = max(10 // HSET_INTERVAL, 1)
+
+    HSET_AUDIT_RETURN = []
+    LISTEN_INVALIDATE_AUDIT_RETURN = []
+    SERVER_HGET_AUDIT_RETURN = []
+    CLIENT_HGET_AUDIT_RETURN = {}
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=SERVER_HGET_AUDIT_RETURN,
+                prefix="HGET my_key",
+            ),
+            partial(
+                _audit_monitor, data_return=HSET_AUDIT_RETURN, prefix=f"HSET my_key"
+            ),
+        ],
+        listen_invalidate_callback=[
+            partial(
+                _audit_listen_invalidate,
+                data_return=LISTEN_INVALIDATE_AUDIT_RETURN,
+                prefix="my_key",
+            ),
+        ],
+    )
+
+    await client.hset("my_key", "my_field", f"my_value{SEPARATOR}{time.time()}")
+    hget_task = asyncio.create_task(
+        _synchronized_hget(
+            client,
+            "my_key",
+            "my_field",
+            "my_value",
+            callback_func=partial(
+                _audit_client_hget, data_return=CLIENT_HGET_AUDIT_RETURN
+            ),
+            duration=HSET_REPEAT * HSET_INTERVAL + 5,
+        )
+    )
+    hset_task = asyncio.create_task(
+        hset(
+            client,
+            "my_key",
+            "my_field",
+            "my_value",
+            repeat=HSET_REPEAT,
+            sleep=HSET_INTERVAL,
+        )
+    )
+    await asyncio.gather(daemon_task, hget_task, hset_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(HSET_AUDIT_RETURN) == HSET_REPEAT + 1
+    assert len(SERVER_HGET_AUDIT_RETURN) == HSET_REPEAT + 1
+    assert len(HSET_AUDIT_RETURN) == len(LISTEN_INVALIDATE_AUDIT_RETURN)
+
+    last_version = None
+    PROBLEMATIC_INVALIDATE_TIME_COUNT = 0
+    PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT = 0
+
+    for i in range(len(HSET_AUDIT_RETURN)):
+        hset_command = HSET_AUDIT_RETURN[i]["command"]
+        hset_key = hset_command.split(" ")[1]
+        hset_field = hset_command.split(" ")[2]
+        _hset_value = hset_command.split(" ")[3].split(SEPARATOR)
+        assert len(_hset_value) == 2
+        hset_value = _hset_value[0]
+        version = float(_hset_value[1])
+        pair = f"{hset_key}{SEPARATOR}{hset_field}{SEPARATOR}{hset_value}"
+        print(f"pair: {pair}")
+        print(f"command: {hset_command}")
+
+        server_hset_time = HSET_AUDIT_RETURN[i]["time"]
+        invalidate_time = LISTEN_INVALIDATE_AUDIT_RETURN[i]["time"]
+        server_hget_time = SERVER_HGET_AUDIT_RETURN[i]["time"]
+        client_hget_current_version_first_seen = CLIENT_HGET_AUDIT_RETURN[pair][
+            version
+        ]["first_seen"]
+        client_hget_last_version_last_seen = (
+            CLIENT_HGET_AUDIT_RETURN[pair][last_version]["last_seen"]
+            if last_version is not None
+            else None
+        )
+
+        client_hget_last_version_last_seen_display = "***"
+        if last_version is not None:
+            client_hget_last_version_last_seen_display = (
+                int((client_hget_last_version_last_seen - server_hset_time) * 10000)
+                / 10
+            )
+        debug_info = {
+            "key": hset_key,
+            "value": hset_value,
+            "version": version,
+            "server_hset_time": "0ms",
+            "invalidate_time": f"{int((invalidate_time-server_hset_time)*10000)/10}ms",
+            "server_hget_time": f"{int((server_hget_time-server_hset_time)*10000)/10}ms",
+            "client_hget_current_version_first_seen": f"{int((client_hget_current_version_first_seen-server_hset_time)*10000)/10}ms",
+            "client_hget_last_version_last_seen": f"{client_hget_last_version_last_seen_display}ms",
+        }
+        logging.info(json.dumps(debug_info, indent=4))
+
+        # hset -> invalidate -> hget
+        # last_version_last_seen -> invalidate -> current_version_first_seen
+        if invalidate_time - server_hset_time >= 0.1:
+            PROBLEMATIC_INVALIDATE_TIME_COUNT += 1
+        assert server_hget_time > invalidate_time
+        assert client_hget_current_version_first_seen > invalidate_time
+        if (last_version is not None) and (
+            invalidate_time + 0.01 < client_hget_last_version_last_seen
+        ):
+            # Because we have asyncio.sleep(0) in CachedRedis.get(), so the last_seen time is not always accurate
+            # It should be accurate in log
+            PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT += 1
+        last_version = version
+    logging.info(f"HSET_REPEAT: {HSET_REPEAT}, HSET_INTERVAL: {HSET_INTERVAL}")
+    logging.info(
+        f"PROBLEMATIC_INVALIDATE_TIME_COUNT: {PROBLEMATIC_INVALIDATE_TIME_COUNT}"
+    )
+    logging.info(
+        f"PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT: {PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT}"
+    )
+    assert PROBLEMATIC_INVALIDATE_TIME_COUNT <= max(HSET_REPEAT // 10, 1)
+    assert PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT <= max(HSET_REPEAT // 10, 1)
+
+    await client._redis.close(close_connection_pool=True)
 
 
 @pytest.mark.asyncio
