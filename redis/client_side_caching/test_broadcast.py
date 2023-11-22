@@ -6,6 +6,8 @@ REDIS_HOST = "127.0.0.1"
 REDIS_PORT = 6379
 REDIS_DB = 0
 REDIS_MAX_CONNECTIONS = 5
+#    command to run python script
+START_1000_CLIENTS_CMD = "python test_broadcast.py start_1000_clients"
 # Test Dependencies:
 #    pip install pytest pytest-asyncio pytest-repeat
 # Test command:
@@ -81,6 +83,53 @@ def setup_logger():
 
     logger.setLevel(logging.DEBUG)
     LOG_SETUP_FLAG = True
+
+class CommandParser(object):
+    def __init__(self, command: str):
+        self.raw_command = command
+        self.parsed_command = {}
+    
+    def _parse(self):
+        if len(self.parsed_command) > 0:
+            return
+        split_command = self.raw_command.split(" ")
+        operator = split_command[0]
+        key = split_command[1]
+        self.parsed_command["operator"] = operator
+        self.parsed_command["key"] = key
+        if operator in {"SET", "GET"}:
+            VALUE_SLOT = 2
+            self.parsed_command["pair"] = f"{key}{SEPARATOR}"
+        elif operator in {"HSET", "HGET"}:
+            VALUE_SLOT = 3
+            field = split_command[2]
+            self.parsed_command["field"] = field
+            self.parsed_command["pair"] = f"{key}{SEPARATOR}{field}{SEPARATOR}"
+        _value = split_command[VALUE_SLOT].split(SEPARATOR)
+        self.parsed_command["value"] = _value[0]
+        self.parsed_command["pair"] += _value[0]
+        self.parsed_command["version"] = float(_value[1]) if len(_value) > 1 else None
+
+    def get(self, key: str):
+        self._parse() 
+        return self.parsed_command.get(key)
+
+class ValueParser(object):
+    def __init__(self, value: Union[bytes, str]):
+        self.raw_value = value if isinstance(value, str) else value.decode('ascii')
+        self.parsed_value = {}
+    
+    def _parse(self):
+        if len(self.parsed_value) > 0:
+            return
+        _value = self.raw_value.split(SEPARATOR)
+        self.parsed_value["value"] = _value[0]
+        self.parsed_value["version"] = float(_value[1]) if len(_value) > 1 else None
+        self.parsed_value["time"] = time.time()
+    
+    def get(self, key: str):
+        self._parse() 
+        return self.parsed_value.get(key)
 
 
 # WARNING: if func(info) raise exception, monitor coroutine will stop but no exception will be raised
@@ -178,21 +227,15 @@ async def _synchronized_get(
         start = time.time()
         while time.time() - start <= duration and signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split("-")[0])
-            _value = await client.get(key)
-            get_time = time.time()
-            if isinstance(_value, bytes):
-                _value = _value.decode("ascii")
-            _value = _value.split(SEPARATOR)
-            value = _value[0]
-            version = float(_value[1]) if len(_value) > 1 else None
-            assert value == expected_value
+            value = ValueParser(await client.get(key))
+            assert value.get("value") == expected_value
             if callback_func is not None:
                 callback_func(
                     message={
                         "key": key,
-                        "value": value,
-                        "version": version,
-                        "get_time": get_time,
+                        "value": value.get("value"),
+                        "version": value.get("version"),
+                        "get_time": value.get("time"),
                     }
                 )
             if sleep is not None:
@@ -225,22 +268,16 @@ async def _synchronized_hget(
         start = time.time()
         while time.time() - start <= duration and signal_state.ALIVE:
             request.set(str(uuid.uuid4()).split("-")[0])
-            _value = await client.hget(key, field)
-            hget_time = time.time()
-            if isinstance(_value, bytes):
-                _value = _value.decode("ascii")
-            _value = _value.split(SEPARATOR)
-            value = _value[0]
-            version = float(_value[1]) if len(_value) > 1 else None
-            assert value == expected_value
+            value = ValueParser(await client.hget(key, field))
+            assert value.get("value") == expected_value
             if callback_func is not None:
                 callback_func(
                     message={
                         "key": key,
                         "field": field,
-                        "value": value,
-                        "version": version,
-                        "hget_time": hget_time,
+                        "value": value.get("value"),
+                        "version": value.get("version"),
+                        "hget_time": value.get("time"),
                     }
                 )
             if sleep is not None:
@@ -563,13 +600,9 @@ async def test_synchronized_get_with_set_multi():
     PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT = 0
 
     for i in range(len(SET_AUDIT_RETURN)):
-        set_command = SET_AUDIT_RETURN[i]["command"]
-        set_key = set_command.split(" ")[1]
-        _set_value = set_command.split(" ")[2].split(SEPARATOR)
-        assert len(_set_value) == 2
-        set_value = _set_value[0]
-        version = float(_set_value[1])
-        pair = f"{set_key}{SEPARATOR}{set_value}"
+        set_command = CommandParser(SET_AUDIT_RETURN[i]["command"])
+        pair = set_command.get("pair")
+        version = set_command.get("version")
 
         server_set_time = SET_AUDIT_RETURN[i]["time"]
         invalidate_time = LISTEN_INVALIDATE_AUDIT_RETURN[i]["time"]
@@ -589,8 +622,8 @@ async def test_synchronized_get_with_set_multi():
                 int((client_get_last_version_last_seen - server_set_time) * 10000) / 10
             )
         debug_info = {
-            "key": set_key,
-            "value": set_value,
+            "key": set_command.get("key"),
+            "value": set_command.get("value"),
             "version": version,
             "server_set_time": "0ms",
             "invalidate_time": f"{int((invalidate_time-server_set_time)*10000)/10}ms",
@@ -884,26 +917,154 @@ async def test_concurrent_get_with_set_multi():
 
 @pytest.mark.asyncio
 async def test_concurrent_hget_with_hset_multi():
+    HSET_INTERVAL = max(random.random() * 10, 0.1)
+    HSET_REPEAT = max(10 // HSET_INTERVAL, 1)
+
+    HSET_AUDIT_RETURN = []
+    LISTEN_INVALIDATE_AUDIT_RETURN = []
+    SERVER_HGET_AUDIT_RETURN = []
+    CLIENT_HGET_AUDIT_RETURN = {}
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=SERVER_HGET_AUDIT_RETURN,
+                prefix="HGET my_key",
+            ),
+            partial(
+                _audit_monitor, data_return=HSET_AUDIT_RETURN, prefix=f"HSET my_key"
+            ),
+        ],
+        listen_invalidate_callback=[
+            partial(
+                _audit_listen_invalidate,
+                data_return=LISTEN_INVALIDATE_AUDIT_RETURN,
+                prefix="my_key",
+            ),
+        ],
+    )
+
+    pool_size = 10
+    for i in range(pool_size):
+        await client.hset("my_key", f"my_field_{i}", f"my_value_{i}{SEPARATOR}{time.time()}")
+    hget_task = [asyncio.create_task(
+        _synchronized_hget(
+            client,
+            "my_key",
+            f"my_field_{i}",
+            f"my_value_{i}",
+            callback_func=partial(
+                _audit_client_hget, data_return=CLIENT_HGET_AUDIT_RETURN
+            ),
+            duration=HSET_REPEAT * HSET_INTERVAL + 5,
+        ) 
+    ) for i in range(pool_size)]
+    hset_task = asyncio.create_task(
+        hset(
+            client,
+            "my_key",
+            f"my_field_5",
+            f"my_value_5",
+            repeat=HSET_REPEAT,
+            sleep=HSET_INTERVAL,
+        )
+    )
+    await asyncio.gather(daemon_task, *hget_task, hset_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(HSET_AUDIT_RETURN) == HSET_REPEAT+pool_size
+    assert len(SERVER_HGET_AUDIT_RETURN) == (HSET_REPEAT+1)*pool_size
+    assert len(HSET_AUDIT_RETURN) == len(LISTEN_INVALIDATE_AUDIT_RETURN)
+
+    last_version = None
+    PROBLEMATIC_INVALIDATE_TIME_COUNT = 0
+    PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT = 0
+
+    HSET_AUDIT_RETURN = [record for record in HSET_AUDIT_RETURN if record["command"].startswith("HSET my_key my_field_5 my_value_5")]
+    SERVER_HGET_AUDIT_RETURN = [record for record in SERVER_HGET_AUDIT_RETURN if record["command"] == "HGET my_key my_field_5"]
+    LISTEN_INVALIDATE_AUDIT_RETURN = [LISTEN_INVALIDATE_AUDIT_RETURN[5]] + LISTEN_INVALIDATE_AUDIT_RETURN[10:] 
+
+    for i in range(len(HSET_AUDIT_RETURN)):
+        hset_command = CommandParser(HSET_AUDIT_RETURN[i]["command"])
+        pair = hset_command.get("pair")
+        version = hset_command.get("version")
+
+        server_hset_time = HSET_AUDIT_RETURN[i]["time"]
+        invalidate_time = LISTEN_INVALIDATE_AUDIT_RETURN[i]["time"]
+        server_hget_time = SERVER_HGET_AUDIT_RETURN[i]["time"]
+        client_hget_current_version_first_seen = CLIENT_HGET_AUDIT_RETURN[pair][
+            version
+        ]["first_seen"]
+        client_hget_last_version_last_seen = (
+            CLIENT_HGET_AUDIT_RETURN[pair][last_version]["last_seen"]
+            if last_version is not None
+            else None
+        )
+
+        client_hget_last_version_last_seen_display = "***"
+        if last_version is not None:
+            client_hget_last_version_last_seen_display = (
+                int((client_hget_last_version_last_seen - server_hset_time) * 10000)
+                / 10
+            )
+        debug_info = {
+            "key": hset_command.get("key"),
+            "value": hset_command.get("value"),
+            "version": hset_command.get("version"),
+            "server_hset_time": "0ms",
+            "invalidate_time": f"{int((invalidate_time-server_hset_time)*10000)/10}ms",
+            "server_hget_time": f"{int((server_hget_time-server_hset_time)*10000)/10}ms",
+            "client_hget_current_version_first_seen": f"{int((client_hget_current_version_first_seen-server_hset_time)*10000)/10}ms",
+            "client_hget_last_version_last_seen": f"{client_hget_last_version_last_seen_display}ms",
+        }
+        logging.info(json.dumps(debug_info, indent=4))
+
+        # hset -> invalidate -> hget
+        # last_version_last_seen -> invalidate -> current_version_first_seen
+        if invalidate_time - server_hset_time >= 0.1:
+            PROBLEMATIC_INVALIDATE_TIME_COUNT += 1
+        assert server_hget_time > invalidate_time
+        assert client_hget_current_version_first_seen > invalidate_time
+        if (last_version is not None) and (
+            invalidate_time + 0.01 < client_hget_last_version_last_seen
+        ):
+            # Because we have asyncio.sleep(0) in CachedRedis.get(), so the last_seen time is not always accurate
+            # It should be accurate in log
+            PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT += 1
+        last_version = version
+    logging.info(f"HSET_REPEAT: {HSET_REPEAT}, HSET_INTERVAL: {HSET_INTERVAL}")
+    logging.info(
+        f"PROBLEMATIC_INVALIDATE_TIME_COUNT: {PROBLEMATIC_INVALIDATE_TIME_COUNT}"
+    )
+    logging.info(
+        f"PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT: {PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT}"
+    )
+    assert PROBLEMATIC_INVALIDATE_TIME_COUNT <= max(HSET_REPEAT // 10, 1)
+    assert PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT <= max(HSET_REPEAT // 10, 1)
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_synchronized_get_with_set_continuous():
     pass
 
 
 @pytest.mark.asyncio
-async def test_synchronized_get_with_set_concurrent():
+async def test_synchronized_hget_with_hset_continuous():
     pass
 
 
 @pytest.mark.asyncio
-async def test_synchronized_hget_with_hset_concurrent():
+async def test_concurrent_get_with_set_continuous():
     pass
 
 
 @pytest.mark.asyncio
-async def test_concurrent_get_with_set_concurrent():
-    pass
-
-
-@pytest.mark.asyncio
-async def test_concurrent_get_with_hset_concurrent():
+async def test_concurrent_get_with_hset_continuous():
     pass
 
 
@@ -1415,8 +1576,8 @@ async def test_1000_client_listen_invalidate_once():
 
     print(f"SET 1 time cost: {(end-start)*1000} ms")
 
-    proc = await asyncio.create_subprocess_exec(
-        "python", "test_broadcast.py", "start_1000_clients"
+    proc = await asyncio.create_subprocess_shell(
+        START_1000_CLIENTS_CMD
     )
     proc_task = asyncio.create_task(proc.communicate())
     await asyncio.sleep(2)
@@ -1453,8 +1614,8 @@ async def test_1000_client_listen_invalidate_multi():
 
     print(f"SET 1000 time cost: avg = {(end-start)} ms, qps = {int(1000/(end-start))}")
 
-    proc = await asyncio.create_subprocess_exec(
-        "python", "test_broadcast.py", "start_1000_clients"
+    proc = await asyncio.create_subprocess_shell(
+        START_1000_CLIENTS_CMD
     )
     proc_task = asyncio.create_task(proc.communicate())
     await asyncio.sleep(2)
@@ -1508,7 +1669,7 @@ async def test_1000_client_listen_invalidate_concurrent():
     RUMTIME.clear()
 
     proc = await asyncio.create_subprocess_exec(
-        "python", "test_broadcast.py", "start_1000_clients"
+        START_1000_CLIENTS_CMD
     )
     proc_task = asyncio.create_task(proc.communicate())
     await asyncio.sleep(2)
@@ -1534,7 +1695,7 @@ async def test_1000_client_listen_invalidate_concurrent():
 # Known issue with close connection test:
 #   After connection is intentionally closed, the next time we restart client tracking on, client may get following error:
 #      Prefix 'my_key' overlaps with an existing prefix 'my_key'. Prefixes for a single client must not overlap.
-#   This is because server lazy remove the client id from prefix tree. So we may need +1 more attempt to get it work.
+#   This is because server lazy remove the client id from prefix tree. So we may need +1 more attempt to get it work.   
 @pytest.mark.asyncio
 async def test_synchronized_get_close_connection_single():
     KILL_INTERVAL = 1

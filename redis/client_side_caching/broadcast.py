@@ -380,15 +380,15 @@ class CachedRedis(object):
         # string key
         if key in cache:
             del cache[key]
+            logging.info(f"Flush string key from client-side cache: {key}")
 
         # hash key
         if key in self._hashkey_field_map:
             for cache_key in self._hashkey_field_map[key]:
                 if cache_key in cache:
                     del cache[cache_key]
+                    logging.info(f"Flush hash key from client-side cache: {cache_key}")
             del self._hashkey_field_map[key]
-
-        logging.info(f"Flush key from client-side cache: {key}")
     
     async def _background_listen_invalidate(self) -> None:
         """
