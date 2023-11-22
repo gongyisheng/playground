@@ -84,11 +84,12 @@ def setup_logger():
     logger.setLevel(logging.DEBUG)
     LOG_SETUP_FLAG = True
 
+
 class CommandParser(object):
     def __init__(self, command: str):
         self.raw_command = command
         self.parsed_command = {}
-    
+
     def _parse(self):
         if len(self.parsed_command) > 0:
             return
@@ -111,14 +112,15 @@ class CommandParser(object):
         self.parsed_command["version"] = float(_value[1]) if len(_value) > 1 else None
 
     def get(self, key: str):
-        self._parse() 
+        self._parse()
         return self.parsed_command.get(key)
+
 
 class ValueParser(object):
     def __init__(self, value: Union[bytes, str]):
-        self.raw_value = value if isinstance(value, str) else value.decode('ascii')
+        self.raw_value = value if isinstance(value, str) else value.decode("ascii")
         self.parsed_value = {}
-    
+
     def _parse(self):
         if len(self.parsed_value) > 0:
             return
@@ -126,9 +128,9 @@ class ValueParser(object):
         self.parsed_value["value"] = _value[0]
         self.parsed_value["version"] = float(_value[1]) if len(_value) > 1 else None
         self.parsed_value["time"] = time.time()
-    
+
     def get(self, key: str):
-        self._parse() 
+        self._parse()
         return self.parsed_value.get(key)
 
 
@@ -947,19 +949,24 @@ async def test_concurrent_hget_with_hset_multi():
 
     pool_size = 10
     for i in range(pool_size):
-        await client.hset("my_key", f"my_field_{i}", f"my_value_{i}{SEPARATOR}{time.time()}")
-    hget_task = [asyncio.create_task(
-        _synchronized_hget(
-            client,
-            "my_key",
-            f"my_field_{i}",
-            f"my_value_{i}",
-            callback_func=partial(
-                _audit_client_hget, data_return=CLIENT_HGET_AUDIT_RETURN
-            ),
-            duration=HSET_REPEAT * HSET_INTERVAL + 5,
-        ) 
-    ) for i in range(pool_size)]
+        await client.hset(
+            "my_key", f"my_field_{i}", f"my_value_{i}{SEPARATOR}{time.time()}"
+        )
+    hget_task = [
+        asyncio.create_task(
+            _synchronized_hget(
+                client,
+                "my_key",
+                f"my_field_{i}",
+                f"my_value_{i}",
+                callback_func=partial(
+                    _audit_client_hget, data_return=CLIENT_HGET_AUDIT_RETURN
+                ),
+                duration=HSET_REPEAT * HSET_INTERVAL + 5,
+            )
+        )
+        for i in range(pool_size)
+    ]
     hset_task = asyncio.create_task(
         hset(
             client,
@@ -975,17 +982,27 @@ async def test_concurrent_hget_with_hset_multi():
     assert monitor_task.done() is False
     monitor_task.cancel()
 
-    assert len(HSET_AUDIT_RETURN) == HSET_REPEAT+pool_size
-    assert len(SERVER_HGET_AUDIT_RETURN) == (HSET_REPEAT+1)*pool_size
+    assert len(HSET_AUDIT_RETURN) == HSET_REPEAT + pool_size
+    assert len(SERVER_HGET_AUDIT_RETURN) == (HSET_REPEAT + 1) * pool_size
     assert len(HSET_AUDIT_RETURN) == len(LISTEN_INVALIDATE_AUDIT_RETURN)
 
     last_version = None
     PROBLEMATIC_INVALIDATE_TIME_COUNT = 0
     PROBLEMATIC_LAST_VERSION_LAST_SEEN_COUNT = 0
 
-    HSET_AUDIT_RETURN = [record for record in HSET_AUDIT_RETURN if record["command"].startswith("HSET my_key my_field_5 my_value_5")]
-    SERVER_HGET_AUDIT_RETURN = [record for record in SERVER_HGET_AUDIT_RETURN if record["command"] == "HGET my_key my_field_5"]
-    LISTEN_INVALIDATE_AUDIT_RETURN = [LISTEN_INVALIDATE_AUDIT_RETURN[5]] + LISTEN_INVALIDATE_AUDIT_RETURN[10:] 
+    HSET_AUDIT_RETURN = [
+        record
+        for record in HSET_AUDIT_RETURN
+        if record["command"].startswith("HSET my_key my_field_5 my_value_5")
+    ]
+    SERVER_HGET_AUDIT_RETURN = [
+        record
+        for record in SERVER_HGET_AUDIT_RETURN
+        if record["command"] == "HGET my_key my_field_5"
+    ]
+    LISTEN_INVALIDATE_AUDIT_RETURN = [
+        LISTEN_INVALIDATE_AUDIT_RETURN[5]
+    ] + LISTEN_INVALIDATE_AUDIT_RETURN[10:]
 
     for i in range(len(HSET_AUDIT_RETURN)):
         hset_command = CommandParser(HSET_AUDIT_RETURN[i]["command"])
@@ -1576,9 +1593,7 @@ async def test_1000_client_listen_invalidate_once():
 
     print(f"SET 1 time cost: {(end-start)*1000} ms")
 
-    proc = await asyncio.create_subprocess_shell(
-        START_1000_CLIENTS_CMD
-    )
+    proc = await asyncio.create_subprocess_shell(START_1000_CLIENTS_CMD)
     proc_task = asyncio.create_task(proc.communicate())
     await asyncio.sleep(2)
 
@@ -1614,9 +1629,7 @@ async def test_1000_client_listen_invalidate_multi():
 
     print(f"SET 1000 time cost: avg = {(end-start)} ms, qps = {int(1000/(end-start))}")
 
-    proc = await asyncio.create_subprocess_shell(
-        START_1000_CLIENTS_CMD
-    )
+    proc = await asyncio.create_subprocess_shell(START_1000_CLIENTS_CMD)
     proc_task = asyncio.create_task(proc.communicate())
     await asyncio.sleep(2)
 
@@ -1668,9 +1681,7 @@ async def test_1000_client_listen_invalidate_concurrent():
     print(f"SET 1000 time concurrently cost: avg = {avg_runtime} ms, qps = {qps}")
     RUMTIME.clear()
 
-    proc = await asyncio.create_subprocess_exec(
-        START_1000_CLIENTS_CMD
-    )
+    proc = await asyncio.create_subprocess_exec(START_1000_CLIENTS_CMD)
     proc_task = asyncio.create_task(proc.communicate())
     await asyncio.sleep(2)
 
@@ -1695,7 +1706,7 @@ async def test_1000_client_listen_invalidate_concurrent():
 # Known issue with close connection test:
 #   After connection is intentionally closed, the next time we restart client tracking on, client may get following error:
 #      Prefix 'my_key' overlaps with an existing prefix 'my_key'. Prefixes for a single client must not overlap.
-#   This is because server lazy remove the client id from prefix tree. So we may need +1 more attempt to get it work.   
+#   This is because server lazy remove the client id from prefix tree. So we may need +1 more attempt to get it work.
 @pytest.mark.asyncio
 async def test_synchronized_get_close_connection_single():
     KILL_INTERVAL = 1
