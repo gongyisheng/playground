@@ -440,7 +440,7 @@ class CachedRedis(object):
         """
         Create another listen invalidate coroutine in case the current connection is broken
         """
-        logging.info("Start _background_listen_invalidate")
+        logging.info("Start cached redis _background_listen_invalidate")
         while signal_state.ALIVE:
             try:
                 await asyncio.gather(
@@ -588,7 +588,7 @@ class CachedRedis(object):
                     if resp["data"] == self.HEALTH_CHECK_MSG:
                         self.health_check_ongoing_flag = False
                         logging.info(
-                            "Receive health check message from redis server, interval=%.3fms"
+                            "Receive cached redis health check message from redis server, interval=%.3fms"
                             % ((time.time() - self._last_health_check_time) * 1000)
                         )
             except Exception as e:
