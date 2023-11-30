@@ -32,7 +32,7 @@ from typing import Callable, Optional, Union
 import uuid
 
 from redis.asyncio import Redis, BlockingConnectionPool
-from broadcast import CachedRedis
+from cached_redis import CachedRedis
 
 request = ContextVar("request")
 LOG_SETUP_FLAG = False
@@ -244,7 +244,7 @@ async def _synchronized_get(
                 await asyncio.sleep(sleep)
     except Exception as e:
         logging.error(
-            f"Got error during get test: key={key}, expected_value={expected_value}, actual_value={value}",
+            f"Get error during get test: key={key}, expected_value={expected_value}, actual_value={value}",
             exc_info=True,
         )
         if error_return is not None:
@@ -286,7 +286,7 @@ async def _synchronized_hget(
                 await asyncio.sleep(sleep)
     except Exception as e:
         logging.error(
-            f"Got error during hget test: key={key}, field={field}, expected_value={expected_value}, actual_value={value}",
+            f"Get error during hget test: key={key}, field={field}, expected_value={expected_value}, actual_value={value}",
             exc_info=True,
         )
         if error_return is not None:
@@ -548,10 +548,10 @@ async def test_synchronized_hget():
 
 
 @pytest.mark.asyncio
-async def test_short_cache_ttl():
+async def test_get_short_cache_ttl():
     # This function introduces a random value in cache ttl
     # You can run this test multiple times to make sure that any value in cache ttl is working
-    # pytest -k test_short_cache_ttl --count X
+    # pytest -k test_get_short_cache_ttl --count X
     CACHE_TTL = max(random.random() * 5, 0.1)
     AUDIT_RETURN = []
     client, daemon_task, monitor_task = await init(
@@ -564,6 +564,51 @@ async def test_short_cache_ttl():
     await client.set("my_key", "my_value")
     await _synchronized_get(client, "my_key", "my_value")
     await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    max_cache_ttl = CACHE_TTL * (1 - client.cache_ttl_deviation)
+    for i in range(len(AUDIT_RETURN) - 1):
+        diff = AUDIT_RETURN[i + 1]["time"] - AUDIT_RETURN[i]["time"]
+        assert diff >= max_cache_ttl
+    expected_count = 5 // (CACHE_TTL * (1 - client.cache_ttl_deviation)) + 1
+    assert len(AUDIT_RETURN) in [expected_count - 1, expected_count]
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_hget_short_cache_ttl():
+    # This function introduces a random value in cache ttl
+    # You can run this test multiple times to make sure that any value in cache ttl is working
+    # pytest -k test_hget_short_cache_ttl --count X
+    CACHE_TTL = max(random.random() * 5, 0.1)
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        cache_ttl=CACHE_TTL,
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_RETURN,
+                prefix="HGET my_key my_field_0",
+            )
+        ],
+    )
+
+    pool_num = 10
+    for i in range(pool_num):
+        await client.hset("my_key", f"my_field_{i}", f"my_value_{i}")
+
+    task = []
+    for i in range(pool_num):
+        task.append(
+            asyncio.create_task(
+                _synchronized_hget(client, "my_key", f"my_field_{i}", f"my_value_{i}")
+            )
+        )
+    await asyncio.gather(daemon_task, *task)
 
     assert monitor_task.done() is False
     monitor_task.cancel()
@@ -1920,16 +1965,6 @@ async def test_redis_down_and_up():
 
 @pytest.mark.asyncio
 async def test_short_key_ttl():
-    pass
-
-
-@pytest.mark.asyncio
-async def test_set_key():
-    pass
-
-
-@pytest.mark.asyncio
-async def test_hset_key():
     pass
 
 
