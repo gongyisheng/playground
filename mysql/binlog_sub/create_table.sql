@@ -14,6 +14,8 @@ UPDATE binlog_test SET payload = 'payload2' WHERE id = 1;
 UPDATE binlog_test SET payload = 'payload2' WHERE id = 2;
 UPDATE binlog_test SET payload = 'payload2' WHERE id = 3;
 
+UPDATE binlog_test SET payload = 'new_payload' WHERE id > 0;
+
 DELETE FROM binlog_test WHERE id = 1;
 DELETE FROM binlog_test WHERE id = 2;
 DELETE FROM binlog_test WHERE id = 3;
