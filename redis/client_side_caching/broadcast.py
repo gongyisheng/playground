@@ -20,7 +20,7 @@ import signal_state_aio as signal_state
 #  3. One connection will be used for subscribing invalidation channel, make sure there're
 #     enough connections in the pool (at least 2 available connections) otherwise it will
 #     raise "No connection available" error.
-#  4. Please not set redis server side timeout to non-zero value, otherwise client tracking
+#  4. Please don't set redis server side timeout to non-zero value, otherwise client tracking
 #     is at risk of being disabled.
 #  5. CachedRedis does not support redis cluster for now.
 class CachedRedis(object):
