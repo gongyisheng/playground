@@ -3,6 +3,10 @@ import socketserver
 import time
 
 # Custom request handler for SSE
+# Headers are important for SSE to work
+    # Content-Type: text/event-stream
+    # Cache-Control: no-cache
+    # Connection: keep-alive
 class SSEHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/sse':
@@ -16,7 +20,7 @@ class SSEHandler(http.server.SimpleHTTPRequestHandler):
             while True:
                 time.sleep(1)
                 count += 1
-                message = f"data: {count}\n\n"
+                message = f"data: {count}\n"
                 self.wfile.write(message.encode('utf-8'))
                 self.wfile.flush()
         else:
