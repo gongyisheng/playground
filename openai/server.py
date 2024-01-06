@@ -30,11 +30,15 @@ class ChatHandler(BaseHandler):
     def post(self):
         # get message from request body
         body = json.loads(self.request.body)
-        user_message = body.get("message", "Repeat after me: I'm a useful assistant")
+        system_message = body.get("systemMessage", "You are a helpful assistant")
+        user_message = body.get("userMessage", "Repeat after me: I'm a helpful assistant")
         request_uuid = str(uuid.uuid4())
-        MESSAGE_STORAGE[request_uuid] = user_message
+        MESSAGE_STORAGE[request_uuid] = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_message},
+        ]
 
-        print(f"User message: {user_message}, uuid: {request_uuid}")
+        print(f"Receive post request, uuid: {request_uuid}")
         self.set_status(200)
         self.write({"uuid": request_uuid})
         self.finish()
@@ -51,14 +55,12 @@ class ChatHandler(BaseHandler):
 
         # get uuid from url
         request_uuid = self.get_argument('uuid')
+        print(f"Receive get request, uuid: {request_uuid}")
 
         # create openai stream
         stream = OPENAI_CLIENT.chat.completions.create(
             model=MODEL,
-            messages=[
-                {"role": "system", "content": "You are a useful assistant"},
-                {"role": "user", "content": MESSAGE_STORAGE[request_uuid]},
-            ],
+            messages=MESSAGE_STORAGE[request_uuid],
             stream=True
         )
         for chunk in stream:
