@@ -1,23 +1,20 @@
-# Before running this script, please make sure that server is running.
-# python -m http.server 8000
-
-import requests
-
-small_file_url = 'http://172.31.92.214:8000/small_file.txt'
-big_file_url = 'http://172.31.92.214:8000/big_file.txt'
+# Before running this script, please make sure that redis server is running.
+import redis
 
 def main():
-    session = requests.Session()
-    adapter = requests.adapters.HTTPAdapter(pool_connections=1, pool_maxsize=1)
-    session.mount('http://', adapter)
+    set_client = redis.Redis(host='172.31.92.214', port=6379, db=0)
+    get_client = redis.Redis(host='172.31.92.214', port=6379, db=0)
+    for i in range(10):
+        set_client.set(f'small_key_{i}', 'a'*i*100) # 100B, 200B, 300B, ..., 1KB
+    set_client.set('big_key', 'a'*1024*1024*10) # 10MB
+
+    for i in range(10):
+        resp = get_client.get(f'small_key_{i}')
+        print(f"get small_key complete. length={len(resp)}")
     
-    for _ in range(10):
-        response = session.get(small_file_url)
-        print(f"Get small file response. code={response.status_code}, length={len(response.content)}")
-    
-    for _ in range(1):
-        response = session.get(big_file_url)
-        print(f"Get big file response. code={response.status_code}, length={len(response.content)}")
+    for i in range(2):
+        resp = get_client.get('big_key')
+        print(f"get big_key complete. length={len(resp)}")
 
 if __name__ == '__main__':
     main()
