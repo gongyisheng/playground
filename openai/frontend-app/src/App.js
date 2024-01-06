@@ -1,9 +1,11 @@
 // App.js
 import React, { useState, useEffect } from "react";
 
+import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
+import TextField from "@mui/material/TextField";
 import { styled } from "@mui/material/styles";
 
 const BASE_URL = "http://localhost:5600";
@@ -48,22 +50,32 @@ function App() {
     }
   }
 
-  // Handle input text change
-  const [inputText, setInputText] = useState("");
+  // Handle system message change
+  const [systemMessage, setSystemMessage] = useState("");
 
-  function handleInputChange(e) {
-    setInputText(e.target.value);
+  function handleSystemMessageChange(e) {
+    setSystemMessage(e.target.value);
+  }
+
+  // Handle user message change
+  const [userMessage, setUserMessage] = useState("");
+
+  function handleUserMessageChange(e) {
+    setUserMessage(e.target.value);
   }
 
   // Handle button click
-  async function handleButtonClick() {
+  async function handleSubmit() {
     try {
       const response = await fetch(ENDPOINT_CHAT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: inputText }),
+        body: JSON.stringify({
+          systemMessage: systemMessage,
+          userMessage: userMessage,
+        }),
       });
 
       const uuid = await response.json().then((data) => data.uuid);
@@ -117,12 +129,33 @@ function App() {
             <Item sx={{ height: "80vh" }}>
               <h2>Question</h2>
               <div>
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={handleInputChange}
+                <TextField
+                  id="outlined-multiline-flexible"
+                  label="System Input"
+                  fullWidth
+                  multiline
+                  maxRows={4}
+                  defaultValue="You are a helpful assistant."
+                  onChange={handleSystemMessageChange}
+                  sx={{ margin: 1 }}
                 />
-                <button onClick={handleButtonClick}>submit</button>
+                <TextField
+                  id="outlined-multiline-flexible"
+                  label="User Input"
+                  fullWidth
+                  multiline
+                  maxRows={4}
+                  placeholder="Message ChatGPT..."
+                  onChange={handleUserMessageChange}
+                  sx={{ margin: 1 }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleSubmit}
+                  sx={{ margin: 1 }}
+                >
+                  Submit
+                </Button>
               </div>
             </Item>
           </Grid>
