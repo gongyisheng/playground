@@ -1,11 +1,22 @@
 // App.js
 import React, { useState, useEffect } from "react";
+
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import { styled } from "@mui/material/styles";
 
 const BASE_URL = "http://localhost:5600";
 const ENDPOINT_META = BASE_URL + "/meta";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
+
+const Item = styled(Paper)(({ theme }) => ({
+  backgroundColor: theme.palette.mode === "dark" ? "#1A2027" : "#fff",
+  ...theme.typography.body2,
+  padding: theme.spacing(1),
+  textAlign: "left",
+  color: theme.palette.text.secondary,
+}));
 
 function App() {
   // Metadata of backend
@@ -87,25 +98,33 @@ function App() {
 
   return (
     <div>
-      <Container maxWidth="sm">
-        <h1>Customized Chatbot [{model}]</h1>
+      <Container maxWidth="false">
         <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Item sx={{ height: "10vh", textAlign: "center" }}>
+              <h1>OpenAI Chatbot [{model}]</h1>
+            </Item>
+          </Grid>
           <Grid item xs={8}>
-            <h2>Question:</h2>
-            <div>
-              <input
-                type="text"
-                value={inputText}
-                onChange={handleInputChange}
-              />
-              <button onClick={handleButtonClick}>submit</button>
-            </div>
+            <Item sx={{ height: "80vh" }}>
+              <div>
+                <h2>Answer</h2>
+                <div>{sseData}</div>
+              </div>
+            </Item>
           </Grid>
           <Grid item xs={4}>
-            <div>
-              <h2>Answer:</h2>
-              <div>{sseData}</div>
-            </div>
+            <Item sx={{ height: "80vh" }}>
+              <h2>Question</h2>
+              <div>
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={handleInputChange}
+                />
+                <button onClick={handleButtonClick}>submit</button>
+              </div>
+            </Item>
           </Grid>
         </Grid>
       </Container>
