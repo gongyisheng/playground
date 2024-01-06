@@ -1,6 +1,7 @@
 # server for customized chatbot
 import json
 import uuid
+import sqlite3
 import time
 
 from openai import OpenAI
@@ -9,8 +10,42 @@ import tornado.web
 
 OPENAI_CLIENT = OpenAI()
 MESSAGE_STORAGE = {}
+
 MODELS = None
 MODELS_FETCH_TIME = 0
+
+# sqlite3 connection
+# dev: test.db
+# prompt engineering: prompt.db
+DB_CONN = sqlite3.connect('test.db')
+
+def create_table():
+    cursor = DB_CONN.cursor()
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS chat_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uuid VARCHAR(255) UNIQUE,
+            model VARCHAR(255),
+            system_message TEXT,
+            full_context TEXT,
+            timestamp INTEGER
+        )
+        '''
+    )
+    DB_CONN.commit()
+
+def insert_chat_history(uuid: str, model: str, full_context: list):
+    cursor = DB_CONN.cursor()
+    system_message = full_context[0]['content']
+    cursor.execute(
+        '''
+        INSERT INTO chat_history (uuid, model, system_message, full_context, timestamp)
+        VALUES (?, ?, ?, ?, ?)
+        ''',
+        (uuid, model, system_message, json.dumps(full_context), int(time.time()))
+    )
+    DB_CONN.commit()
 
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
@@ -59,14 +94,16 @@ class ChatHandler(BaseHandler):
         # get uuid from url
         request_uuid = self.get_argument('uuid')
         model = self.get_argument('model')
+        full_context = MESSAGE_STORAGE[request_uuid]
         print(f"Receive get request, uuid: {request_uuid}, model: {model}")
 
         # create openai stream
         stream = OPENAI_CLIENT.chat.completions.create(
             model=model,
-            messages=MESSAGE_STORAGE[request_uuid],
+            messages=full_context,
             stream=True
         )
+
         assistant_message = ""
         for chunk in stream:
             content = chunk.choices[0].delta.content
@@ -74,9 +111,13 @@ class ChatHandler(BaseHandler):
                 assistant_message += content
                 self.write(self.build_sse_message(content))
                 self.flush()
-        MESSAGE_STORAGE[request_uuid].append(
+
+        # save chat history
+        full_context.append(
             {"role": "assistant", "content": assistant_message}
         )
+        insert_chat_history(request_uuid, model, full_context)
+        del MESSAGE_STORAGE[request_uuid]
         self.finish()
 
 class ListModelsHandler(BaseHandler):
@@ -102,6 +143,7 @@ def make_app():
     ])
 
 if __name__ == '__main__':
+    create_table()
     app = make_app()
     app.listen(5600)
     print('Starting Tornado server on http://localhost:5600')
