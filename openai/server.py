@@ -41,7 +41,8 @@ class MainHandler(BaseHandler):
         self.finish()
     
     def build_sse_message(self, data):
-        return f"data: {data}\n\n"
+        body = json.dumps({"content": data})
+        return f"data: {body}\n\n"
 
     def get(self):
         # set headers for SSE to work
@@ -61,7 +62,6 @@ class MainHandler(BaseHandler):
             ],
             stream=True
         )
-
         for chunk in stream:
             content = chunk.choices[0].delta.content
             if content is not None:

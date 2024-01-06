@@ -51,11 +51,11 @@ const App = () => {
     }
   };
 
-  const [sseData, setSSEData] = useState([]);
+  const [sseData, setSSEData] = useState('');
 
   useEffect(() => {
 
-    setSSEData([]);
+    setSSEData('');
     if (uuid === '') {
       return;
     }
@@ -64,8 +64,10 @@ const App = () => {
 
     // Event listener for SSE messages
     sse.onmessage = event => {
-      setSSEData((prev) => [...prev, event.data]);
+      console.log('received event:', JSON.parse(event.data));
+      setSSEData((prev) => prev + JSON.parse(event.data).content);
     };
+
 
     sse.onerror = event => {
       sse.close();
@@ -84,7 +86,7 @@ const App = () => {
       </div>
       <div>
         <h2>Answer:</h2>
-        <p>{sseData}</p>
+        <div>{sseData}</div>
       </div>
     </div>
   );
