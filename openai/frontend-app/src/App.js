@@ -1,56 +1,56 @@
 // App.js
-import React, { useState, useEffect } from 'react';
-import Button from '@mui/material/Button';
+import React, { useState, useEffect } from "react";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
 
-const BASE_URL = 'http://localhost:5600';
-const ENDPOINT_META = BASE_URL + '/meta';
-const ENDPOINT_CHAT = BASE_URL + '/chat';
+const BASE_URL = "http://localhost:5600";
+const ENDPOINT_META = BASE_URL + "/meta";
+const ENDPOINT_CHAT = BASE_URL + "/chat";
 
 function App() {
-
   // Metadata of backend
-  const [model, setModel] = useState('fetching...');
+  const [model, setModel] = useState("fetching...");
 
   async function getMeta() {
     try {
       const response = await fetch(ENDPOINT_META, {
-        method: 'GET',
+        method: "GET",
       });
       var _model = await response.json().then((data) => data.model);
       setModel(_model);
     } catch (error) {
-      console.error('error fetching meta:', error);
-      setModel('unknown');
+      console.error("error fetching meta:", error);
+      setModel("unknown");
     }
-  };
+  }
   getMeta();
 
   // UUID of current chat session
-  const [uuid, setUUID] = useState('');
+  const [uuid, setUUID] = useState("");
 
   function handleUUIDChange(newUUID) {
     // Ensure that newUuid is a string
-    if (typeof newUUID === 'string') {
+    if (typeof newUUID === "string") {
       setUUID(newUUID);
     } else {
-      console.error('received invalid uuid:', newUUID);
+      console.error("received invalid uuid:", newUUID);
     }
-  };
+  }
 
   // Handle input text change
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState("");
 
   function handleInputChange(e) {
     setInputText(e.target.value);
-  };
+  }
 
   // Handle button click
   async function handleButtonClick() {
     try {
       const response = await fetch(ENDPOINT_CHAT, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ message: inputText }),
       });
@@ -58,29 +58,27 @@ function App() {
       const uuid = await response.json().then((data) => data.uuid);
       handleUUIDChange(uuid);
     } catch (error) {
-      console.error('error fetching UUID:', error);
+      console.error("error fetching UUID:", error);
     }
-  };
+  }
 
   // Get SSE data from backend
-  const [sseData, setSSEData] = useState('');
+  const [sseData, setSSEData] = useState("");
 
   useEffect(() => {
-
-    setSSEData('');
-    if (uuid === '') {
+    setSSEData("");
+    if (uuid === "") {
       return;
     }
-  
+
     const sse = new EventSource(`${ENDPOINT_CHAT}?uuid=${uuid}`);
 
     // Event listener for SSE messages
-    sse.onmessage = event => {
+    sse.onmessage = (event) => {
       setSSEData((prev) => prev + JSON.parse(event.data).content);
     };
 
-
-    sse.onerror = event => {
+    sse.onerror = (event) => {
       sse.close();
     };
 
@@ -89,18 +87,30 @@ function App() {
 
   return (
     <div>
-      <h1>Customized Chatbot [{model}]</h1>
-      <h2>Question:</h2>
-      <div>
-        <input type="text" value={inputText} onChange={handleInputChange} />
-        <button onClick={handleButtonClick}>submit</button>
-      </div>
-      <div>
-        <h2>Answer:</h2>
-        <div>{sseData}</div>
-      </div>
+      <Container maxWidth="sm">
+        <h1>Customized Chatbot [{model}]</h1>
+        <Grid container spacing={2}>
+          <Grid item xs={8}>
+            <h2>Question:</h2>
+            <div>
+              <input
+                type="text"
+                value={inputText}
+                onChange={handleInputChange}
+              />
+              <button onClick={handleButtonClick}>submit</button>
+            </div>
+          </Grid>
+          <Grid item xs={4}>
+            <div>
+              <h2>Answer:</h2>
+              <div>{sseData}</div>
+            </div>
+          </Grid>
+        </Grid>
+      </Container>
     </div>
   );
-};
+}
 
 export default App;
