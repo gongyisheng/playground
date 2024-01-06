@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
-import MenuItem from '@mui/material/MenuItem';
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import { styled } from "@mui/material/styles";
@@ -54,7 +54,7 @@ function App() {
   // Handle model change
   const [model, setModel] = useState("gpt-3.5-turbo");
 
-  function handleModelChange(e) { 
+  function handleModelChange(e) {
     setModel(e.target.value);
   }
 
@@ -155,8 +155,8 @@ function App() {
                   label="System Input"
                   fullWidth
                   multiline
-                  maxRows={4}
-                  defaultValue="You are a helpful assistant."
+                  maxRows={5}
+                  placeholder="You are a helpful assistant."
                   onChange={handleSystemMessageChange}
                   sx={{ margin: 1 }}
                 />
@@ -165,7 +165,7 @@ function App() {
                   label="User Input"
                   fullWidth
                   multiline
-                  maxRows={4}
+                  maxRows={5}
                   placeholder="Message ChatGPT..."
                   onChange={handleUserMessageChange}
                   sx={{ margin: 1 }}
