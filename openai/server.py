@@ -1,5 +1,6 @@
 # server for customized chatbot
 import json
+import time
 import uuid
 
 from openai import OpenAI
@@ -35,7 +36,9 @@ class MainHandler(tornado.web.RequestHandler):
         self.set_status(200)
         self.write({"uuid": request_uuid})
         self.finish()
-
+    
+    def build_sse_message(self, data):
+        return f"data: {data}\n\n"
 
     def get(self):
         # set headers for SSE to work
@@ -59,7 +62,7 @@ class MainHandler(tornado.web.RequestHandler):
         for chunk in stream:
             content = chunk.choices[0].delta.content
             if content is not None:
-                self.write(content)
+                self.write(self.build_sse_message(content))
                 self.flush()
         self.finish()
 
