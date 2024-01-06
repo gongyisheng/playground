@@ -1,6 +1,5 @@
 # server for customized chatbot
 import json
-import time
 import uuid
 
 from openai import OpenAI
