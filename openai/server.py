@@ -50,6 +50,7 @@ class ChatHandler(BaseHandler):
         return f"data: {body}\n\n"
 
     def get(self):
+        global MESSAGE_STORAGE
         # set headers for SSE to work
         self.set_header('Content-Type', 'text/event-stream')
         self.set_header('Cache-Control', 'no-cache')
@@ -66,11 +67,16 @@ class ChatHandler(BaseHandler):
             messages=MESSAGE_STORAGE[request_uuid],
             stream=True
         )
+        assistant_message = ""
         for chunk in stream:
             content = chunk.choices[0].delta.content
             if content is not None:
+                assistant_message += content
                 self.write(self.build_sse_message(content))
                 self.flush()
+        MESSAGE_STORAGE[request_uuid].append(
+            {"role": "assistant", "content": assistant_message}
+        )
         self.finish()
 
 class ListModelsHandler(BaseHandler):
