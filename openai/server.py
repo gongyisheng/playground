@@ -1,6 +1,7 @@
 # server for customized chatbot
 import json
 import uuid
+import time
 
 from openai import OpenAI
 import tornado.ioloop
@@ -8,7 +9,8 @@ import tornado.web
 
 OPENAI_CLIENT = OpenAI()
 MESSAGE_STORAGE = {}
-MODEL = "gpt-3.5-turbo"
+MODELS = None
+MODELS_FETCH_TIME = 0
 
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
@@ -55,11 +57,12 @@ class ChatHandler(BaseHandler):
 
         # get uuid from url
         request_uuid = self.get_argument('uuid')
-        print(f"Receive get request, uuid: {request_uuid}")
+        model = self.get_argument('model')
+        print(f"Receive get request, uuid: {request_uuid}, model: {model}")
 
         # create openai stream
         stream = OPENAI_CLIENT.chat.completions.create(
-            model=MODEL,
+            model=model,
             messages=MESSAGE_STORAGE[request_uuid],
             stream=True
         )
@@ -70,16 +73,26 @@ class ChatHandler(BaseHandler):
                 self.flush()
         self.finish()
 
-class MetaHandler(BaseHandler):
+class ListModelsHandler(BaseHandler):
     def get(self):
+        global MODELS, MODELS_FETCH_TIME
+        if MODELS is None or time.time() - MODELS_FETCH_TIME > 3600:
+            MODELS = []
+            for model in OPENAI_CLIENT.models.list():
+                model_id = str(model.id)
+                if model_id.startswith(("gpt-3.5", "gpt-4")):
+                    MODELS.append(model_id)
+            MODELS = sorted(MODELS)
+            MODELS_FETCH_TIME = time.time()
+
         self.set_status(200)
-        self.write({"model": MODEL})
+        self.write({"models": MODELS})
         self.finish()
 
 def make_app():
     return tornado.web.Application([
         (r'/chat', ChatHandler),
-        (r'/meta', MetaHandler),
+        (r'/list_models', ListModelsHandler),
     ])
 
 if __name__ == '__main__':

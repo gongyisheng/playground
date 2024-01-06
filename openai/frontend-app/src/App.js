@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
+import MenuItem from '@mui/material/MenuItem';
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import { styled } from "@mui/material/styles";
 
 const BASE_URL = "http://localhost:5600";
-const ENDPOINT_META = BASE_URL + "/meta";
+const ENDPOINT_LIST_MODELS = BASE_URL + "/list_models";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
 
 const Item = styled(Paper)(({ theme }) => ({
@@ -21,22 +22,22 @@ const Item = styled(Paper)(({ theme }) => ({
 }));
 
 function App() {
-  // Metadata of backend
-  const [model, setModel] = useState("fetching...");
+  // Supported models
+  const [supportedModels, setSupportedModels] = useState([]);
 
-  async function getMeta() {
+  async function getSupportedModels() {
     try {
-      const response = await fetch(ENDPOINT_META, {
+      const response = await fetch(ENDPOINT_LIST_MODELS, {
         method: "GET",
       });
-      var _model = await response.json().then((data) => data.model);
-      setModel(_model);
+      var _models = await response.json().then((data) => data.models);
+      setSupportedModels(_models);
     } catch (error) {
-      console.error("error fetching meta:", error);
-      setModel("unknown");
+      console.error("error fetching supported models:", error);
+      setSupportedModels([]);
     }
   }
-  getMeta();
+  getSupportedModels();
 
   // UUID of current chat session
   const [uuid, setUUID] = useState("");
@@ -48,6 +49,13 @@ function App() {
     } else {
       console.error("received invalid uuid:", newUUID);
     }
+  }
+
+  // Handle model change
+  const [model, setModel] = useState("gpt-3.5-turbo");
+
+  function handleModelChange(e) { 
+    setModel(e.target.value);
   }
 
   // Handle system message change
@@ -94,7 +102,7 @@ function App() {
       return;
     }
 
-    const sse = new EventSource(`${ENDPOINT_CHAT}?uuid=${uuid}`);
+    const sse = new EventSource(`${ENDPOINT_CHAT}?uuid=${uuid}&model=${model}`);
 
     // Event listener for SSE messages
     sse.onmessage = (event) => {
@@ -114,7 +122,7 @@ function App() {
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <Item sx={{ height: "10vh", textAlign: "center" }}>
-              <h1>OpenAI Chatbot [{model}]</h1>
+              <h1>Prompt Tester</h1>
             </Item>
           </Grid>
           <Grid item xs={8}>
@@ -129,6 +137,19 @@ function App() {
             <Item sx={{ height: "80vh" }}>
               <h2>Question</h2>
               <div>
+                <TextField
+                  id="outlined-multiline-flexible"
+                  label="Model"
+                  fullWidth
+                  select
+                  value={model}
+                  onChange={handleModelChange}
+                  sx={{ margin: 1 }}
+                >
+                  {supportedModels.map((model) => (
+                    <MenuItem value={model}>{model}</MenuItem>
+                  ))}
+                </TextField>
                 <TextField
                   id="outlined-multiline-flexible"
                   label="System Input"
