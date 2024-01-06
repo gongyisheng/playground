@@ -61,13 +61,14 @@ const App = () => {
 
   return (
     <div>
-      <h1>SSE App</h1>
+      <h1>Customized Chatbot</h1>
+      <h2>Question:</h2>
       <div>
         <input type="text" value={inputText} onChange={handleInputChange} />
         <button onClick={handleButtonClick}>submit</button>
       </div>
       <div>
-        <h2>SSE Data:</h2>
+        <h2>Answer:</h2>
         <p>{sseData}</p>
       </div>
     </div>
