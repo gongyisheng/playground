@@ -6,10 +6,6 @@ const BASE_URL = 'http://localhost:5600';
 const ENDPOINT_META = BASE_URL + '/meta';
 const ENDPOINT_CHAT = BASE_URL + '/chat';
 
-function ButtonUsage() {
-  return <Button variant="contained">Hello world</Button>;
-}
-
 function App() {
 
   // Metadata of backend
