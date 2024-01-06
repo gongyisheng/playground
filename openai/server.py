@@ -9,7 +9,9 @@ import tornado.web
 
 OPENAI_CLIENT = OpenAI()
 MESSAGE_STORAGE = {}
-class MainHandler(tornado.web.RequestHandler):
+MODEL = "gpt-3.5-turbo"
+
+class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         # Allow all origins
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -24,7 +26,8 @@ class MainHandler(tornado.web.RequestHandler):
         # Handle preflight OPTIONS requests
         self.set_status(204)
         self.finish()
-    
+
+class MainHandler(BaseHandler):
     def post(self):
         # get message from request body
         body = json.loads(self.request.body)
@@ -51,7 +54,7 @@ class MainHandler(tornado.web.RequestHandler):
 
         # create openai stream
         stream = OPENAI_CLIENT.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=MODEL,
             messages=[
                 {"role": "system", "content": "You are a useful assistant"},
                 {"role": "user", "content": MESSAGE_STORAGE[request_uuid]},
@@ -66,9 +69,16 @@ class MainHandler(tornado.web.RequestHandler):
                 self.flush()
         self.finish()
 
+class MetaHandler(BaseHandler):
+    def get(self):
+        self.set_status(200)
+        self.write({"model": MODEL})
+        self.finish()
+
 def make_app():
     return tornado.web.Application([
         (r'/', MainHandler),
+        (r'/meta', MetaHandler),
     ])
 
 if __name__ == '__main__':

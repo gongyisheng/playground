@@ -2,6 +2,21 @@
 import React, { useState, useEffect } from 'react';
 
 const App = () => {
+  var [model, setModel] = useState('fetching...');
+  const getMeta = async () => {
+    try {
+      const response = await fetch('http://localhost:5600/meta', {
+        method: 'GET',
+      });
+      model = await response.json().then((data) => data.model);
+      setModel(model);
+    } catch (error) {
+      console.error('error fetching meta:', error);
+      setModel('unknown');
+    }
+  };
+  getMeta();
+
   const [uuid, setUUID] = useState('');
 
   const handleUUIDChange = (newUUID) => {
@@ -61,7 +76,7 @@ const App = () => {
 
   return (
     <div>
-      <h1>Customized Chatbot</h1>
+      <h1>Customized Chatbot [{model}]</h1>
       <h2>Question:</h2>
       <div>
         <input type="text" value={inputText} onChange={handleInputChange} />
