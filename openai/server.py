@@ -26,7 +26,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_status(204)
         self.finish()
 
-class MainHandler(BaseHandler):
+class ChatHandler(BaseHandler):
     def post(self):
         # get message from request body
         body = json.loads(self.request.body)
@@ -76,7 +76,7 @@ class MetaHandler(BaseHandler):
 
 def make_app():
     return tornado.web.Application([
-        (r'/', MainHandler),
+        (r'/chat', ChatHandler),
         (r'/meta', MetaHandler),
     ])
 

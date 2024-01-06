@@ -1,11 +1,15 @@
 // App.js
 import React, { useState, useEffect } from 'react';
 
+const BASE_URL = 'http://localhost:5600';
+const ENDPOINT_META = BASE_URL + '/meta';
+const ENDPOINT_CHAT = BASE_URL + '/chat';
+
 const App = () => {
   var [model, setModel] = useState('fetching...');
   const getMeta = async () => {
     try {
-      const response = await fetch('http://localhost:5600/meta', {
+      const response = await fetch(ENDPOINT_META, {
         method: 'GET',
       });
       model = await response.json().then((data) => data.model);
@@ -36,7 +40,7 @@ const App = () => {
 
   const handleButtonClick = async () => {
     try {
-      const response = await fetch('http://localhost:5600', {
+      const response = await fetch(ENDPOINT_CHAT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,11 +64,10 @@ const App = () => {
       return;
     }
   
-    const sse = new EventSource(`http://localhost:5600?uuid=${uuid}`);
+    const sse = new EventSource(`${ENDPOINT_CHAT}?uuid=${uuid}`);
 
     // Event listener for SSE messages
     sse.onmessage = event => {
-      console.log('received event:', JSON.parse(event.data));
       setSSEData((prev) => prev + JSON.parse(event.data).content);
     };
 
