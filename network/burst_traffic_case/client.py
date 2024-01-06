@@ -3,8 +3,8 @@
 
 import requests
 
-small_file_url = 'http://172.1.1.1/small_file.txt'
-big_file_url = 'http://172.1.1.1/big_file.txt'
+small_file_url = 'http://172.31.92.214:8000/small_file.txt'
+big_file_url = 'http://172.31.92.214:8000/big_file.txt'
 
 def main():
     session = requests.Session()
@@ -18,3 +18,6 @@ def main():
     for _ in range(1):
         response = session.get(big_file_url)
         print(f"Get big file response. code={response.status_code}, length={len(response.content)}")
+
+if __name__ == '__main__':
+    main()
