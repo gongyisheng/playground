@@ -1,19 +1,27 @@
 // App.js
 import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
 
 const BASE_URL = 'http://localhost:5600';
 const ENDPOINT_META = BASE_URL + '/meta';
 const ENDPOINT_CHAT = BASE_URL + '/chat';
 
-const App = () => {
-  var [model, setModel] = useState('fetching...');
-  const getMeta = async () => {
+function ButtonUsage() {
+  return <Button variant="contained">Hello world</Button>;
+}
+
+function App() {
+
+  // Metadata of backend
+  const [model, setModel] = useState('fetching...');
+
+  async function getMeta() {
     try {
       const response = await fetch(ENDPOINT_META, {
         method: 'GET',
       });
-      model = await response.json().then((data) => data.model);
-      setModel(model);
+      var _model = await response.json().then((data) => data.model);
+      setModel(_model);
     } catch (error) {
       console.error('error fetching meta:', error);
       setModel('unknown');
@@ -21,9 +29,10 @@ const App = () => {
   };
   getMeta();
 
+  // UUID of current chat session
   const [uuid, setUUID] = useState('');
 
-  const handleUUIDChange = (newUUID) => {
+  function handleUUIDChange(newUUID) {
     // Ensure that newUuid is a string
     if (typeof newUUID === 'string') {
       setUUID(newUUID);
@@ -32,13 +41,15 @@ const App = () => {
     }
   };
 
+  // Handle input text change
   const [inputText, setInputText] = useState('');
 
-  const handleInputChange = (e) => {
+  function handleInputChange(e) {
     setInputText(e.target.value);
   };
 
-  const handleButtonClick = async () => {
+  // Handle button click
+  async function handleButtonClick() {
     try {
       const response = await fetch(ENDPOINT_CHAT, {
         method: 'POST',
@@ -55,6 +66,7 @@ const App = () => {
     }
   };
 
+  // Get SSE data from backend
   const [sseData, setSSEData] = useState('');
 
   useEffect(() => {
