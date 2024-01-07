@@ -22,3 +22,6 @@ target
 
 # secrets toml
 secrets.toml
+
+# nohup
+nohup.out

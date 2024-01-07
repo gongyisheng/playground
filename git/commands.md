@@ -14,3 +14,5 @@
 - revert commit
 `git revert <hash>`
 `git reset --soft <hash>`
+- undo unsaved changes
+`git stash`
