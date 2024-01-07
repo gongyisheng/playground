@@ -15,6 +15,9 @@ MESSAGE_STORAGE = {}
 MODELS = None
 MODELS_FETCH_TIME = 0
 
+PROMPTS = None
+PROMPTS_FETCH_TIME = 0
+
 # sqlite3 connection
 # dev: test.db
 # prompt engineering: prompt.db
@@ -105,14 +108,25 @@ def delete_prompt(name: str, version: str):
     pass
 
 def get_all_prompts():
-    cursor = DB_CONN.cursor()
-    cursor.execute(
-        '''
-        SELECT name, version, system_message FROM saved_prompt
-        '''
-    )
-    rows = cursor.fetchall()
-    return rows
+    global PROMPTS, PROMPTS_FETCH_TIME
+    if PROMPTS is None or time.time() - PROMPTS_FETCH_TIME > 60:
+        cursor = DB_CONN.cursor()
+        cursor.execute(
+            '''
+            SELECT name, version, system_message FROM saved_prompt
+            '''
+        )
+        rows = cursor.fetchall()
+        PROMPTS = {}
+        for row in rows:
+            name, version, system_message = row
+            PROMPTS[f"{name}:{version}"] = {
+                "name": name,
+                "version": version,
+                "systemMessage": system_message
+            }
+        PROMPTS_FETCH_TIME = time.time()
+    return PROMPTS
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -207,14 +221,7 @@ class ListModelsHandler(BaseHandler):
 class PromptHandler(BaseHandler):
     def get(self):
         prompts = get_all_prompts()
-        body = []
-        for prompt in prompts:
-            name, system_message = prompt
-            body.append({
-                "name": name,
-                "systemMessage": system_message
-            })
-        self.write({"prompts": body})
+        self.write(json.dumps({"prompts": prompts}))
         self.set_status(200)
         self.finish()
     

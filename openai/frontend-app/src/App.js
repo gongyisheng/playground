@@ -115,7 +115,6 @@ function App() {
         }),
       });
       const status = response.status;
-      console.log("status", status);
       if (status === 200) {
         alert("Save prompt success");
       } else {
@@ -126,6 +125,42 @@ function App() {
       console.error("error save prompt", error);
     }
   }
+
+  // Handle reserved prompt
+
+  const [reservedPrompts, setReservedPrompts] = useState({});
+
+  function handleSelectReservedPromptChange(e) {
+    const label = e.target.value;
+    if (label === "Empty") {
+      setPromptName("");
+      setPromptVersion("");
+      setSystemMessage("");
+      return;
+    } else {
+      const promptName = reservedPrompts[label]["name"];
+      const promptVersion = reservedPrompts[label]["version"];
+      const systemMessage = reservedPrompts[label]["systemMessage"];
+
+      setPromptName(promptName);
+      setPromptVersion(promptVersion);
+      setSystemMessage(systemMessage);
+    }
+  }
+
+  async function handleReservedPromptRefresh() {
+    try {
+      const response = await fetch(ENDPOINT_PROMPT, {
+        method: "GET",
+      });
+      const reservedPrompts = await response.json().then((data) => data.prompts);
+      setReservedPrompts(reservedPrompts);
+    } catch (error) {
+      console.error("error fetching reserved prompts:", error);
+      setReservedPrompts({});
+    }
+  }
+  handleReservedPromptRefresh();
 
   // Get SSE data from backend
   const [sseData, setSSEData] = useState("");
@@ -182,19 +217,36 @@ function App() {
                   sx={{ marginTop: 1 }}
                 >
                   {supportedModels.map((model) => (
-                    <MenuItem value={model}>{model}</MenuItem>
+                    <MenuItem key={model} value={model}>{model}</MenuItem>
                   ))}
                 </TextField>
                 <TextField
+                  id="select-prompt"
+                  label="Prompt"
+                  fullWidth
+                  select
+                  defaultValue="Empty"
+                  onChange={handleSelectReservedPromptChange}
+                  sx={{ marginTop: 1 }}
+                >
+                  <MenuItem value={"Empty"}>{"Empty"}</MenuItem>
+                  {Object.keys(reservedPrompts).map((key) => (
+                    <MenuItem key={key} value={key}>{key}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  id="system-input"
                   label="System Input"
                   fullWidth
                   multiline
                   maxRows={5}
+                  value={systemMessage}
                   placeholder="You are a helpful assistant."
                   onChange={handleSystemMessageChange}
                   sx={{ marginTop: 2 }}
                 />
                 <TextField
+                  id="user-input"
                   label="User Input"
                   fullWidth
                   multiline
@@ -204,6 +256,7 @@ function App() {
                   sx={{ marginTop: 2 }}
                 />
                 <Button
+                  id="submit-button"
                   variant="contained"
                   onClick={handleSubmit}
                   sx={{ marginTop: 2 }}
@@ -215,12 +268,14 @@ function App() {
                 <TextField
                   label="Prompt Name"
                   fullWidth
+                  value={promptName}
                   onChange={(e) => setPromptName(e.target.value)}
                   sx={{ marginTop: 2 }}
                 />
                 <TextField
                   label="Version"
                   fullWidth
+                  value={promptVersion}
                   onChange={(e) => setPromptVersion(e.target.value)}
                   sx={{ marginTop: 2 }}
                 />
