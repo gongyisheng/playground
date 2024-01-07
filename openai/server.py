@@ -30,7 +30,7 @@ def create_table():
             uuid VARCHAR(255) UNIQUE,
             model VARCHAR(255),
             system_message TEXT,
-            system_message_hash VARCHAR(32) UNIQUE,
+            system_message_hash VARCHAR(32),
             full_context TEXT,
             timestamp INTEGER
         );
