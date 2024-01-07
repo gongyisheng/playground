@@ -38,7 +38,9 @@ function App() {
       setSupportedModels([]);
     }
   }
-  getSupportedModels();
+  useEffect(() => {
+    getSupportedModels();
+  }, []);
 
   // UUID of current chat session
   const [uuid, setUUID] = useState("");
@@ -160,7 +162,10 @@ function App() {
       setReservedPrompts({});
     }
   }
-  handleReservedPromptRefresh();
+
+  useEffect(() => {
+    handleReservedPromptRefresh();
+  }, []);
 
   // Get SSE data from backend
   const [sseData, setSSEData] = useState("");
