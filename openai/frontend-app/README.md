@@ -75,4 +75,4 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 1. build  `npm run build` 
 2. install serve `npm install -g serve`
 3. deploy with serve `serve -s build -l 3000`
-4. deploy with serve run in background `serve -s build -l 3000 -n &> nohup.out &`\
+4. deploy with serve run in background `serve -s build -l 3000 -n &> nohup.out &`
