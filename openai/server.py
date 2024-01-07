@@ -23,7 +23,7 @@ PROMPTS_FETCH_TIME = 0
 # prompt engineering: prompt.db
 # DB_CONN = sqlite3.connect('test.db')
 DB_CONN = sqlite3.connect('prompt.db')
-
+# DB_CONN = sqlite3.connect('yipit.db')
 def create_table():
     cursor = DB_CONN.cursor()
     cursor.execute(
