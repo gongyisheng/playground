@@ -94,9 +94,9 @@ def save_prompt(name: str, system_message: str):
     cursor.execute(
         '''
         SELECT id, version FROM saved_prompt
-        WHERE system_message_hash = ?
+        WHERE name = ?
         ''',
-        (system_message_hash)
+        (name,)
     )
     row = cursor.fetchone()
 
@@ -109,16 +109,26 @@ def save_prompt(name: str, system_message: str):
             (name, 1, system_message, system_message_hash, int(time.time()), int(time.time()))
         )
     else:
-        version = row['version']
+        id, version = row
         cursor.execute(
             '''
             UPDATE saved_prompt
             SET version = ?, system_message = ?, system_message_hash = ?, update_time = ?
             WHERE id = ?
             ''',
-            (version + 1, system_message, system_message_hash, int(time.time()), row['id'])
+            (version + 1, system_message, system_message_hash, int(time.time()), id)
         )
     DB_CONN.commit()
+
+def get_all_prompts():
+    cursor = DB_CONN.cursor()
+    cursor.execute(
+        '''
+        SELECT name, system_message FROM saved_prompt
+        '''
+    )
+    rows = cursor.fetchall()
+    return rows
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -210,10 +220,37 @@ class ListModelsHandler(BaseHandler):
         self.write({"models": MODELS})
         self.finish()
 
+class PromptHandler(BaseHandler):
+    def get(self):
+        prompts = get_all_prompts()
+        body = []
+        for prompt in prompts:
+            name, system_message = prompt
+            body.append({
+                "name": name,
+                "systemMessage": system_message
+            })
+        self.write({"prompts": body})
+        self.set_status(200)
+        self.finish()
+    
+    def post(self):
+        body = json.loads(self.request.body)
+        name = body.get("name", None)
+        system_message = body.get("systemMessage", None)
+        if name is None or system_message is None:
+            self.set_status(400)
+            self.finish()
+        else:
+            save_prompt(name, system_message)
+            self.set_status(200)
+            self.finish()
+
 def make_app():
     return tornado.web.Application([
         (r'/chat', ChatHandler),
         (r'/list_models', ListModelsHandler),
+        (r'/prompt', PromptHandler)
     ])
 
 if __name__ == '__main__':
