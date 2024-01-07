@@ -126,7 +126,7 @@ function App() {
             </Item>
           </Grid>
           <Grid item xs={8}>
-            <Item sx={{ height: "80vh" }}>
+            <Item sx={{ minHeight: "80vh" }}>
               <div>
                 <h2>Answer</h2>
                 <div>{sseData}</div>
@@ -134,7 +134,7 @@ function App() {
             </Item>
           </Grid>
           <Grid item xs={4}>
-            <Item sx={{ height: "80vh" }}>
+            <Item sx={{ minHeight: "80vh" }}>
               <h2>Question</h2>
               <div>
                 <TextField
