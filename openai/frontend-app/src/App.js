@@ -138,42 +138,39 @@ function App() {
               <h2>Question</h2>
               <div>
                 <TextField
-                  id="outlined-multiline-flexible"
                   label="Model"
                   fullWidth
                   select
                   value={model}
                   onChange={handleModelChange}
-                  sx={{ margin: 1 }}
+                  sx={{ marginTop: 1 }}
                 >
                   {supportedModels.map((model) => (
                     <MenuItem value={model}>{model}</MenuItem>
                   ))}
                 </TextField>
                 <TextField
-                  id="outlined-multiline-flexible"
                   label="System Input"
                   fullWidth
                   multiline
                   maxRows={5}
                   placeholder="You are a helpful assistant."
                   onChange={handleSystemMessageChange}
-                  sx={{ margin: 1 }}
+                  sx={{ marginTop: 2 }}
                 />
                 <TextField
-                  id="outlined-multiline-flexible"
                   label="User Input"
                   fullWidth
                   multiline
                   maxRows={5}
                   placeholder="Message ChatGPT..."
                   onChange={handleUserMessageChange}
-                  sx={{ margin: 1 }}
+                  sx={{ marginTop: 2 }}
                 />
                 <Button
                   variant="contained"
                   onClick={handleSubmit}
-                  sx={{ margin: 1 }}
+                  sx={{ marginTop: 2 }}
                 >
                   Submit
                 </Button>
