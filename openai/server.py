@@ -1,4 +1,5 @@
 # server for customized chatbot
+from hashlib import md5
 import json
 import uuid
 import sqlite3
@@ -28,9 +29,44 @@ def create_table():
             uuid VARCHAR(255) UNIQUE,
             model VARCHAR(255),
             system_message TEXT,
+            system_message_hash VARCHAR(32),
             full_context TEXT,
             timestamp INTEGER
-        )
+        );
+        '''
+    )
+    cursor.execute(
+        '''
+        CREATE INDEX IF NOT EXISTS idx_uuid ON chat_history (uuid);
+        '''
+    )
+    cursor.execute(
+        '''
+        CREATE INDEX IF NOT EXISTS idx_system_message_hash ON chat_history (system_message_hash);
+        '''
+    )
+    DB_CONN.commit()
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS saved_prompt (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(255) UNIQUE,
+            version INTEGER,
+            system_message TEXT,
+            system_message_hash VARCHAR(32),
+            insert_time INTEGER,
+            update_time INTEGER
+        );
+        '''
+    )
+    cursor.execute(
+        '''
+        CREATE INDEX IF NOT EXISTS idx_name ON saved_prompt (name);
+        '''
+    )
+    cursor.execute(
+        '''
+        CREATE INDEX IF NOT EXISTS idx_system_message_hash ON saved_prompt (system_message_hash);
         '''
     )
     DB_CONN.commit()
@@ -38,14 +74,52 @@ def create_table():
 def insert_chat_history(uuid: str, model: str, full_context: list):
     cursor = DB_CONN.cursor()
     system_message = full_context[0]['content']
+    system_message_hash = md5(system_message.encode('utf-8')).hexdigest()
+
+    # insert chat history
     cursor.execute(
         '''
-        INSERT INTO chat_history (uuid, model, system_message, full_context, timestamp)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO chat_history (uuid, model, system_message, system_message_hash, full_context, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
         ''',
-        (uuid, model, system_message, json.dumps(full_context), int(time.time()))
+        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time()))
     )
     DB_CONN.commit()
+
+def save_prompt(name: str, system_message: str):
+    cursor = DB_CONN.cursor()
+    system_message_hash = md5(system_message.encode('utf-8')).hexdigest()
+
+    # check if system message exists
+    cursor.execute(
+        '''
+        SELECT id, version FROM saved_prompt
+        WHERE system_message_hash = ?
+        ''',
+        (system_message_hash)
+    )
+    row = cursor.fetchone()
+
+    if row is None:
+        cursor.execute(
+            '''
+            INSERT INTO saved_prompt (name, version, system_message, system_message_hash, insert_time, update_time)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
+            (name, 1, system_message, system_message_hash, int(time.time()), int(time.time()))
+        )
+    else:
+        version = row['version']
+        cursor.execute(
+            '''
+            UPDATE saved_prompt
+            SET version = ?, system_message = ?, system_message_hash = ?, update_time = ?
+            WHERE id = ?
+            ''',
+            (version + 1, system_message, system_message_hash, int(time.time()), row['id'])
+        )
+    DB_CONN.commit()
+
 
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
