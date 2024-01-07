@@ -12,6 +12,7 @@ import { styled } from "@mui/material/styles";
 const BASE_URL = "http://localhost:5600";
 const ENDPOINT_LIST_MODELS = BASE_URL + "/list_models";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
+const ENDPOINT_PROMPT = BASE_URL + "/prompt";
 
 const Item = styled(Paper)(({ theme }) => ({
   backgroundColor: theme.palette.mode === "dark" ? "#1A2027" : "#fff",
@@ -52,7 +53,7 @@ function App() {
   }
 
   // Handle model change
-  const [model, setModel] = useState("gpt-3.5-turbo");
+  const [model, setModel] = useState("");
 
   function handleModelChange(e) {
     setModel(e.target.value);
@@ -90,6 +91,39 @@ function App() {
       handleUUIDChange(uuid);
     } catch (error) {
       console.error("error fetching UUID:", error);
+    }
+  }
+
+  // Handle save prompt
+  const [promptName, setPromptName] = useState("");
+  const [promptVersion, setPromptVersion] = useState("");
+
+  async function handleSavePrompt() {
+    try {
+      if (promptName === "" || promptVersion === "") {
+        return;
+      }
+      const response = await fetch(ENDPOINT_PROMPT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: promptName,
+          version: promptVersion,
+          systemMessage: systemMessage,
+        }),
+      });
+      const status = response.status;
+      console.log("status", status);
+      if (status === 200) {
+        alert("Save prompt success");
+      } else {
+        alert("Save prompt failed");
+      }
+    } catch (error) {
+      alert("Save prompt failed")
+      console.error("error save prompt", error);
     }
   }
 
@@ -138,10 +172,12 @@ function App() {
               <h2>Question</h2>
               <div>
                 <TextField
+                  id="select-model"
                   label="Model"
                   fullWidth
                   select
                   value={model}
+                  defaultValue="gpt-3.5-turbo"
                   onChange={handleModelChange}
                   sx={{ marginTop: 1 }}
                 >
@@ -173,6 +209,27 @@ function App() {
                   sx={{ marginTop: 2 }}
                 >
                   Submit
+                </Button>
+              </div>
+              <div>
+                <TextField
+                  label="Prompt Name"
+                  fullWidth
+                  onChange={(e) => setPromptName(e.target.value)}
+                  sx={{ marginTop: 2 }}
+                />
+                <TextField
+                  label="Version"
+                  fullWidth
+                  onChange={(e) => setPromptVersion(e.target.value)}
+                  sx={{ marginTop: 2 }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleSavePrompt}
+                  sx={{ marginTop: 2 }}
+                >
+                  Save Prompt
                 </Button>
               </div>
             </Item>

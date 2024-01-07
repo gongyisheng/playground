@@ -29,7 +29,7 @@ def create_table():
             uuid VARCHAR(255) UNIQUE,
             model VARCHAR(255),
             system_message TEXT,
-            system_message_hash VARCHAR(32),
+            system_message_hash VARCHAR(32) UNIQUE,
             full_context TEXT,
             timestamp INTEGER
         );
@@ -50,12 +50,13 @@ def create_table():
         '''
         CREATE TABLE IF NOT EXISTS saved_prompt (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(255) UNIQUE,
-            version INTEGER,
+            name VARCHAR(255),
+            version VARCHAR(255),
             system_message TEXT,
-            system_message_hash VARCHAR(32),
-            insert_time INTEGER,
-            update_time INTEGER
+            system_message_hash VARCHAR(32) UNIQUE,
+            timestamp INTEGER,
+
+            UNIQUE(name, version)
         );
         '''
     )
@@ -86,45 +87,27 @@ def insert_chat_history(uuid: str, model: str, full_context: list):
     )
     DB_CONN.commit()
 
-def save_prompt(name: str, system_message: str):
+def save_prompt(name: str, version: str, system_message: str):
     cursor = DB_CONN.cursor()
     system_message_hash = md5(system_message.encode('utf-8')).hexdigest()
 
-    # check if system message exists
     cursor.execute(
         '''
-        SELECT id, version FROM saved_prompt
-        WHERE name = ?
+        INSERT INTO saved_prompt (name, version, system_message, system_message_hash, timestamp)
+        VALUES (?, ?, ?, ?, ?)
         ''',
-        (name,)
+        (name, version, system_message, system_message_hash, int(time.time()))
     )
-    row = cursor.fetchone()
-
-    if row is None:
-        cursor.execute(
-            '''
-            INSERT INTO saved_prompt (name, version, system_message, system_message_hash, insert_time, update_time)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''',
-            (name, 1, system_message, system_message_hash, int(time.time()), int(time.time()))
-        )
-    else:
-        id, version = row
-        cursor.execute(
-            '''
-            UPDATE saved_prompt
-            SET version = ?, system_message = ?, system_message_hash = ?, update_time = ?
-            WHERE id = ?
-            ''',
-            (version + 1, system_message, system_message_hash, int(time.time()), id)
-        )
     DB_CONN.commit()
+
+def delete_prompt(name: str, version: str):
+    pass
 
 def get_all_prompts():
     cursor = DB_CONN.cursor()
     cursor.execute(
         '''
-        SELECT name, system_message FROM saved_prompt
+        SELECT name, version, system_message FROM saved_prompt
         '''
     )
     rows = cursor.fetchall()
@@ -237,12 +220,14 @@ class PromptHandler(BaseHandler):
     def post(self):
         body = json.loads(self.request.body)
         name = body.get("name", None)
+        version = body.get("version", None)
         system_message = body.get("systemMessage", None)
         if name is None or system_message is None:
             self.set_status(400)
             self.finish()
         else:
-            save_prompt(name, system_message)
+            print(f"Save prompt, name: {name}, version: {version}")
+            save_prompt(name, version, system_message)
             self.set_status(200)
             self.finish()
 
