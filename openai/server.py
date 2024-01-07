@@ -18,7 +18,8 @@ MODELS_FETCH_TIME = 0
 # sqlite3 connection
 # dev: test.db
 # prompt engineering: prompt.db
-DB_CONN = sqlite3.connect('test.db')
+# DB_CONN = sqlite3.connect('test.db')
+DB_CONN = sqlite3.connect('prompt.db')
 
 def create_table():
     cursor = DB_CONN.cursor()
