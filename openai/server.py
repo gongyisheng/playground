@@ -20,10 +20,9 @@ PROMPTS_FETCH_TIME = 0
 
 # sqlite3 connection
 # dev: test.db
-# prompt engineering: prompt.db
-# DB_CONN = sqlite3.connect('test.db')
-DB_CONN = sqlite3.connect('prompt.db')
-# DB_CONN = sqlite3.connect('yipit.db')
+# personal prompt engineering: prompt.db
+# yipit: yipit.db
+DB_CONN = None
 def create_table():
     cursor = DB_CONN.cursor()
     cursor.execute(
@@ -247,6 +246,12 @@ def make_app():
     ])
 
 if __name__ == '__main__':
+    import sys
+    db_name = str(sys.argv[1]) if len(sys.argv) > 1 else 'test.db'
+
+    DB_CONN = sqlite3.connect(db_name)
+    print("Connected to database: ", db_name)
+    
     create_table()
     app = make_app()
     app.listen(5600)
