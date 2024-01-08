@@ -12,8 +12,7 @@ import tornado.web
 OPENAI_CLIENT = OpenAI()
 MESSAGE_STORAGE = {}
 
-MODELS = None
-MODELS_FETCH_TIME = 0
+MODELS = ['gpt-3.5-turbo-1106','gpt-4-1106-preview']
 
 PROMPTS = None
 PROMPTS_FETCH_TIME = 0
@@ -203,16 +202,6 @@ class ChatHandler(BaseHandler):
 
 class ListModelsHandler(BaseHandler):
     def get(self):
-        global MODELS, MODELS_FETCH_TIME
-        if MODELS is None or time.time() - MODELS_FETCH_TIME > 3600:
-            MODELS = []
-            for model in OPENAI_CLIENT.models.list():
-                model_id = str(model.id)
-                if model_id.startswith(("gpt-3.5", "gpt-4")):
-                    MODELS.append(model_id)
-            MODELS = sorted(MODELS)
-            MODELS_FETCH_TIME = time.time()
-
         self.set_status(200)
         self.write({"models": MODELS})
         self.finish()
