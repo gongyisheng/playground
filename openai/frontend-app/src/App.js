@@ -9,7 +9,7 @@ import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import { styled } from "@mui/material/styles";
 
-const BASE_URL = "http://localhost:5600";
+const BASE_URL = "http://172.1.1.13:5600";
 const ENDPOINT_LIST_MODELS = BASE_URL + "/list_models";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
 const ENDPOINT_PROMPT = BASE_URL + "/prompt";
