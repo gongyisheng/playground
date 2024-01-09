@@ -74,7 +74,21 @@ def create_table():
     )
     DB_CONN.commit()
 
-def insert_chat_history(uuid: str, model: str, full_context: list):
+def get_chat_history(uuid: str):
+    cursor = DB_CONN.cursor()
+    cursor.execute(
+        '''
+        SELECT full_context FROM chat_history WHERE uuid = ?
+        ''',
+        (uuid,)
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    else:
+        return json.loads(row[0])
+
+def save_chat_history(uuid: str, model: str, full_context: list):
     cursor = DB_CONN.cursor()
     system_message = full_context[0]['content']
     system_message_hash = md5(system_message.encode('utf-8')).hexdigest()
@@ -83,9 +97,10 @@ def insert_chat_history(uuid: str, model: str, full_context: list):
     cursor.execute(
         '''
         INSERT INTO chat_history (uuid, model, system_message, system_message_hash, full_context, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?) 
+        ON DUPLICATE KEY UPDATE full_context = ?
         ''',
-        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time()))
+        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time(), json.dumps(full_context)))
     )
     DB_CONN.commit()
 
@@ -160,6 +175,32 @@ class ChatHandler(BaseHandler):
         self.write({"uuid": request_uuid})
         self.finish()
     
+    def put(self):
+        # get message from request body
+        body = json.loads(self.request.body)
+        request_uuid = body.get("uuid", None)
+        user_message = body.get("userMessage", None)
+        if request_uuid is None or user_message is None:
+            self.set_status(400)
+            self.finish()
+            return
+
+        try:
+            MESSAGE_STORAGE[request_uuid] = get_chat_history(request_uuid)
+        except Exception as e:
+            print("get chat history error: ", e)
+            self.set_status(500)
+            self.finish()
+            return
+
+        MESSAGE_STORAGE[request_uuid].append(
+            {"role": "user", "content": user_message}
+        )
+        print(f"Receive put request, uuid: {request_uuid}")
+        self.set_status(200)
+        self.write({"uuid": request_uuid})
+        self.finish()
+    
     def build_sse_message(self, data):
         body = json.dumps({"content": data})
         return f"data: {body}\n\n"
@@ -196,7 +237,7 @@ class ChatHandler(BaseHandler):
         full_context.append(
             {"role": "assistant", "content": assistant_message}
         )
-        insert_chat_history(request_uuid, model, full_context)
+        save_chat_history(request_uuid, model, full_context)
         del MESSAGE_STORAGE[request_uuid]
         self.finish()
 
