@@ -76,10 +76,20 @@ function App() {
     setUserMessage(e.target.value);
   }
 
+  // Handle SSE refresh
+  const [sseRefresh, setSSERefresh] = useState(0);
+
+  function triggerSSERefresh() {
+    setSSERefresh(sseRefresh + 1);
+  }
+
   // Handle button click
   async function handleSubmit() {
     try {
-      const response = await fetch(ENDPOINT_CHAT, {
+      var response = undefined;
+      if (uuid === "") {
+        console.log("POST message")
+      response = await fetch(ENDPOINT_CHAT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -89,11 +99,24 @@ function App() {
           userMessage: userMessage,
         }),
       });
-
-      const uuid = await response.json().then((data) => data.uuid);
-      handleUUIDChange(uuid);
+      } else {
+        console.log("PUT message")
+        response = await fetch(ENDPOINT_CHAT, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            uuid: uuid,
+            userMessage: userMessage,
+          }),
+        });
+      }
+      const _uuid = await response.json().then((data) => data.uuid);
+      handleUUIDChange(_uuid);
+      triggerSSERefresh();
     } catch (error) {
-      console.error("error fetching UUID:", error);
+      console.error("error POST or PUT message:", error);
     }
   }
 
@@ -189,7 +212,7 @@ function App() {
     };
 
     return () => sse.close();
-  }, [uuid]);
+  }, [sseRefresh]);
 
   return (
     <div>
