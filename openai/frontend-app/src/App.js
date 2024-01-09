@@ -8,6 +8,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import { styled } from "@mui/material/styles";
+import { Box } from "@mui/material";
 
 const BASE_URL = "http://localhost:5600";
 const ENDPOINT_LIST_MODELS = BASE_URL + "/list_models";
@@ -204,8 +205,18 @@ function App() {
               <div>
                 <h2>Answer</h2>
                 <div>{sseData}</div>
+                <TextField
+                  id="user-input"
+                  label="User Input"
+                  fullWidth
+                  multiline
+                  maxRows={5}
+                  placeholder="Message ChatGPT..."
+                  onChange={handleUserMessageChange}
+                  sx={{ marginTop: 2, position: "relative", bottom: 0 }}
+                />
               </div>
-            </Item>
+              </Item>
           </Grid>
           <Grid item xs={4}>
             <Item sx={{ minHeight: "80vh" }}>
@@ -248,16 +259,6 @@ function App() {
                   value={systemMessage}
                   placeholder="You are a helpful assistant."
                   onChange={handleSystemMessageChange}
-                  sx={{ marginTop: 2 }}
-                />
-                <TextField
-                  id="user-input"
-                  label="User Input"
-                  fullWidth
-                  multiline
-                  maxRows={5}
-                  placeholder="Message ChatGPT..."
-                  onChange={handleUserMessageChange}
                   sx={{ marginTop: 2 }}
                 />
                 <Button
