@@ -145,7 +145,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_header("Access-Control-Allow-Headers", "*")
         
         # Allow specific methods
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
     
     def options(self):
         # Handle preflight OPTIONS requests
