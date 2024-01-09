@@ -62,6 +62,9 @@ function App() {
     setModel(e.target.value);
   }
 
+  // Handle store conversation of current chat session
+  const [conversation, setConversation] = useState([]);
+
   // Handle system message change
   const [systemMessage, setSystemMessage] = useState("");
 
@@ -85,6 +88,7 @@ function App() {
 
   // Handle button click
   async function handleSubmit() {
+    setConversation(conversation.concat({ "role": "user", "content": userMessage }));
     try {
       var response = undefined;
       if (uuid === "") {
@@ -115,6 +119,7 @@ function App() {
       const _uuid = await response.json().then((data) => data.uuid);
       handleUUIDChange(_uuid);
       triggerSSERefresh();
+      setUserMessage("");
     } catch (error) {
       console.error("error POST or PUT message:", error);
     }
@@ -152,8 +157,7 @@ function App() {
     }
   }
 
-  // Handle reserved prompt
-
+  // Handle reserved prompts
   const [reservedPrompts, setReservedPrompts] = useState({});
 
   function handleSelectReservedPromptChange(e) {
@@ -201,14 +205,19 @@ function App() {
     }
 
     const sse = new EventSource(`${ENDPOINT_CHAT}?uuid=${uuid}&model=${model}`);
+    let assistantMessage = "";
 
     // Event listener for SSE messages
     sse.onmessage = (event) => {
-      setSSEData((prev) => prev + JSON.parse(event.data).content);
+      let token = JSON.parse(event.data).content;
+      setSSEData((prev) => prev + token);
+      assistantMessage += token;
     };
 
     sse.onerror = (event) => {
       sse.close();
+      setConversation(conversation.concat({ "role": "assistant", "content": assistantMessage }));
+      setSSEData("");
     };
 
     return () => sse.close();
@@ -226,24 +235,54 @@ function App() {
           <Grid item xs={8}>
             <Item sx={{ minHeight: "80vh" }}>
               <div>
-                <h2>Answer</h2>
-                <div>{sseData}</div>
+                <h2>Conversation</h2>              
+                <div>
+                  <Box sx={{ marginBottom: 1 }}>
+                    <span style={{ color: "green" }}>System: </span>
+                    {systemMessage}
+                  </Box>
+                  {conversation.map((item, index) => (
+                  <Box key={index} sx={{ marginBottom: 1 }}>
+                    <span style={{ color: item.role === "user" ? "blue" : "red" }}>
+                      {item.role === "user" ? "User: " : "ChatGPT: "}
+                    </span>
+                    {item.content}
+                  </Box>
+                ))}
+                  <Box sx={{ marginBottom: 1 }}>
+                    <span style={{ color: "red" }}>ChatGPT: </span>
+                    {sseData}
+                  </Box>
+                  </div>
+                <Grid item xs>
                 <TextField
                   id="user-input"
-                  label="User Input"
+                    label="User Input"
                   fullWidth
                   multiline
                   maxRows={5}
+                  value={userMessage}
                   placeholder="Message ChatGPT..."
                   onChange={handleUserMessageChange}
                   sx={{ marginTop: 2, position: "relative", bottom: 0 }}
-                />
+                  />
+                </Grid>
+                <Grid item xs={2}>
+                <Button
+                  id="submit-button"
+                  variant="contained"
+                  onClick={handleSubmit}
+                  sx={{ marginTop: 2 }}
+                >
+                  Submit
+                </Button>
+                </Grid>
               </div>
               </Item>
           </Grid>
           <Grid item xs={4}>
             <Item sx={{ minHeight: "80vh" }}>
-              <h2>Question</h2>
+              <h2>Prompt Console</h2>
               <div>
                 <TextField
                   id="select-model"
@@ -261,7 +300,7 @@ function App() {
                 </TextField>
                 <TextField
                   id="select-prompt"
-                  label="Prompt"
+                  label="Prompt Label"
                   fullWidth
                   select
                   defaultValue="Empty"
@@ -273,25 +312,6 @@ function App() {
                     <MenuItem key={key} value={key}>{key}</MenuItem>
                   ))}
                 </TextField>
-                <TextField
-                  id="system-input"
-                  label="System Input"
-                  fullWidth
-                  multiline
-                  maxRows={5}
-                  value={systemMessage}
-                  placeholder="You are a helpful assistant."
-                  onChange={handleSystemMessageChange}
-                  sx={{ marginTop: 2 }}
-                />
-                <Button
-                  id="submit-button"
-                  variant="contained"
-                  onClick={handleSubmit}
-                  sx={{ marginTop: 2 }}
-                >
-                  Submit
-                </Button>
               </div>
               <div>
                 <TextField
@@ -306,6 +326,17 @@ function App() {
                   fullWidth
                   value={promptVersion}
                   onChange={(e) => setPromptVersion(e.target.value)}
+                  sx={{ marginTop: 2 }}
+                />
+                <TextField
+                  id="system-input"
+                  label="System Input (prompt)"
+                  fullWidth
+                  multiline
+                  maxRows={5}
+                  value={systemMessage}
+                  placeholder="You are a helpful assistant."
+                  onChange={handleSystemMessageChange}
                   sx={{ marginTop: 2 }}
                 />
                 <Button
