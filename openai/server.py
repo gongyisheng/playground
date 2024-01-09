@@ -14,9 +14,6 @@ MESSAGE_STORAGE = {}
 
 MODELS = ['gpt-3.5-turbo-1106','gpt-4-1106-preview']
 
-PROMPTS = None
-PROMPTS_FETCH_TIME = 0
-
 # sqlite3 connection
 # dev: test.db
 # personal prompt engineering: prompt.db
@@ -98,9 +95,9 @@ def save_chat_history(uuid: str, model: str, full_context: list):
         '''
         INSERT INTO chat_history (uuid, model, system_message, system_message_hash, full_context, timestamp)
         VALUES (?, ?, ?, ?, ?, ?) 
-        ON DUPLICATE KEY UPDATE full_context = ?
+        ON CONFLICT(uuid) DO UPDATE SET full_context = ?
         ''',
-        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time(), json.dumps(full_context)))
+        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time()), json.dumps(full_context))
     )
     DB_CONN.commit()
 
@@ -121,24 +118,21 @@ def delete_prompt(name: str, version: str):
     pass
 
 def get_all_prompts():
-    global PROMPTS, PROMPTS_FETCH_TIME
-    if PROMPTS is None or time.time() - PROMPTS_FETCH_TIME > 60:
-        cursor = DB_CONN.cursor()
-        cursor.execute(
-            '''
-            SELECT name, version, system_message FROM saved_prompt
-            '''
-        )
-        rows = cursor.fetchall()
-        PROMPTS = {}
-        for row in rows:
-            name, version, system_message = row
-            PROMPTS[f"{name}:{version}"] = {
-                "name": name,
-                "version": version,
-                "systemMessage": system_message
-            }
-        PROMPTS_FETCH_TIME = time.time()
+    cursor = DB_CONN.cursor()
+    cursor.execute(
+        '''
+        SELECT name, version, system_message FROM saved_prompt
+        '''
+    )
+    rows = cursor.fetchall()
+    PROMPTS = {}
+    for row in rows:
+        name, version, system_message = row
+        PROMPTS[f"{name}:{version}"] = {
+            "name": name,
+            "version": version,
+            "systemMessage": system_message
+        }
     return PROMPTS
 
 
