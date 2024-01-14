@@ -5,6 +5,14 @@ find raspberrypi ip:
 `arp -a`  
 ref: https://zhuanlan.zhihu.com/p/37761024  
 
+# static ip address
+update static ip address, router, dns:  
+`sudo vim /etc/dhcpcd.conf`  
+restart dhcpcd:  
+`sudo service dhcpcd restart`  
+ping test on google:  
+`ping google.com`
+
 # connect to raspberry pi with ssh
 connect with ssh:  
 `ssh pi@<ip>`  
