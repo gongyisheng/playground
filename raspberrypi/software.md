@@ -3,7 +3,7 @@
 `sudo apt-get upgrade`  
 
 # install vim, tcpdump, perf
-`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic`  
+`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils`  
 
 # setup mysql
 download and install:  
