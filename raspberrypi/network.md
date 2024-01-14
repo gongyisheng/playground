@@ -11,7 +11,10 @@ update static ip address, router, dns:
 restart dhcpcd:  
 `sudo service dhcpcd restart`  
 ping test on google:  
-`ping google.com`
+`ping google.com`  
+dns resolve test on google:  
+`dig google.com`  
+ref: https://droidyue.com/blog/2020/05/01/set-dns-server-on-reaspberry-pi/
 
 # connect to raspberry pi with ssh
 connect with ssh:  
