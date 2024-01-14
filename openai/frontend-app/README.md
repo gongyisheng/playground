@@ -75,4 +75,6 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 1. build  `npm run build` 
 2. install serve `npm install -g serve`
 3. deploy with serve `serve -s build -l 3000`
-4. deploy with serve run in background `serve -s build -l 3000 -n &> nohup.out &`
+4. run in background `npm install pm2 -g`, `pm2 start npm -- start`
+5. check pm2 logs `pm2 logs` 
+6. check pm2 process `pm2 ps` stop it `pm2 stop 0`
