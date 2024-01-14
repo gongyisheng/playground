@@ -20,6 +20,28 @@ ref: https://droidyue.com/blog/2020/05/01/set-dns-server-on-reaspberry-pi/
 connect with ssh:  
 `ssh pi@<ip>`  
 
+# firewall
+install ufw:  
+`sudo apt-get install ufw`  
+set inbound rules:  
+`sudo ufw allow 22/tcp`  
+`sudo ufw allow 80/tcp`  
+`sudo ufw allow 443/tcp`  
+`sudo ufw allow 8000/tcp`  
+`sudo ufw allow 10000:11000/tcp` (allow by port range)  
+`sudo ufw allow from 192.168.0.1` (allow by ip)  
+delete rules:  
+`sudo ufw delete allow 8000`  
+`sudo ufw delete allow 10000:11000/tcp`  
+`sudo ufw delete allow from 192.168.0.1`
+enable firewall  
+`sudo ufw enable`  
+disable firewall  
+`sudo ufw disable`  
+show status  
+`sudo ufw status`  
+ref: https://121rh.com/pc/raspberry/ufw/
+
 # setup DuckDNS for dynamic DNS
 start cron:  
 `sudo service cron start`  
