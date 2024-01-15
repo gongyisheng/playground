@@ -8,14 +8,14 @@
 
 # setup swap
 flush existing swap  
-`swapoff -a`  
+`sudo swapoff -a`  
 add new swap files (bs=size per file, count=file count, bs*count=swap size)  
-`dd if=/dev/zero of=/var/swap bs=4M count=1024`  
+`sudo dd if=/dev/zero of=/var/swap bs=4M count=1024`  
 initalize(format) swap files  
-`mkswap /var/swap`  
+`sudo mkswap /var/swap`  
 turn on swap  
-`swapon /var/swap`  
-edit /etc/fstab  
+`sudo swapon /var/swap`  
+edit `/etc/fstab` file, start swap after boot  
 `/var/swap swap swap defaults 0 0`  
 
 # disk info
