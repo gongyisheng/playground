@@ -12,11 +12,7 @@ import tornado.web
 OPENAI_CLIENT = OpenAI()
 MESSAGE_STORAGE = {}
 
-MODELS = None
-MODELS_FETCH_TIME = 0
-
-PROMPTS = None
-PROMPTS_FETCH_TIME = 0
+MODELS = ['gpt-3.5-turbo-1106','gpt-4-1106-preview']
 
 # sqlite3 connection
 # dev: test.db
@@ -75,7 +71,21 @@ def create_table():
     )
     DB_CONN.commit()
 
-def insert_chat_history(uuid: str, model: str, full_context: list):
+def get_chat_history(uuid: str):
+    cursor = DB_CONN.cursor()
+    cursor.execute(
+        '''
+        SELECT full_context FROM chat_history WHERE uuid = ?
+        ''',
+        (uuid,)
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    else:
+        return json.loads(row[0])
+
+def save_chat_history(uuid: str, model: str, full_context: list):
     cursor = DB_CONN.cursor()
     system_message = full_context[0]['content']
     system_message_hash = md5(system_message.encode('utf-8')).hexdigest()
@@ -84,9 +94,10 @@ def insert_chat_history(uuid: str, model: str, full_context: list):
     cursor.execute(
         '''
         INSERT INTO chat_history (uuid, model, system_message, system_message_hash, full_context, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?) 
+        ON CONFLICT(uuid) DO UPDATE SET full_context = ?
         ''',
-        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time()))
+        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time()), json.dumps(full_context))
     )
     DB_CONN.commit()
 
@@ -107,24 +118,21 @@ def delete_prompt(name: str, version: str):
     pass
 
 def get_all_prompts():
-    global PROMPTS, PROMPTS_FETCH_TIME
-    if PROMPTS is None or time.time() - PROMPTS_FETCH_TIME > 60:
-        cursor = DB_CONN.cursor()
-        cursor.execute(
-            '''
-            SELECT name, version, system_message FROM saved_prompt
-            '''
-        )
-        rows = cursor.fetchall()
-        PROMPTS = {}
-        for row in rows:
-            name, version, system_message = row
-            PROMPTS[f"{name}:{version}"] = {
-                "name": name,
-                "version": version,
-                "systemMessage": system_message
-            }
-        PROMPTS_FETCH_TIME = time.time()
+    cursor = DB_CONN.cursor()
+    cursor.execute(
+        '''
+        SELECT name, version, system_message FROM saved_prompt
+        '''
+    )
+    rows = cursor.fetchall()
+    PROMPTS = {}
+    for row in rows:
+        name, version, system_message = row
+        PROMPTS[f"{name}:{version}"] = {
+            "name": name,
+            "version": version,
+            "systemMessage": system_message
+        }
     return PROMPTS
 
 
@@ -137,7 +145,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_header("Access-Control-Allow-Headers", "*")
         
         # Allow specific methods
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
     
     def options(self):
         # Handle preflight OPTIONS requests
@@ -157,6 +165,32 @@ class ChatHandler(BaseHandler):
         ]
 
         print(f"Receive post request, uuid: {request_uuid}")
+        self.set_status(200)
+        self.write({"uuid": request_uuid})
+        self.finish()
+    
+    def put(self):
+        # get message from request body
+        body = json.loads(self.request.body)
+        request_uuid = body.get("uuid", None)
+        user_message = body.get("userMessage", None)
+        if request_uuid is None or user_message is None:
+            self.set_status(400)
+            self.finish()
+            return
+
+        try:
+            MESSAGE_STORAGE[request_uuid] = get_chat_history(request_uuid)
+        except Exception as e:
+            print("get chat history error: ", e)
+            self.set_status(500)
+            self.finish()
+            return
+
+        MESSAGE_STORAGE[request_uuid].append(
+            {"role": "user", "content": user_message}
+        )
+        print(f"Receive put request, uuid: {request_uuid}")
         self.set_status(200)
         self.write({"uuid": request_uuid})
         self.finish()
@@ -197,22 +231,12 @@ class ChatHandler(BaseHandler):
         full_context.append(
             {"role": "assistant", "content": assistant_message}
         )
-        insert_chat_history(request_uuid, model, full_context)
+        save_chat_history(request_uuid, model, full_context)
         del MESSAGE_STORAGE[request_uuid]
         self.finish()
 
 class ListModelsHandler(BaseHandler):
     def get(self):
-        global MODELS, MODELS_FETCH_TIME
-        if MODELS is None or time.time() - MODELS_FETCH_TIME > 3600:
-            MODELS = []
-            for model in OPENAI_CLIENT.models.list():
-                model_id = str(model.id)
-                if model_id.startswith(("gpt-3.5", "gpt-4")):
-                    MODELS.append(model_id)
-            MODELS = sorted(MODELS)
-            MODELS_FETCH_TIME = time.time()
-
         self.set_status(200)
         self.write({"models": MODELS})
         self.finish()
