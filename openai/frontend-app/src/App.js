@@ -88,23 +88,25 @@ function App() {
 
   // Handle button click
   async function handleSubmit() {
-    setConversation(conversation.concat({ "role": "user", "content": userMessage }));
+    setConversation(
+      conversation.concat({ role: "user", content: userMessage }),
+    );
     try {
       var response = undefined;
       if (uuid === "") {
-        console.log("POST message")
-      response = await fetch(ENDPOINT_CHAT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          systemMessage: systemMessage,
-          userMessage: userMessage,
-        }),
-      });
+        console.log("POST message");
+        response = await fetch(ENDPOINT_CHAT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            systemMessage: systemMessage,
+            userMessage: userMessage,
+          }),
+        });
       } else {
-        console.log("PUT message")
+        console.log("PUT message");
         response = await fetch(ENDPOINT_CHAT, {
           method: "PUT",
           headers: {
@@ -152,7 +154,7 @@ function App() {
         alert("Save prompt failed");
       }
     } catch (error) {
-      alert("Save prompt failed")
+      alert("Save prompt failed");
       console.error("error save prompt", error);
     }
   }
@@ -183,7 +185,9 @@ function App() {
       const response = await fetch(ENDPOINT_PROMPT, {
         method: "GET",
       });
-      const reservedPrompts = await response.json().then((data) => data.prompts);
+      const reservedPrompts = await response
+        .json()
+        .then((data) => data.prompts);
       setReservedPrompts(reservedPrompts);
     } catch (error) {
       console.error("error fetching reserved prompts:", error);
@@ -216,7 +220,9 @@ function App() {
 
     sse.onerror = (event) => {
       sse.close();
-      setConversation(conversation.concat({ "role": "assistant", "content": assistantMessage }));
+      setConversation(
+        conversation.concat({ role: "assistant", content: assistantMessage }),
+      );
       setSSEData("");
     };
 
@@ -235,50 +241,52 @@ function App() {
           <Grid item xs={8}>
             <Item sx={{ minHeight: "80vh" }}>
               <div>
-                <h2>Conversation</h2>              
+                <h2>Conversation</h2>
                 <div>
                   <Box sx={{ marginBottom: 1 }}>
                     <span style={{ color: "green" }}>System: </span>
                     {systemMessage}
                   </Box>
                   {conversation.map((item, index) => (
-                  <Box key={index} sx={{ marginBottom: 1 }}>
-                    <span style={{ color: item.role === "user" ? "blue" : "red" }}>
-                      {item.role === "user" ? "User: " : "ChatGPT: "}
-                    </span>
-                    {item.content}
-                  </Box>
-                ))}
+                    <Box key={index} sx={{ marginBottom: 1 }}>
+                      <span
+                        style={{ color: item.role === "user" ? "blue" : "red" }}
+                      >
+                        {item.role === "user" ? "User: " : "ChatGPT: "}
+                      </span>
+                      {item.content}
+                    </Box>
+                  ))}
                   <Box sx={{ marginBottom: 1 }}>
                     <span style={{ color: "red" }}>ChatGPT: </span>
                     {sseData}
                   </Box>
-                  </div>
+                </div>
                 <Grid item xs>
-                <TextField
-                  id="user-input"
+                  <TextField
+                    id="user-input"
                     label="User Input"
-                  fullWidth
-                  multiline
-                  maxRows={5}
-                  value={userMessage}
-                  placeholder="Message ChatGPT..."
-                  onChange={handleUserMessageChange}
-                  sx={{ marginTop: 2, position: "relative", bottom: 0 }}
+                    fullWidth
+                    multiline
+                    maxRows={5}
+                    value={userMessage}
+                    placeholder="Message ChatGPT..."
+                    onChange={handleUserMessageChange}
+                    sx={{ marginTop: 2, position: "relative", bottom: 0 }}
                   />
                 </Grid>
                 <Grid item xs={2}>
-                <Button
-                  id="submit-button"
-                  variant="contained"
-                  onClick={handleSubmit}
-                  sx={{ marginTop: 2 }}
-                >
-                  Submit
-                </Button>
+                  <Button
+                    id="submit-button"
+                    variant="contained"
+                    onClick={handleSubmit}
+                    sx={{ marginTop: 2 }}
+                  >
+                    Submit
+                  </Button>
                 </Grid>
               </div>
-              </Item>
+            </Item>
           </Grid>
           <Grid item xs={4}>
             <Item sx={{ minHeight: "80vh" }}>
@@ -295,7 +303,9 @@ function App() {
                   sx={{ marginTop: 1 }}
                 >
                   {supportedModels.map((model) => (
-                    <MenuItem key={model} value={model}>{model}</MenuItem>
+                    <MenuItem key={model} value={model}>
+                      {model}
+                    </MenuItem>
                   ))}
                 </TextField>
                 <TextField
@@ -309,7 +319,9 @@ function App() {
                 >
                   <MenuItem value={"Empty"}>{"Empty"}</MenuItem>
                   {Object.keys(reservedPrompts).map((key) => (
-                    <MenuItem key={key} value={key}>{key}</MenuItem>
+                    <MenuItem key={key} value={key}>
+                      {key}
+                    </MenuItem>
                   ))}
                 </TextField>
               </div>
