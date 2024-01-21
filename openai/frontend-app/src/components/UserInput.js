@@ -40,7 +40,7 @@ function UserInput({ onContextChange, onSubmit }) {
           ref={textAreaRef}
         />
         <button
-          className="rounded-md"
+          className="px-2"
           onClick={handleSubmit}
         >
           <img src="./static/up-arrow.png" className="max-w-8 max-h-8" />
