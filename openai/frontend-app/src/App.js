@@ -27,16 +27,13 @@ function App() {
       role: role,
       content: content,
     });
-    console.log("append to conversation:", conversation);
   };
 
   const handleSSEMessageUpdate = (token) => {
-    console.log("get sse token:", token);
     setSSEData((prev) => prev + token);
   };
 
   async function sendChatRequest() {
-    console.log("send chat request:", conversation);
     const response = await fetch(ENDPOINT_CHAT, {
       method: "POST",
       headers: {
@@ -66,8 +63,6 @@ function App() {
   useEffect(() => {
     if (!SSEStatus || conversation.length === 0) {
       return;
-    } else {
-      console.log("SSEStatus:", SSEStatus);
     }
     const sse = new EventSource(
       `${ENDPOINT_CHAT}?thread_id=${threadId}&model=${model}`,
@@ -91,7 +86,6 @@ function App() {
   useEffect(() => {
     if (!SSEStatus) {
       if (conversation.length > 0 && conversation[conversation.length - 1].role === "user") {
-        console.log("Flush SSEData to conversation");
         appendToConversation("assistant", SSEData);
         setSSEData("");
       }
