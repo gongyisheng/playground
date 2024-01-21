@@ -16,7 +16,7 @@ const displayedRole = {
 
 function renderConversation(conversation) {
   return (
-    <div>
+    <div className="whitespace-break-spaces break-words hyphens-auto">
       {conversation.map((item, index) => (
         <div key={index} className="py-2 pb-4">
           <div className="flex items-center pb-2">
@@ -38,7 +38,7 @@ function renderSSEData(SSEData) {
     return "";
   } else {
     return (
-      <div>
+      <div className="whitespace-break-spaces break-words hyphens-auto">
         <div className="py-2 pb-4">
           <div className="flex items-center pb-2">
             <img

@@ -85,7 +85,10 @@ function App() {
   // Flush SSEData to conversation
   useEffect(() => {
     if (!SSEStatus) {
-      if (conversation.length > 0 && conversation[conversation.length - 1].role === "user") {
+      if (
+        conversation.length > 0 &&
+        conversation[conversation.length - 1].role === "user"
+      ) {
         appendToConversation("assistant", SSEData);
         setSSEData("");
       }
@@ -106,16 +109,20 @@ function App() {
   };
 
   return (
-    <div className="px-8">
-      <div>
-        <ChatDisplay conversation={conversation} SSEData={SSEData} />
+    <div className="grid grid-cols-12 h-screen">
+      <div className="col-span-2"></div>
+      <div className="col-span-8 flex flex-col px-8">
+        <div className="grow">
+          <ChatDisplay conversation={conversation} SSEData={SSEData} />
+        </div>
+        <div className="">
+          <UserInput
+            onContextChange={handleUserInputChange}
+            onSubmit={handleUserMessageSubmit}
+          />
+        </div>
       </div>
-      <div>
-        <UserInput
-          onContextChange={handleUserInputChange}
-          onSubmit={handleUserMessageSubmit}
-        />
-      </div>
+      <div className="col-span-2"></div>
     </div>
   );
 }
