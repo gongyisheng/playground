@@ -23,7 +23,8 @@ function UserInput({ onContextChange, onSubmit }) {
 
   useEffect(() => {
     textAreaRef.current.style.height = "auto"; // reset the height
-    textAreaRef.current.style.height = Math.min(textAreaRef.current.scrollHeight, 200) + "px"; // set the height
+    textAreaRef.current.style.height =
+      Math.min(textAreaRef.current.scrollHeight, 200) + "px"; // set the height
   }, [input]);
 
   return (
@@ -39,10 +40,7 @@ function UserInput({ onContextChange, onSubmit }) {
           onKeyDown={handleKeyDown}
           ref={textAreaRef}
         />
-        <button
-          className="px-2"
-          onClick={handleSubmit}
-        >
+        <button className="px-2" onClick={handleSubmit}>
           <img src="./static/up-arrow.png" className="max-w-8 max-h-8" />
         </button>
       </div>
