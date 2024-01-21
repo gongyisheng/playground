@@ -22,7 +22,7 @@ function UserInput({ onContextChange, onSubmit }) {
           value={input}
           onChange={handleChange}
           placeholder="Message ChatGPT..."
-          className="pl-4 pr-12 py-2 rounded-md border-solid focus:ring-0 focus:outline-none focus:border-current w-full"
+          className="pl-4 pr-12 py-2 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full"
         />
         <img
           src="./static/up-arrow.png"
