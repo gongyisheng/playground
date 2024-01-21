@@ -12,17 +12,22 @@ import tornado.web
 OPENAI_CLIENT = OpenAI()
 MESSAGE_STORAGE = {}
 
-MODELS = ['gpt-3.5-turbo-1106','gpt-4-1106-preview']
+MODEL_MAPPING = {
+    "gpt-3.5": "gpt-3.5-turbo-1106",
+    "gpt-4": "gpt-4-1106-preview",
+}
 
 # sqlite3 connection
 # dev: test.db
 # personal prompt engineering: prompt.db
 # yipit: yipit.db
 DB_CONN = None
+
+
 def create_table():
     cursor = DB_CONN.cursor()
     cursor.execute(
-        '''
+        """
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             uuid VARCHAR(255) UNIQUE,
@@ -32,21 +37,21 @@ def create_table():
             full_context TEXT,
             timestamp INTEGER
         );
-        '''
+        """
     )
     cursor.execute(
-        '''
+        """
         CREATE INDEX IF NOT EXISTS idx_uuid ON chat_history (uuid);
-        '''
+        """
     )
     cursor.execute(
-        '''
+        """
         CREATE INDEX IF NOT EXISTS idx_system_message_hash ON chat_history (system_message_hash);
-        '''
+        """
     )
     DB_CONN.commit()
     cursor.execute(
-        '''
+        """
         CREATE TABLE IF NOT EXISTS saved_prompt (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name VARCHAR(255),
@@ -57,27 +62,28 @@ def create_table():
 
             UNIQUE(name, version)
         );
-        '''
+        """
     )
     cursor.execute(
-        '''
+        """
         CREATE INDEX IF NOT EXISTS idx_name ON saved_prompt (name);
-        '''
+        """
     )
     cursor.execute(
-        '''
+        """
         CREATE INDEX IF NOT EXISTS idx_system_message_hash ON saved_prompt (system_message_hash);
-        '''
+        """
     )
     DB_CONN.commit()
+
 
 def get_chat_history(uuid: str):
     cursor = DB_CONN.cursor()
     cursor.execute(
-        '''
+        """
         SELECT full_context FROM chat_history WHERE uuid = ?
-        ''',
-        (uuid,)
+        """,
+        (uuid,),
     )
     row = cursor.fetchone()
     if row is None:
@@ -85,44 +91,56 @@ def get_chat_history(uuid: str):
     else:
         return json.loads(row[0])
 
+
 def save_chat_history(uuid: str, model: str, full_context: list):
     cursor = DB_CONN.cursor()
-    system_message = full_context[0]['content']
-    system_message_hash = md5(system_message.encode('utf-8')).hexdigest()
+    system_message = full_context[0]["content"]
+    system_message_hash = md5(system_message.encode("utf-8")).hexdigest()
 
     # insert chat history
     cursor.execute(
-        '''
+        """
         INSERT INTO chat_history (uuid, model, system_message, system_message_hash, full_context, timestamp)
         VALUES (?, ?, ?, ?, ?, ?) 
         ON CONFLICT(uuid) DO UPDATE SET full_context = ?
-        ''',
-        (uuid, model, system_message, system_message_hash, json.dumps(full_context), int(time.time()), json.dumps(full_context))
+        """,
+        (
+            uuid,
+            model,
+            system_message,
+            system_message_hash,
+            json.dumps(full_context),
+            int(time.time()),
+            json.dumps(full_context),
+        ),
     )
     DB_CONN.commit()
+
 
 def save_prompt(name: str, version: str, system_message: str):
     cursor = DB_CONN.cursor()
-    system_message_hash = md5(system_message.encode('utf-8')).hexdigest()
+    system_message_hash = md5(system_message.encode("utf-8")).hexdigest()
 
     cursor.execute(
-        '''
+        """
         INSERT INTO saved_prompt (name, version, system_message, system_message_hash, timestamp)
         VALUES (?, ?, ?, ?, ?)
-        ''',
-        (name, version, system_message, system_message_hash, int(time.time()))
+        """,
+        (name, version, system_message, system_message_hash, int(time.time())),
     )
     DB_CONN.commit()
+
 
 def delete_prompt(name: str, version: str):
     pass
 
+
 def get_all_prompts():
     cursor = DB_CONN.cursor()
     cursor.execute(
-        '''
+        """
         SELECT name, version, system_message FROM saved_prompt
-        '''
+        """
     )
     rows = cursor.fetchall()
     PROMPTS = {}
@@ -131,7 +149,7 @@ def get_all_prompts():
         PROMPTS[f"{name}:{version}"] = {
             "name": name,
             "version": version,
-            "systemMessage": system_message
+            "systemMessage": system_message,
         }
     return PROMPTS
 
@@ -140,61 +158,67 @@ class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         # Allow all origins
         self.set_header("Access-Control-Allow-Origin", "*")
-        
+
         # Allow specific headers
         self.set_header("Access-Control-Allow-Headers", "*")
-        
+
         # Allow specific methods
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
-    
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
     def options(self):
         # Handle preflight OPTIONS requests
         self.set_status(204)
         self.finish()
 
+    def build_return(self, status_code, message):
+        self.set_status(status_code)
+        self.write(message)
+        self.finish()
+        return
+
+
 class ChatHandler(BaseHandler):
+    def validate_conversation(self, conversation):
+        role = ["system", "user", "assistant"]
+        for i in range(len(conversation)):
+            item = conversation[i]
+            if "role" not in item or "content" not in item:
+                return False, "role or content is missing"
+            correct_role = role[i % 3] if i <= 2 else role[(i + 1) % 2 + 1]
+            if item["role"] != correct_role:
+                return False, "conversation role is not correct"
+            if i == len(conversation) - 1 and item["role"] != "user":
+                return False, "last conversation role is not user"
+        return True, None
+
     def post(self):
         # get message from request body
         body = json.loads(self.request.body)
-        system_message = body.get("systemMessage", "You are a helpful assistant")
-        user_message = body.get("userMessage", "Repeat after me: I'm a helpful assistant")
-        request_uuid = str(uuid.uuid4())
-        MESSAGE_STORAGE[request_uuid] = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": user_message},
-        ]
-
-        print(f"Receive post request, uuid: {request_uuid}")
-        self.set_status(200)
-        self.write({"uuid": request_uuid})
-        self.finish()
-    
-    def put(self):
-        # get message from request body
-        body = json.loads(self.request.body)
-        request_uuid = body.get("uuid", None)
-        user_message = body.get("userMessage", None)
-        if request_uuid is None or user_message is None:
-            self.set_status(400)
-            self.finish()
-            return
-
-        try:
-            MESSAGE_STORAGE[request_uuid] = get_chat_history(request_uuid)
-        except Exception as e:
-            print("get chat history error: ", e)
-            self.set_status(500)
-            self.finish()
-            return
-
-        MESSAGE_STORAGE[request_uuid].append(
-            {"role": "user", "content": user_message}
+        thread_id = body.get("thread_id", "")
+        if thread_id == "":
+            thread_id = str(uuid.uuid4())
+        conversation = body.get("conversation", [])
+        print(
+            f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
         )
-        print(f"Receive put request, uuid: {request_uuid}")
-        self.set_status(200)
-        self.write({"uuid": request_uuid})
-        self.finish()
-    
+        if len(conversation) == 0:
+            conversation.append(
+                {"role": "system", "content": "You are a helpful assistant"}
+            )
+        if len(conversation) == 1:
+            conversation.append(
+                {"role": "user", "content": "Repeat after me: I'm a helpful assistant"}
+            )
+        passed, error = self.validate_conversation(conversation)
+        if not passed:
+            self.build_return(400, {"error": error})
+        MESSAGE_STORAGE[thread_id] = conversation
+
+        print(
+            f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
+        )
+        self.build_return(200, {"thread_id": thread_id})
+
     def build_sse_message(self, data):
         body = json.dumps({"content": data})
         return f"data: {body}\n\n"
@@ -202,21 +226,28 @@ class ChatHandler(BaseHandler):
     def get(self):
         global MESSAGE_STORAGE
         # set headers for SSE to work
-        self.set_header('Content-Type', 'text/event-stream')
-        self.set_header('Cache-Control', 'no-cache')
-        self.set_header('Connection', 'keep-alive')
+        self.set_header("Content-Type", "text/event-stream")
+        self.set_header("Cache-Control", "no-cache")
+        self.set_header("Connection", "keep-alive")
 
         # get uuid from url
-        request_uuid = self.get_argument('uuid')
-        model = self.get_argument('model')
-        full_context = MESSAGE_STORAGE[request_uuid]
-        print(f"Receive get request, uuid: {request_uuid}, model: {model}")
+        thread_id = self.get_argument("thread_id")
+        model = self.get_argument("model")
+        if thread_id is None or model is None:
+            self.build_return(400, {"error": "thread_id or model is missing"})
+
+        real_model = MODEL_MAPPING.get(model.lower(), None)
+        if real_model is None:
+            self.build_return(400, {"error": "model is not supported"})
+
+        conversation = MESSAGE_STORAGE.get(thread_id)
+        if conversation is None:
+            self.build_return(400, {"error": "thread_id not found in message storage"})
+        print(f"Receive get request, uuid: {thread_id}, model: {real_model}")
 
         # create openai stream
         stream = OPENAI_CLIENT.chat.completions.create(
-            model=model,
-            messages=full_context,
-            stream=True
+            model=real_model, messages=conversation, stream=True
         )
 
         assistant_message = ""
@@ -228,18 +259,11 @@ class ChatHandler(BaseHandler):
                 self.flush()
 
         # save chat history
-        full_context.append(
-            {"role": "assistant", "content": assistant_message}
-        )
-        save_chat_history(request_uuid, model, full_context)
-        del MESSAGE_STORAGE[request_uuid]
+        conversation.append({"role": "assistant", "content": assistant_message})
+        save_chat_history(thread_id, model, conversation)
+        del MESSAGE_STORAGE[thread_id]
         self.finish()
 
-class ListModelsHandler(BaseHandler):
-    def get(self):
-        self.set_status(200)
-        self.write({"models": MODELS})
-        self.finish()
 
 class PromptHandler(BaseHandler):
     def get(self):
@@ -247,7 +271,7 @@ class PromptHandler(BaseHandler):
         self.write(json.dumps({"prompts": prompts}))
         self.set_status(200)
         self.finish()
-    
+
     def post(self):
         body = json.loads(self.request.body)
         name = body.get("name", None)
@@ -262,22 +286,23 @@ class PromptHandler(BaseHandler):
             self.set_status(200)
             self.finish()
 
-def make_app():
-    return tornado.web.Application([
-        (r'/chat', ChatHandler),
-        (r'/list_models', ListModelsHandler),
-        (r'/prompt', PromptHandler)
-    ])
 
-if __name__ == '__main__':
+def make_app():
+    return tornado.web.Application(
+        [(r"/chat", ChatHandler), (r"/prompt", PromptHandler)]
+    )
+
+
+if __name__ == "__main__":
     import sys
-    db_name = str(sys.argv[1]) if len(sys.argv) > 1 else 'test.db'
+
+    db_name = str(sys.argv[1]) if len(sys.argv) > 1 else "test.db"
 
     DB_CONN = sqlite3.connect(db_name)
     print("Connected to database: ", db_name)
-    
+
     create_table()
     app = make_app()
     app.listen(5600)
-    print('Starting Tornado server on http://localhost:5600')
+    print("Starting Tornado server on http://localhost:5600")
     tornado.ioloop.IOLoop.current().start()

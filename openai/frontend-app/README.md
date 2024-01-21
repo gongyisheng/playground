@@ -72,9 +72,10 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 ### run `npx prettier . --write` to prettify code
 
 ### Deployment
-1. build  `npm run build` 
+
+1. build `npm run build`
 2. install serve `npm install -g serve`
 3. deploy with serve `serve -s build -l 3000`
 4. run in background `npm install pm2 -g`, `pm2 start npm -- start`
-5. check pm2 logs `pm2 logs` 
+5. check pm2 logs `pm2 logs`
 6. check pm2 process `pm2 ps` stop it `pm2 stop 0`
