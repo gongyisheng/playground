@@ -2,9 +2,25 @@ import React, { useState } from "react";
 
 const saveIconSrc = "./static/save.png";
 const restoreIconSrc = "./static/restore.png";
-const promptList = ["a", "b", "c"];
+const promptData = {
+  a: {
+    name: "a",
+    prompt: "You're a helpful assistant. - version a",
+    note: "Default prompt of ChatGPT. - version a",
+  },
+  b: {
+    name: "b",
+    prompt: "You're a helpful assistant. - version b",
+    note: "Default prompt of ChatGPT. - version b",
+  },
+  c: {
+    name: "c",
+    prompt: "You're a helpful assistant. - version c",
+    note: "Default prompt of ChatGPT. - version c",
+  },
+};
 
-function PromptConsole() {
+function PromptConsole({ onRestore }) {
   // selected prompt name related
   const [selectedPromptName, setSelectedPromptName] = useState("Your prompts");
 
@@ -14,22 +30,28 @@ function PromptConsole() {
     dropdownButton.classList.add(toColor);
   };
 
-  const handleSelectedPromptNameChange = (e) => {
-    setSelectedPromptName(e.target.id);
+  const handlePromptOptionClick = (e) => {
+    let name = e.target.id;
+    setSelectedPromptName(name);
     changeButtonTextColor("text-grey-500", "text-black");
+    toggleDropdownForceHidden();
+    setName(name);
+    setPrompt(promptData[name].prompt);
+    setNote(promptData[name].note);
     //onPromptChange(e.target.value);
   };
 
   const renderPromptOptions = () => {
-    return promptList.map((promptName) => (
-      <li>
+    var entries = Object.entries(promptData);
+    return entries.map(([k, v]) => (
+      <li key={k}>
         <a
-          id={promptName}
+          id={v.name}
           href="#"
-          class="block px-4 py-2 hover:bg-gray-100"
-          onClick={handleSelectedPromptNameChange}
+          className="block px-4 py-2 hover:bg-gray-100"
+          onClick={handlePromptOptionClick}
         >
-          {promptName}
+          {v.name}
         </a>
       </li>
     ));
@@ -66,15 +88,24 @@ function PromptConsole() {
 
   const handleRestore = () => {
     setSelectedPromptName("Your prompts");
+    toggleDropdownForceHidden();
     changeButtonTextColor("text-black", "text-gray-500");
     setName("");
     setPrompt("");
     setNote("");
+    onRestore();
   };
 
   const toggleDropdown = () => {
     var dropdown = document.getElementById("dropdown");
     dropdown.classList.toggle("hidden");
+  };
+
+  const toggleDropdownForceHidden = () => {
+    var dropdown = document.getElementById("dropdown");
+    if (!dropdown.classList.contains("hidden")) {
+      dropdown.classList.add("hidden");
+    }
   };
 
   return (
@@ -83,13 +114,13 @@ function PromptConsole() {
         <button
           id="dropdownButton"
           data-dropdown-toggle="dropdown"
-          class="px-4 py-2 rounded-lg border-2 border-black text-gray-500 text-center flex items-center focus:outline-none focus:ring-0 w-full"
+          className="px-4 py-2 rounded-lg border-2 border-black text-gray-500 text-center flex items-center focus:outline-none focus:ring-0 w-full"
           type="button"
           onClick={toggleDropdown}
         >
           {selectedPromptName}
           <svg
-            class="w-2.5 h-2.5 ms-3"
+            className="w-2.5 h-2.5 ms-3"
             aria-hidden="true"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -97,17 +128,17 @@ function PromptConsole() {
           >
             <path
               stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
               d="m1 1 4 4 4-4"
             />
           </svg>
         </button>
         <div id="dropdown" className="py-1 hidden">
-          <div class="divide-y divide-black rounded-lg border-2 border-black border-dashed w-full">
+          <div className="divide-y divide-black rounded-lg border-2 border-black border-dashed w-full">
             <ul
-              class="py-2 text-sm text-black"
+              className="py-2 text-sm text-black"
               aria-labelledby="dropdownButton"
             >
               {renderPromptOptions()}

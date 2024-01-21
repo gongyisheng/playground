@@ -14,6 +14,7 @@ var userMessage = "";
 var conversation = [];
 var threadId = "";
 var model = "GPT-3.5";
+var prompts = [];
 
 function App() {
   const [SSEStatus, setSSEStatus] = useState(false);
@@ -25,6 +26,16 @@ function App() {
 
   const handleUserInputChange = (message) => {
     userMessage = message;
+  };
+
+  const handleRestore = () => {
+    setSSEStatus(false);
+    setSSEData("");
+    systemMessage = "You're a helpful assistant.";
+    userMessage = "";
+    conversation = [];
+    threadId = "";
+    prompts = [];
   };
 
   const appendToConversation = (role, content) => {
@@ -130,7 +141,7 @@ function App() {
         </div>
       </div>
       <div className="col-span-3 overflow-y-scroll">
-        <PromptConsole />
+        <PromptConsole onRestore={handleRestore} />
       </div>
     </div>
   );
