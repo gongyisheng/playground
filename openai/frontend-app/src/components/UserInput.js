@@ -15,17 +15,21 @@ function UserInput({ onContextChange, onSubmit }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-4">
-      <input
-        type="text"
-        value={input}
-        onChange={handleChange}
-        placeholder="Type your context here"
-        className="border p-2 w-full"
-      />
-      <button type="submit" className="mt-2 bg-blue-500 text-white p-2">
-        Submit
-      </button>
+    <form onSubmit={handleSubmit}>
+      <div className="flex items-center">
+        <input
+          type="text"
+          value={input}
+          onChange={handleChange}
+          placeholder="Message ChatGPT..."
+          className="pl-4 pr-12 py-2 rounded border-solid focus:outline-none focus:border-transparent w-full"
+        />
+        <img
+          src="./static/up-arrow.png"
+          className="max-w-8 max-h-8 ml-4 rounded-md"
+          onClick={handleSubmit}
+        ></img>
+      </div>
     </form>
   );
 }

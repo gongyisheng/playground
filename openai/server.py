@@ -145,7 +145,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_header("Access-Control-Allow-Headers", "*")
         
         # Allow specific methods
-        self.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+        self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     
     def options(self):
         # Handle preflight OPTIONS requests
@@ -153,46 +153,42 @@ class BaseHandler(tornado.web.RequestHandler):
         self.finish()
 
 class ChatHandler(BaseHandler):
+    def validate_conversation(self, conversation):
+        role = ["system", "user", "assistant"]
+        for i in range(len(conversation)):
+            item = conversation[i]
+            if "role" not in item or "content" not in item:
+                return False, "role or content is missing"
+            correct_role = role[i%3] if i <= 2 else role[(i+1)%2+1]
+            if item['role'] != correct_role:
+                return False, "conversation role is not correct"
+            if i == len(conversation) - 1 and item['role'] != 'user':
+                return False, "last conversation role is not user"
+        return True, None
+    
     def post(self):
         # get message from request body
         body = json.loads(self.request.body)
-        system_message = body.get("systemMessage", "You are a helpful assistant")
-        user_message = body.get("userMessage", "Repeat after me: I'm a helpful assistant")
-        request_uuid = str(uuid.uuid4())
-        MESSAGE_STORAGE[request_uuid] = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": user_message},
-        ]
-
-        print(f"Receive post request, uuid: {request_uuid}")
-        self.set_status(200)
-        self.write({"uuid": request_uuid})
-        self.finish()
-    
-    def put(self):
-        # get message from request body
-        body = json.loads(self.request.body)
-        request_uuid = body.get("uuid", None)
-        user_message = body.get("userMessage", None)
-        if request_uuid is None or user_message is None:
+        thread_id = body.get("thread_id", "")
+        if thread_id == "":
+            thread_id = str(uuid.uuid4())
+        conversation = body.get("conversation", [])
+        print(f"Receive post request, thread_id: {thread_id}, conversation: {conversation}")
+        if len(conversation) == 0:
+            conversation.append({"role": "system", "content": "You are a helpful assistant"})
+        if len(conversation) == 1:
+            conversation.append({"role": "user", "content": "Repeat after me: I'm a helpful assistant"})
+        passed, error = self.validate_conversation(conversation)
+        if not passed:
             self.set_status(400)
+            self.write({"error": error})
             self.finish()
             return
+        MESSAGE_STORAGE[thread_id] = conversation
 
-        try:
-            MESSAGE_STORAGE[request_uuid] = get_chat_history(request_uuid)
-        except Exception as e:
-            print("get chat history error: ", e)
-            self.set_status(500)
-            self.finish()
-            return
-
-        MESSAGE_STORAGE[request_uuid].append(
-            {"role": "user", "content": user_message}
-        )
-        print(f"Receive put request, uuid: {request_uuid}")
+        print(f"Receive post request, thread_id: {thread_id}, conversation: {conversation}")
         self.set_status(200)
-        self.write({"uuid": request_uuid})
+        self.write({"thread_id": thread_id})
         self.finish()
     
     def build_sse_message(self, data):
@@ -207,15 +203,15 @@ class ChatHandler(BaseHandler):
         self.set_header('Connection', 'keep-alive')
 
         # get uuid from url
-        request_uuid = self.get_argument('uuid')
+        thread_id = self.get_argument('thread_id')
         model = self.get_argument('model')
-        full_context = MESSAGE_STORAGE[request_uuid]
-        print(f"Receive get request, uuid: {request_uuid}, model: {model}")
+        conversation = MESSAGE_STORAGE[thread_id]
+        print(f"Receive get request, uuid: {thread_id}, model: {model}")
 
         # create openai stream
         stream = OPENAI_CLIENT.chat.completions.create(
             model=model,
-            messages=full_context,
+            messages=conversation,
             stream=True
         )
 
@@ -228,17 +224,11 @@ class ChatHandler(BaseHandler):
                 self.flush()
 
         # save chat history
-        full_context.append(
+        conversation.append(
             {"role": "assistant", "content": assistant_message}
         )
-        save_chat_history(request_uuid, model, full_context)
-        del MESSAGE_STORAGE[request_uuid]
-        self.finish()
-
-class ListModelsHandler(BaseHandler):
-    def get(self):
-        self.set_status(200)
-        self.write({"models": MODELS})
+        save_chat_history(thread_id, model, conversation)
+        del MESSAGE_STORAGE[thread_id]
         self.finish()
 
 class PromptHandler(BaseHandler):
@@ -265,7 +255,6 @@ class PromptHandler(BaseHandler):
 def make_app():
     return tornado.web.Application([
         (r'/chat', ChatHandler),
-        (r'/list_models', ListModelsHandler),
         (r'/prompt', PromptHandler)
     ])
 
