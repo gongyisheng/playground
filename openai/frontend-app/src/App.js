@@ -118,7 +118,7 @@ function App() {
         <Model onChange={handleModelChange} />
       </div>
       <div className="col-span-8 flex flex-col px-8">
-        <div className="grow">
+        <div className="grow pt-4">
           <ChatDisplay conversation={conversation} SSEData={SSEData} />
         </div>
         <div className="pb-4">
