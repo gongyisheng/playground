@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import UserInput from "./components/UserInput";
 import ChatDisplay from "./components/ChatDisplay";
 import Model from "./components/Model";
+import PromptConsole from "./components/PromptConsole";
 
 const BASE_URL = "http://127.0.0.1:5600";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
@@ -117,7 +118,7 @@ function App() {
       <div className="col-span-2">
         <Model onChange={handleModelChange} />
       </div>
-      <div className="col-span-8 flex flex-col px-8 overflow-y-scroll">
+      <div className="col-span-7 flex flex-col px-8 overflow-y-scroll">
         <div className="grow pt-4">
           <ChatDisplay conversation={conversation} SSEData={SSEData} />
         </div>
@@ -128,7 +129,9 @@ function App() {
           />
         </div>
       </div>
-      <div className="col-span-2"></div>
+      <div className="col-span-3 overflow-y-scroll">
+        <PromptConsole />
+      </div>
     </div>
   );
 }

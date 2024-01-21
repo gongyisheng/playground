@@ -15,7 +15,7 @@ function Model({ onChange }) {
     } else {
       return (
         baseStyle +
-        " hover:rounded-lg hover:border-4 hover:border-dotted hover:border-black"
+        " hover:rounded-lg hover:border-4 hover:border-dotted hover:border-black active:border-4 active:border-double"
       );
     }
   }
