@@ -8,7 +8,7 @@ const modelIcons = {
 function Model({ onChange }) {
   const [chosenModel, setChosenModel] = useState("GPT-3.5");
 
-  function renderModelButtonStyle(model) {
+  function renderButtonStyle(model) {
     var baseStyle = "flex items-center px-2 py-2 w-full m-1";
     if (model === chosenModel) {
       return baseStyle + " rounded-lg border-4 border-double border-black";
@@ -23,7 +23,7 @@ function Model({ onChange }) {
   function renderModelBlock(model, onClick) {
     return (
       <button
-        className={renderModelButtonStyle(model)}
+        className={renderButtonStyle(model)}
         onClick={onClick(model)}
       >
         <img
