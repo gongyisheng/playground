@@ -1,7 +1,8 @@
 // App.js
-import React, { useState, useEffect, forceUpdate } from "react";
+import React, { useState, useEffect } from "react";
 import UserInput from "./components/UserInput";
 import ChatDisplay from "./components/ChatDisplay";
+import Model from "./components/Model";
 
 const BASE_URL = "http://127.0.0.1:5600";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
@@ -11,12 +12,15 @@ var systemMessage = "You're a helpful assistant.";
 var userMessage = "";
 var conversation = [];
 var threadId = "";
-const models = ["gpt-3.5", "gpt-4"];
-var model = "gpt-3.5-turbo-1106";
+var model = "GPT-3.5";
 
 function App() {
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
+
+  const handleModelChange = (_model) => {
+    model = _model;
+  };
 
   const handleUserInputChange = (message) => {
     userMessage = message;
@@ -110,12 +114,14 @@ function App() {
 
   return (
     <div className="grid grid-cols-12 h-screen">
-      <div className="col-span-2"></div>
+      <div className="col-span-2">
+        <Model onChange={handleModelChange} />
+      </div>
       <div className="col-span-8 flex flex-col px-8">
         <div className="grow">
           <ChatDisplay conversation={conversation} SSEData={SSEData} />
         </div>
-        <div className="">
+        <div className="pb-4">
           <UserInput
             onContextChange={handleUserInputChange}
             onSubmit={handleUserMessageSubmit}
