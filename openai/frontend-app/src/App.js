@@ -113,11 +113,11 @@ function App() {
   };
 
   return (
-    <div className="grid grid-cols-12 h-screen">
+    <div className="grid grid-cols-12 h-screen max-h-screen">
       <div className="col-span-2">
         <Model onChange={handleModelChange} />
       </div>
-      <div className="col-span-8 flex flex-col px-8">
+      <div className="col-span-8 flex flex-col px-8 overflow-y-scroll">
         <div className="grow pt-4">
           <ChatDisplay conversation={conversation} SSEData={SSEData} />
         </div>
