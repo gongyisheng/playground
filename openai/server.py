@@ -239,7 +239,7 @@ class ChatHandler(BaseHandler):
 
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
-        save_chat_history(thread_id, model, conversation)
+        save_chat_history(thread_id, conversation)
         del MESSAGE_STORAGE[thread_id]
         self.finish()
 
