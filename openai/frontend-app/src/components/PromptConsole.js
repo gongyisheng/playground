@@ -2,25 +2,9 @@ import React, { useState } from "react";
 
 const saveIconSrc = "./static/save.png";
 const restoreIconSrc = "./static/restore.png";
-const promptData = {
-  a: {
-    name: "a",
-    prompt: "You're a helpful assistant. - version a",
-    note: "Default prompt of ChatGPT. - version a",
-  },
-  b: {
-    name: "b",
-    prompt: "You're a helpful assistant. - version b",
-    note: "Default prompt of ChatGPT. - version b",
-  },
-  c: {
-    name: "c",
-    prompt: "You're a helpful assistant. - version c",
-    note: "Default prompt of ChatGPT. - version c",
-  },
-};
 
 function PromptConsole({
+  myPrompts,
   onPromptNameChange,
   onPromptContentChange,
   onPromptNoteChange,
@@ -36,27 +20,27 @@ function PromptConsole({
   };
 
   const handlePromptOptionClick = (e) => {
-    let name = e.target.id;
-    setSelectedPromptName(name);
+    let promptName = e.target.id;
+    setSelectedPromptName(promptName);
     changeButtonTextColor("text-grey-500", "text-black");
     toggleDropdownForceHidden();
-    setPromptName(name);
-    setPromptContent(promptData[name].prompt);
-    setPromptNote(promptData[name].note);
+    setPromptName(promptName);
+    setPromptContent(myPrompts[promptName].promptContent);
+    setPromptNote(myPrompts[promptName].promptNote);
     //onPromptChange(e.target.value);
   };
 
   const renderPromptOptions = () => {
-    var entries = Object.entries(promptData);
+    var entries = Object.entries(myPrompts);
     return entries.map(([k, v]) => (
       <li key={k}>
         <a
-          id={v.name}
+          id={v.promptName}
           href="#"
           className="block px-4 py-2 hover:bg-gray-100"
           onClick={handlePromptOptionClick}
         >
-          {v.name}
+          {v.promptName}
         </a>
       </li>
     ));
@@ -86,7 +70,7 @@ function PromptConsole({
     onPromptNoteChange(e.target.value);
   };
 
-  // actions, save and restore
+  // actions: save and restore
   const handleSave = () => {
     // TODO
   };

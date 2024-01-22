@@ -125,9 +125,9 @@ def get_all_prompts():
     for row in rows:
         prompt_name, prompt_content, prompt_note = row
         PROMPTS[prompt_name] = {
-            "prompt_name": prompt_name,
-            "prompt_content": prompt_content,
-            "prompt_note": prompt_note,
+            "promptName": prompt_name,
+            "promptContent": prompt_content,
+            "promptNote": prompt_note,
         }
     return PROMPTS
 

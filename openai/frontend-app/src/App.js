@@ -13,7 +13,6 @@ var promptName = "";
 var promptContent = "";
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 var promptNote = "";
-var myPrompts = {};
 
 var userMessage = "";
 var conversation = [];
@@ -24,6 +23,7 @@ function App() {
   const [refreshFlag, setRefreshFlag] = useState(false);
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
+  const [myPrompts, setMyPrompts] = useState({});
 
   useEffect(
     () => async () => {
@@ -33,7 +33,7 @@ function App() {
         },
         method: "GET",
       });
-      myPrompts = await response.json();
+      setMyPrompts(await response.json());
     },
     [refreshFlag],
   );
@@ -67,7 +67,7 @@ function App() {
     setSSEStatus(false);
     setSSEData("");
     threadId = "";
-    myPrompts = {};
+    setMyPrompts({});
     setRefreshFlag(!refreshFlag);
   };
 
@@ -179,6 +179,7 @@ function App() {
       </div>
       <div className="col-span-3 overflow-y-scroll">
         <PromptConsole
+          myPrompts={myPrompts}
           onPromptNameChange={handlePromptNameChange}
           onPromptContentChange={handlePromptContentChange}
           onPromptNoteChange={handlePromptNoteChange}
