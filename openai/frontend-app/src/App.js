@@ -21,7 +21,7 @@ var model = "GPT-3.5";
 var prompts = [];
 
 function App() {
-  const [conversationRefreshFlag, setConversationRefreshFlag] = useState(false);
+  const [refreshFlag, setRefreshFlag] = useState(false);
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
 
@@ -51,11 +51,11 @@ function App() {
     promptNote = "";
     userMessage = "";
     conversation = [];
-    setConversationRefreshFlag(!conversationRefreshFlag);
     setSSEStatus(false);
     setSSEData("");
     threadId = "";
     prompts = [];
+    setRefreshFlag(!refreshFlag);
   };
 
   const appendToConversation = (role, content) => {
