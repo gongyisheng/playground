@@ -30,23 +30,12 @@ def create_table():
         """
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            uuid VARCHAR(255) UNIQUE,
-            model VARCHAR(255),
-            system_message TEXT,
-            system_message_hash VARCHAR(32),
-            full_context TEXT,
-            timestamp INTEGER
+            thread_id VARCHAR(255) UNIQUE,
+            conversation TEXT,
+            timestamp INTEGER,
+
+            UNIQUE(thread_id)
         );
-        """
-    )
-    cursor.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_uuid ON chat_history (uuid);
-        """
-    )
-    cursor.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_system_message_hash ON chat_history (system_message_hash);
         """
     )
     DB_CONN.commit()
@@ -54,36 +43,30 @@ def create_table():
         """
         CREATE TABLE IF NOT EXISTS saved_prompt (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(255),
-            version VARCHAR(255),
-            system_message TEXT,
-            system_message_hash VARCHAR(32) UNIQUE,
+            prompt_name VARCHAR(255),
+            prompt_content TEXT,
+            prompt_note TEXT,
             timestamp INTEGER,
 
-            UNIQUE(name, version)
+            UNIQUE(prompt_name)
         );
         """
     )
     cursor.execute(
         """
-        CREATE INDEX IF NOT EXISTS idx_name ON saved_prompt (name);
-        """
-    )
-    cursor.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_system_message_hash ON saved_prompt (system_message_hash);
+        CREATE INDEX IF NOT EXISTS idx_name ON saved_prompt (prompt_name);
         """
     )
     DB_CONN.commit()
 
 
-def get_chat_history(uuid: str):
+def get_chat_history(thread_id: str):
     cursor = DB_CONN.cursor()
     cursor.execute(
         """
-        SELECT full_context FROM chat_history WHERE uuid = ?
+        SELECT conversation FROM chat_history WHERE thread_id = ?
         """,
-        (uuid,),
+        (thread_id,),
     )
     row = cursor.fetchone()
     if row is None:
@@ -92,46 +75,41 @@ def get_chat_history(uuid: str):
         return json.loads(row[0])
 
 
-def save_chat_history(uuid: str, model: str, full_context: list):
+def save_chat_history(thread_id: str, conversation: list):
     cursor = DB_CONN.cursor()
-    system_message = full_context[0]["content"]
-    system_message_hash = md5(system_message.encode("utf-8")).hexdigest()
 
     # insert chat history
     cursor.execute(
         """
-        INSERT INTO chat_history (uuid, model, system_message, system_message_hash, full_context, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?) 
-        ON CONFLICT(uuid) DO UPDATE SET full_context = ?
+        INSERT INTO chat_history (thread_id, conversation, timestamp)
+        VALUES (?, ?, ?) 
+        ON CONFLICT(thread_id) DO UPDATE SET conversation = ?
         """,
         (
-            uuid,
-            model,
-            system_message,
-            system_message_hash,
-            json.dumps(full_context),
+            thread_id,
+            json.dumps(conversation),
             int(time.time()),
-            json.dumps(full_context),
+            json.dumps(conversation),
         ),
     )
     DB_CONN.commit()
 
 
-def save_prompt(name: str, version: str, system_message: str):
+def save_prompt(prompt_name: str, prompt_content: str, prompt_note: str):
     cursor = DB_CONN.cursor()
-    system_message_hash = md5(system_message.encode("utf-8")).hexdigest()
 
     cursor.execute(
         """
-        INSERT INTO saved_prompt (name, version, system_message, system_message_hash, timestamp)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO saved_prompt (prompt_name, prompt_content, prompt_note, timestamp)
+        VALUES (?, ?, ?, ?) 
+        ON CONFLICT(prompt_name) DO UPDATE SET prompt_content = ?, timestamp = ?
         """,
-        (name, version, system_message, system_message_hash, int(time.time())),
+        (prompt_name, prompt_content, prompt_note, int(time.time()), prompt_content, int(time.time())),
     )
     DB_CONN.commit()
 
 
-def delete_prompt(name: str, version: str):
+def delete_prompt(prompt_name: str):
     pass
 
 
@@ -139,17 +117,17 @@ def get_all_prompts():
     cursor = DB_CONN.cursor()
     cursor.execute(
         """
-        SELECT name, version, system_message FROM saved_prompt
+        SELECT prompt_name, prompt_content, prompt_note FROM saved_prompt
         """
     )
     rows = cursor.fetchall()
     PROMPTS = {}
     for row in rows:
-        name, version, system_message = row
-        PROMPTS[f"{name}:{version}"] = {
-            "name": name,
-            "version": version,
-            "systemMessage": system_message,
+        prompt_name, prompt_content, prompt_note = row
+        PROMPTS[prompt_name] = {
+            "promptName": prompt_name,
+            "promptContent": prompt_content,
+            "promptNote": prompt_note,
         }
     return PROMPTS
 
@@ -170,9 +148,10 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_status(204)
         self.finish()
 
-    def build_return(self, status_code, message):
+    def build_return(self, status_code, message=None):
         self.set_status(status_code)
-        self.write(message)
+        if message is not None:
+            self.write(message)
         self.finish()
         return
 
@@ -260,31 +239,30 @@ class ChatHandler(BaseHandler):
 
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
-        save_chat_history(thread_id, model, conversation)
+        save_chat_history(thread_id, conversation)
         del MESSAGE_STORAGE[thread_id]
         self.finish()
 
 
 class PromptHandler(BaseHandler):
     def get(self):
-        prompts = get_all_prompts()
-        self.write(json.dumps({"prompts": prompts}))
+        print("Receive get request for prompts")
+        my_prompts = get_all_prompts()
+        self.write(json.dumps(my_prompts))
         self.set_status(200)
         self.finish()
 
     def post(self):
         body = json.loads(self.request.body)
-        name = body.get("name", None)
-        version = body.get("version", None)
-        system_message = body.get("systemMessage", None)
-        if name is None or system_message is None:
-            self.set_status(400)
-            self.finish()
+        promptName = body.get("promptName", None)
+        promptContent = body.get("promptContent", None)
+        promptNote = body.get("promptNote", "")
+        if not promptName or not promptContent:
+            self.build_return(400, {"error": "promptName or promptContent is empty or not provided"})
         else:
-            print(f"Save prompt, name: {name}, version: {version}")
-            save_prompt(name, version, system_message)
-            self.set_status(200)
-            self.finish()
+            save_prompt(promptName, promptContent, promptNote)
+            print(f"Save prompt, name: {promptName}, content: {promptContent}")
+            self.build_return(200)
 
 
 def make_app():

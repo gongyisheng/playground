@@ -9,15 +9,34 @@ const BASE_URL = "http://127.0.0.1:5600";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
 const ENDPOINT_PROMPT = BASE_URL + "/prompt";
 
-var systemMessage = "You're a helpful assistant.";
+const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
+
 var userMessage = "";
 var conversation = [];
 var threadId = "";
 var model = "GPT-3.5";
 
 function App() {
+  const [promptName, setPromptName] = useState("");
+  const [promptContent, setPromptContent] = useState("");
+  const [promptNote, setPromptNote] = useState("");
+  const [refreshFlag, setRefreshFlag] = useState(false);
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
+  const [myPrompts, setMyPrompts] = useState({});
+
+  useEffect(
+    () => async () => {
+      const response = await fetch(ENDPOINT_PROMPT, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "GET",
+      });
+      setMyPrompts(await response.json());
+    },
+    [refreshFlag],
+  );
 
   const handleModelChange = (_model) => {
     model = _model;
@@ -25,6 +44,51 @@ function App() {
 
   const handleUserInputChange = (message) => {
     userMessage = message;
+  };
+
+  const handlePromptNameChange = (name) => {
+    setPromptName(name);
+  };
+
+  const handlePromptContentChange = (content) => {
+    setPromptContent(content);
+  };
+
+  const handlePromptNoteChange = (note) => {
+    setPromptNote(note);
+  };
+
+  const handleRestore = () => {
+    setPromptName("");
+    setPromptContent("");
+    setPromptNote("");
+    userMessage = "";
+    conversation = [];
+    setSSEStatus(false);
+    setSSEData("");
+    threadId = "";
+    setMyPrompts({});
+    setRefreshFlag(!refreshFlag);
+  };
+
+  const handleSave = async () => {
+    const response = await fetch(ENDPOINT_PROMPT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        promptName: promptName,
+        promptContent: promptContent,
+        promptNote: promptNote,
+      }),
+    });
+    const status = response.status;
+    if (status === 200) {
+      alert("Save prompt success.");
+    } else {
+      alert("Save prompt failed.");
+    }
   };
 
   const appendToConversation = (role, content) => {
@@ -105,7 +169,11 @@ function App() {
     if (userMessage === "") return;
     // appened system message to chat display
     if (conversation.length === 0) {
-      appendToConversation("system", systemMessage);
+      if (promptContent === "") {
+        appendToConversation("system", DEFAULT_PROMPT_CONTENT);
+      } else {
+        appendToConversation("system", promptContent);
+      }
     }
     // append user message to chat display
     appendToConversation("user", userMessage);
@@ -130,7 +198,14 @@ function App() {
         </div>
       </div>
       <div className="col-span-3 overflow-y-scroll">
-        <PromptConsole />
+        <PromptConsole
+          myPrompts={myPrompts}
+          onPromptNameChange={handlePromptNameChange}
+          onPromptContentChange={handlePromptContentChange}
+          onPromptNoteChange={handlePromptNoteChange}
+          onSave={handleSave}
+          onRestore={handleRestore}
+        />
       </div>
     </div>
   );

@@ -22,10 +22,7 @@ function Model({ onChange }) {
 
   function renderModelBlock(model, onClick) {
     return (
-      <button
-        className={renderButtonStyle(model)}
-        onClick={onClick(model)}
-      >
+      <button className={renderButtonStyle(model)} onClick={onClick(model)}>
         <img
           src={modelIcons[model]}
           className="max-w-12 max-h-12"

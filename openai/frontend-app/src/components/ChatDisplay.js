@@ -14,47 +14,47 @@ const displayedRole = {
   assistant: "ChatGPT",
 };
 
-function renderConversation(conversation) {
-  return (
-    <div className="whitespace-break-spaces break-words hyphens-auto">
-      {conversation.map((item, index) => (
-        <div key={index} className="py-2 pb-4">
-          <div className="flex items-center pb-2">
-            <img
-              src={iconSrc[item.role]}
-              className="max-w-12 max-h-12 mr-2 font-bold"
-            />
-            <span>{displayedRole[item.role]}</span>
-          </div>
-          <div className="px-14">{item.content}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function renderSSEData(SSEData) {
-  if (SSEData === "") {
-    return "";
-  } else {
+function ChatDisplay({ conversation, SSEData }) {
+  function renderConversation(conversation) {
     return (
       <div className="whitespace-break-spaces break-words hyphens-auto">
-        <div className="py-2 pb-4">
-          <div className="flex items-center pb-2">
-            <img
-              src={iconSrc["assistant"]}
-              className="max-w-12 max-h-12 mr-2 font-bold"
-            />
-            <span>{displayedRole["assistant"]}</span>
+        {conversation.map((item, index) => (
+          <div key={index} className="py-2 pb-4">
+            <div className="flex items-center pb-2">
+              <img
+                src={iconSrc[item.role]}
+                className="max-w-12 max-h-12 mr-2 font-bold"
+              />
+              <span>{displayedRole[item.role]}</span>
+            </div>
+            <div className="px-14">{item.content}</div>
           </div>
-          <div className="px-14">{SSEData}</div>
-        </div>
+        ))}
       </div>
     );
   }
-}
 
-function ChatDisplay({ conversation, SSEData }) {
+  function renderSSEData(SSEData) {
+    if (SSEData === "") {
+      return "";
+    } else {
+      return (
+        <div className="whitespace-break-spaces break-words hyphens-auto">
+          <div className="py-2 pb-4">
+            <div className="flex items-center pb-2">
+              <img
+                src={iconSrc["assistant"]}
+                className="max-w-12 max-h-12 mr-2 font-bold"
+              />
+              <span>{displayedRole["assistant"]}</span>
+            </div>
+            <div className="px-14">{SSEData}</div>
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div>
       {renderConversation(conversation)}
