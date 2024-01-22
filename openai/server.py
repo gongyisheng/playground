@@ -1,6 +1,6 @@
 # server for customized chatbot
-from hashlib import md5
 import json
+import os
 import uuid
 import sqlite3
 import time
@@ -21,11 +21,13 @@ MODEL_MAPPING = {
 # dev: test.db
 # personal prompt engineering: prompt.db
 # yipit: yipit.db
-DB_CONN = None
+APP_DATA_DB_CONN = None
+USER_KEY_DB_CONN = None
 
 
 def create_table():
-    cursor = DB_CONN.cursor()
+    # app data database
+    cursor = APP_DATA_DB_CONN.cursor()
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS chat_history (
@@ -38,7 +40,7 @@ def create_table():
         );
         """
     )
-    DB_CONN.commit()
+    APP_DATA_DB_CONN.commit()
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS saved_prompt (
@@ -57,11 +59,27 @@ def create_table():
         CREATE INDEX IF NOT EXISTS idx_name ON saved_prompt (prompt_name);
         """
     )
-    DB_CONN.commit()
+    APP_DATA_DB_CONN.commit()
+
+    # user key database
+    cursor = USER_KEY_DB_CONN.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_key (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username VARCHAR(255) UNIQUE,
+            password_hash VARCHAR(255),
+            timestamp INTEGER,
+
+            UNIQUE(username)
+        );
+        """
+    )
+    USER_KEY_DB_CONN.commit()
 
 
 def get_chat_history(thread_id: str):
-    cursor = DB_CONN.cursor()
+    cursor = APP_DATA_DB_CONN.cursor()
     cursor.execute(
         """
         SELECT conversation FROM chat_history WHERE thread_id = ?
@@ -76,7 +94,7 @@ def get_chat_history(thread_id: str):
 
 
 def save_chat_history(thread_id: str, conversation: list):
-    cursor = DB_CONN.cursor()
+    cursor = APP_DATA_DB_CONN.cursor()
 
     # insert chat history
     cursor.execute(
@@ -92,11 +110,11 @@ def save_chat_history(thread_id: str, conversation: list):
             json.dumps(conversation),
         ),
     )
-    DB_CONN.commit()
+    APP_DATA_DB_CONN.commit()
 
 
 def save_prompt(prompt_name: str, prompt_content: str, prompt_note: str):
-    cursor = DB_CONN.cursor()
+    cursor = APP_DATA_DB_CONN.cursor()
 
     cursor.execute(
         """
@@ -106,7 +124,7 @@ def save_prompt(prompt_name: str, prompt_content: str, prompt_note: str):
         """,
         (prompt_name, prompt_content, prompt_note, int(time.time()), prompt_content, int(time.time())),
     )
-    DB_CONN.commit()
+    APP_DATA_DB_CONN.commit()
 
 
 def delete_prompt(prompt_name: str):
@@ -114,7 +132,7 @@ def delete_prompt(prompt_name: str):
 
 
 def get_all_prompts():
-    cursor = DB_CONN.cursor()
+    cursor = APP_DATA_DB_CONN.cursor()
     cursor.execute(
         """
         SELECT prompt_name, prompt_content, prompt_note FROM saved_prompt
@@ -130,6 +148,35 @@ def get_all_prompts():
             "promptNote": prompt_note,
         }
     return PROMPTS
+
+def insert_user(username: str, password_hash: str):
+    cursor = USER_KEY_DB_CONN.cursor()
+    cursor.execute(
+        """
+        INSERT INTO user_key (username, password_hash)
+        VALUES (?, ?)
+        """,
+        (username, password_hash),
+    )
+    USER_KEY_DB_CONN.commit()
+
+def get_user(username: str):
+    cursor = USER_KEY_DB_CONN.cursor()
+    cursor.execute(
+        """
+        SELECT username, password_hash FROM user_key WHERE username = ?
+        """,
+        (username,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    else:
+        return {
+            "username": row[0],
+            "password_hash": row[1]
+        }
+    
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -265,9 +312,55 @@ class PromptHandler(BaseHandler):
             self.build_return(200)
 
 
+class SignUpHandler(BaseHandler):
+    def validate_passphrase(self, passphrase_hash):
+        correct_passphrase_hash = os.environ.get("PASSPHRASE_HASH", None)
+        if not correct_passphrase_hash:
+            print("PASSPHRASE_HASH is not set")
+            return False
+        return passphrase_hash == correct_passphrase_hash
+    
+    def post(self):
+        body = json.loads(self.request.body)
+        username = body.get("username")
+        password_hash = body.get("password_hash")
+        passphrase_hash = body.get("passphrase_hash")
+        if not username or not password_hash or not passphrase_hash:
+            self.build_return(400, {"error": "username or password_hash or passphrase_hash is empty or not provided"})
+        elif not self.validate_passphrase(passphrase_hash):
+            self.build_return(400, {"error": "passphrase is not correct"})
+        else:
+            try:
+                insert_user(username, password_hash)
+                self.build_return(200)
+            except sqlite3.IntegrityError:
+                self.build_return(400, {"error": "username already exists"})
+
+class LogInHandler(BaseHandler):
+    def validate_user(self, username, password_hash):
+        user = get_user(username)
+        if user is None:
+            return False
+        return user["password_hash"] == password_hash
+
+    def post(self):
+        body = json.loads(self.request.body)
+        username = body.get("username")
+        password_hash = body.get("password_hash")
+        if not username or not password_hash:
+            self.build_return(400, {"error": "username or password_hash is empty or not provided"})
+        elif not self.validate_user(username, password_hash):
+            self.build_return(400, {"error": "username or password_hash is not correct"})
+        else:
+            self.build_return(200)
+
 def make_app():
     return tornado.web.Application(
-        [(r"/chat", ChatHandler), (r"/prompt", PromptHandler)]
+        [(r"/chat", ChatHandler), 
+         (r"/prompt", PromptHandler),
+         (r"/login", LogInHandler),
+         (r"/signup", SignUpHandler),
+         ]
     )
 
 
@@ -276,7 +369,8 @@ if __name__ == "__main__":
 
     db_name = str(sys.argv[1]) if len(sys.argv) > 1 else "test.db"
 
-    DB_CONN = sqlite3.connect(db_name)
+    APP_DATA_DB_CONN = sqlite3.connect(db_name)
+    USER_KEY_DB_CONN = sqlite3.connect("user_key.db")
     print("Connected to database: ", db_name)
 
     create_table()
