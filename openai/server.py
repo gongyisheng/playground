@@ -122,7 +122,14 @@ def save_prompt(prompt_name: str, prompt_content: str, prompt_note: str):
         VALUES (?, ?, ?, ?) 
         ON CONFLICT(prompt_name) DO UPDATE SET prompt_content = ?, timestamp = ?
         """,
-        (prompt_name, prompt_content, prompt_note, int(time.time()), prompt_content, int(time.time())),
+        (
+            prompt_name,
+            prompt_content,
+            prompt_note,
+            int(time.time()),
+            prompt_content,
+            int(time.time()),
+        ),
     )
     APP_DATA_DB_CONN.commit()
 
@@ -149,6 +156,7 @@ def get_all_prompts():
         }
     return PROMPTS
 
+
 def insert_user(username: str, password_hash: str):
     cursor = USER_KEY_DB_CONN.cursor()
     cursor.execute(
@@ -159,6 +167,7 @@ def insert_user(username: str, password_hash: str):
         (username, password_hash),
     )
     USER_KEY_DB_CONN.commit()
+
 
 def get_user(username: str):
     cursor = USER_KEY_DB_CONN.cursor()
@@ -172,11 +181,7 @@ def get_user(username: str):
     if row is None:
         return None
     else:
-        return {
-            "username": row[0],
-            "password_hash": row[1]
-        }
-    
+        return {"username": row[0], "password_hash": row[1]}
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -305,7 +310,9 @@ class PromptHandler(BaseHandler):
         promptContent = body.get("promptContent", None)
         promptNote = body.get("promptNote", "")
         if not promptName or not promptContent:
-            self.build_return(400, {"error": "promptName or promptContent is empty or not provided"})
+            self.build_return(
+                400, {"error": "promptName or promptContent is empty or not provided"}
+            )
         else:
             save_prompt(promptName, promptContent, promptNote)
             print(f"Save prompt, name: {promptName}, content: {promptContent}")
@@ -319,14 +326,19 @@ class SignUpHandler(BaseHandler):
             print("PASSPHRASE_HASH is not set")
             return False
         return passphrase_hash == correct_passphrase_hash
-    
+
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
         password_hash = body.get("password_hash")
         passphrase_hash = body.get("passphrase_hash")
         if not username or not password_hash or not passphrase_hash:
-            self.build_return(400, {"error": "username or password_hash or passphrase_hash is empty or not provided"})
+            self.build_return(
+                400,
+                {
+                    "error": "username or password_hash or passphrase_hash is empty or not provided"
+                },
+            )
         elif not self.validate_passphrase(passphrase_hash):
             self.build_return(400, {"error": "passphrase is not correct"})
         else:
@@ -335,6 +347,7 @@ class SignUpHandler(BaseHandler):
                 self.build_return(200)
             except sqlite3.IntegrityError:
                 self.build_return(400, {"error": "username already exists"})
+
 
 class LogInHandler(BaseHandler):
     def validate_user(self, username, password_hash):
@@ -348,19 +361,25 @@ class LogInHandler(BaseHandler):
         username = body.get("username")
         password_hash = body.get("password_hash")
         if not username or not password_hash:
-            self.build_return(400, {"error": "username or password_hash is empty or not provided"})
+            self.build_return(
+                400, {"error": "username or password_hash is empty or not provided"}
+            )
         elif not self.validate_user(username, password_hash):
-            self.build_return(400, {"error": "username or password_hash is not correct"})
+            self.build_return(
+                400, {"error": "username or password_hash is not correct"}
+            )
         else:
             self.build_return(200)
 
+
 def make_app():
     return tornado.web.Application(
-        [(r"/chat", ChatHandler), 
-         (r"/prompt", PromptHandler),
-         (r"/login", LogInHandler),
-         (r"/signup", SignUpHandler),
-         ]
+        [
+            (r"/chat", ChatHandler),
+            (r"/prompt", PromptHandler),
+            (r"/login", LogInHandler),
+            (r"/signup", SignUpHandler),
+        ]
     )
 
 
