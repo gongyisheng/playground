@@ -13,17 +13,30 @@ var promptName = "";
 var promptContent = "";
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 var promptNote = "";
+var myPrompts = {};
 
 var userMessage = "";
 var conversation = [];
 var threadId = "";
 var model = "GPT-3.5";
-var prompts = [];
 
 function App() {
   const [refreshFlag, setRefreshFlag] = useState(false);
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
+
+  useEffect(
+    () => async () => {
+      const response = await fetch(ENDPOINT_PROMPT, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "GET",
+      });
+      myPrompts = await response.json();
+    },
+    [refreshFlag],
+  );
 
   const handleModelChange = (_model) => {
     model = _model;
@@ -54,7 +67,7 @@ function App() {
     setSSEStatus(false);
     setSSEData("");
     threadId = "";
-    prompts = [];
+    myPrompts = {};
     setRefreshFlag(!refreshFlag);
   };
 

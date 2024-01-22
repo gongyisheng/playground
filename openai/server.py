@@ -246,8 +246,9 @@ class ChatHandler(BaseHandler):
 
 class PromptHandler(BaseHandler):
     def get(self):
-        prompts = get_all_prompts()
-        self.write(json.dumps({"prompts": prompts}))
+        print("Receive get request for prompts")
+        my_prompts = get_all_prompts()
+        self.write(json.dumps(my_prompts))
         self.set_status(200)
         self.finish()
 
