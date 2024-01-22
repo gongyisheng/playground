@@ -102,9 +102,9 @@ def save_prompt(prompt_name: str, prompt_content: str, prompt_note: str):
         """
         INSERT INTO saved_prompt (prompt_name, prompt_content, prompt_note, timestamp)
         VALUES (?, ?, ?, ?) 
-        ON CONFLICT(prompt_name) DO UPDATE SET prompt_content = ?
+        ON CONFLICT(prompt_name) DO UPDATE SET prompt_content = ?, timestamp = ?
         """,
-        (prompt_name, prompt_content, prompt_note, int(time.time()), prompt_content),
+        (prompt_name, prompt_content, prompt_note, int(time.time()), prompt_content, int(time.time())),
     )
     DB_CONN.commit()
 
@@ -257,11 +257,11 @@ class PromptHandler(BaseHandler):
         promptName = body.get("promptName", None)
         promptContent = body.get("promptContent", None)
         promptNote = body.get("promptNote", "")
-        if promptName is None or promptContent is None:
-            self.build_return(400, {"error": "promptName or promptContent is missing"})
+        if not promptName or not promptContent:
+            self.build_return(400, {"error": "promptName or promptContent is empty or not provided"})
         else:
-            print(f"Save prompt, name: {promptName}, content: {promptContent}")
             save_prompt(promptName, promptContent, promptNote)
+            print(f"Save prompt, name: {promptName}, content: {promptContent}")
             self.build_return(200)
 
 

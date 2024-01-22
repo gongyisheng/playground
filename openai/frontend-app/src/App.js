@@ -9,10 +9,7 @@ const BASE_URL = "http://127.0.0.1:5600";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
 const ENDPOINT_PROMPT = BASE_URL + "/prompt";
 
-var promptName = "";
-var promptContent = "";
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
-var promptNote = "";
 
 var userMessage = "";
 var conversation = [];
@@ -20,6 +17,9 @@ var threadId = "";
 var model = "GPT-3.5";
 
 function App() {
+  const [promptName, setPromptName] = useState("");
+  const [promptContent, setPromptContent] = useState("");
+  const [promptNote, setPromptNote] = useState("");
   const [refreshFlag, setRefreshFlag] = useState(false);
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
@@ -47,21 +47,21 @@ function App() {
   };
 
   const handlePromptNameChange = (name) => {
-    promptName = name;
+    setPromptName(name);
   };
 
   const handlePromptContentChange = (content) => {
-    promptContent = content;
+    setPromptContent(content);
   };
 
   const handlePromptNoteChange = (note) => {
-    promptNote = note;
+    setPromptNote(note);
   };
 
   const handleRestore = () => {
-    promptName = "";
-    promptContent = "";
-    promptNote = "";
+    setPromptName("");
+    setPromptContent("");
+    setPromptNote("");
     userMessage = "";
     conversation = [];
     setSSEStatus(false);
@@ -69,6 +69,26 @@ function App() {
     threadId = "";
     setMyPrompts({});
     setRefreshFlag(!refreshFlag);
+  };
+
+  const handleSave = async () => {
+    const response = await fetch(ENDPOINT_PROMPT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        promptName: promptName,
+        promptContent: promptContent,
+        promptNote: promptNote,
+      }),
+    });
+    const status = response.status;
+    if (status === 200) {
+      alert("Save prompt success.");
+    } else {
+      alert("Save prompt failed.");
+    }
   };
 
   const appendToConversation = (role, content) => {
@@ -183,6 +203,7 @@ function App() {
           onPromptNameChange={handlePromptNameChange}
           onPromptContentChange={handlePromptContentChange}
           onPromptNoteChange={handlePromptNoteChange}
+          onSave={handleSave}
           onRestore={handleRestore}
         />
       </div>

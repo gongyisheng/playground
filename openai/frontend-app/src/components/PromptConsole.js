@@ -8,6 +8,7 @@ function PromptConsole({
   onPromptNameChange,
   onPromptContentChange,
   onPromptNoteChange,
+  onSave,
   onRestore,
 }) {
   // selected prompt name related
@@ -24,10 +25,18 @@ function PromptConsole({
     setSelectedPromptName(promptName);
     changeButtonTextColor("text-grey-500", "text-black");
     toggleDropdownForceHidden();
+
+    // prompt name update
     setPromptName(promptName);
+    onPromptNameChange(promptName);
+
+    // prompt content update
     setPromptContent(myPrompts[promptName].promptContent);
+    onPromptContentChange(myPrompts[promptName].promptContent);
+
+    // prompt note update
     setPromptNote(myPrompts[promptName].promptNote);
-    //onPromptChange(e.target.value);
+    onPromptNoteChange(myPrompts[promptName].promptNote);
   };
 
   const renderPromptOptions = () => {
@@ -72,7 +81,11 @@ function PromptConsole({
 
   // actions: save and restore
   const handleSave = () => {
-    // TODO
+    if (promptName === "") {
+      alert("Please enter a prompt name!");
+      return;
+    }
+    onSave();
   };
 
   const handleRestore = () => {
