@@ -9,7 +9,11 @@ const BASE_URL = "http://127.0.0.1:5600";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
 const ENDPOINT_PROMPT = BASE_URL + "/prompt";
 
-var systemMessage = "You're a helpful assistant.";
+var promptName = "";
+var promptContent = "";
+const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
+var promptNote = "";
+
 var userMessage = "";
 var conversation = [];
 var threadId = "";
@@ -17,6 +21,7 @@ var model = "GPT-3.5";
 var prompts = [];
 
 function App() {
+  const [conversationRefreshFlag, setConversationRefreshFlag] = useState(false);
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
 
@@ -28,12 +33,27 @@ function App() {
     userMessage = message;
   };
 
+  const handlePromptNameChange = (name) => {
+    promptName = name;
+  };
+
+  const handlePromptContentChange = (content) => {
+    promptContent = content;
+  };
+
+  const handlePromptNoteChange = (note) => {
+    promptNote = note;
+  };
+
   const handleRestore = () => {
-    setSSEStatus(false);
-    setSSEData("");
-    systemMessage = "You're a helpful assistant.";
+    promptName = "";
+    promptContent = "";
+    promptNote = "";
     userMessage = "";
     conversation = [];
+    setConversationRefreshFlag(!conversationRefreshFlag);
+    setSSEStatus(false);
+    setSSEData("");
     threadId = "";
     prompts = [];
   };
@@ -116,7 +136,11 @@ function App() {
     if (userMessage === "") return;
     // appened system message to chat display
     if (conversation.length === 0) {
-      appendToConversation("system", systemMessage);
+      if (promptContent === "") {
+        appendToConversation("system", DEFAULT_PROMPT_CONTENT);
+      } else {
+        appendToConversation("system", promptContent);
+      }
     }
     // append user message to chat display
     appendToConversation("user", userMessage);
@@ -141,7 +165,12 @@ function App() {
         </div>
       </div>
       <div className="col-span-3 overflow-y-scroll">
-        <PromptConsole onRestore={handleRestore} />
+        <PromptConsole
+          onPromptNameChange={handlePromptNameChange}
+          onPromptContentChange={handlePromptContentChange}
+          onPromptNoteChange={handlePromptNoteChange}
+          onRestore={handleRestore}
+        />
       </div>
     </div>
   );

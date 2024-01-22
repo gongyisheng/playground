@@ -20,7 +20,12 @@ const promptData = {
   },
 };
 
-function PromptConsole({ onRestore }) {
+function PromptConsole({
+  onPromptNameChange,
+  onPromptContentChange,
+  onPromptNoteChange,
+  onRestore,
+}) {
   // selected prompt name related
   const [selectedPromptName, setSelectedPromptName] = useState("Your prompts");
 
@@ -35,9 +40,9 @@ function PromptConsole({ onRestore }) {
     setSelectedPromptName(name);
     changeButtonTextColor("text-grey-500", "text-black");
     toggleDropdownForceHidden();
-    setName(name);
-    setPrompt(promptData[name].prompt);
-    setNote(promptData[name].note);
+    setPromptName(name);
+    setPromptContent(promptData[name].prompt);
+    setPromptNote(promptData[name].note);
     //onPromptChange(e.target.value);
   };
 
@@ -57,28 +62,28 @@ function PromptConsole({ onRestore }) {
     ));
   };
 
-  // name related
-  const [name, setName] = useState("");
+  // prompt name related
+  const [promptName, setPromptName] = useState("");
 
-  const handleNameChange = (e) => {
-    setName(e.target.value);
-    //onPromptChange(e.target.value);
+  const handlePromptNameChange = (e) => {
+    setPromptName(e.target.value);
+    onPromptNameChange(e.target.value);
   };
 
-  // prompt related
-  const [prompt, setPrompt] = useState("");
+  // prompt content related
+  const [promptContent, setPromptContent] = useState("");
 
-  const handlePromptChange = (e) => {
-    setPrompt(e.target.value);
-    //onPromptChange(e.target.value);
+  const handlePromptContentChange = (e) => {
+    setPromptContent(e.target.value);
+    onPromptContentChange(e.target.value);
   };
 
   // note related
-  const [note, setNote] = useState("");
+  const [promptNote, setPromptNote] = useState("");
 
-  const handleNoteChange = (e) => {
-    setNote(e.target.value);
-    //onPromptChange(e.target.value);
+  const handlePromptNoteChange = (e) => {
+    setPromptNote(e.target.value);
+    onPromptNoteChange(e.target.value);
   };
 
   // actions, save and restore
@@ -90,9 +95,10 @@ function PromptConsole({ onRestore }) {
     setSelectedPromptName("Your prompts");
     toggleDropdownForceHidden();
     changeButtonTextColor("text-black", "text-gray-500");
-    setName("");
-    setPrompt("");
-    setNote("");
+
+    setPromptName("");
+    setPromptContent("");
+    setPromptNote("");
     onRestore();
   };
 
@@ -149,16 +155,16 @@ function PromptConsole({ onRestore }) {
       <div className="py-2">Name</div>
       <input
         type="text"
-        value={name}
-        onChange={handleNameChange}
+        value={promptName}
+        onChange={handlePromptNameChange}
         placeholder="default-prompt"
         className="pl-4 pr-12 py-2 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full"
       />
       <div className="py-2">Prompt</div>
       <textarea
         type="text"
-        value={prompt}
-        onChange={handlePromptChange}
+        value={promptContent}
+        onChange={handlePromptContentChange}
         placeholder="You're a helpful assistant."
         className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full resize-none"
         rows="6"
@@ -166,8 +172,8 @@ function PromptConsole({ onRestore }) {
       <div className="py-2">Note</div>
       <textarea
         type="text"
-        value={note}
-        onChange={handleNoteChange}
+        value={promptNote}
+        onChange={handlePromptNoteChange}
         placeholder="Default prompt of ChatGPT."
         className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full resize-none"
         rows="7"

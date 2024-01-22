@@ -117,16 +117,16 @@ def save_chat_history(uuid: str, model: str, full_context: list):
     DB_CONN.commit()
 
 
-def save_prompt(name: str, version: str, system_message: str):
+def save_prompt(name: str, system_message: str):
     cursor = DB_CONN.cursor()
     system_message_hash = md5(system_message.encode("utf-8")).hexdigest()
 
     cursor.execute(
         """
-        INSERT INTO saved_prompt (name, version, system_message, system_message_hash, timestamp)
+        INSERT INTO saved_prompt (name, system_message, system_message_hash, timestamp)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (name, version, system_message, system_message_hash, int(time.time())),
+        (name, system_message, system_message_hash, int(time.time())),
     )
     DB_CONN.commit()
 
@@ -275,14 +275,13 @@ class PromptHandler(BaseHandler):
     def post(self):
         body = json.loads(self.request.body)
         name = body.get("name", None)
-        version = body.get("version", None)
         system_message = body.get("systemMessage", None)
         if name is None or system_message is None:
             self.set_status(400)
             self.finish()
         else:
-            print(f"Save prompt, name: {name}, version: {version}")
-            save_prompt(name, version, system_message)
+            print(f"Save prompt, name: {name}")
+            save_prompt(name, system_message)
             self.set_status(200)
             self.finish()
 
