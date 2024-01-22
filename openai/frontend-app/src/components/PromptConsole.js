@@ -23,7 +23,7 @@ function PromptConsole({
   const handlePromptOptionClick = (e) => {
     let promptName = e.target.id;
     setSelectedPromptName(promptName);
-    changeButtonTextColor("text-grey-500", "text-black");
+    changeButtonTextColor("text-gray-500", "text-black");
     toggleDropdownForceHidden();
 
     // prompt name update
