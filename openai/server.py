@@ -259,7 +259,7 @@ def insert_user(username: str, password_hash: str):
     KEY_DB_CONN.commit()
 
 
-def get_user(username: str):
+def validate_user(username: str, password_hash: str):
     cursor = KEY_DB_CONN.cursor()
     cursor.execute(
         """
@@ -271,7 +271,7 @@ def get_user(username: str):
     if row is None:
         return None
     else:
-        return {"username": row[0], "password_hash": row[1]}
+        return row[1] == password_hash
 
 
 def validate_invitation_code(invitation_code: str):
@@ -470,11 +470,6 @@ class SignUpHandler(BaseHandler):
 
 
 class SignInHandler(BaseHandler):
-    def validate_user(self, username, password_hash):
-        user = get_user(username)
-        if user is None:
-            return False
-        return user["password_hash"] == password_hash
 
     def post(self):
         body = json.loads(self.request.body)
@@ -489,7 +484,7 @@ class SignInHandler(BaseHandler):
             self.build_return(
                 400, {"error": "Password is not provided"}
             )
-        elif not self.validate_user(username, password_hash):
+        elif not validate_user(username, password_hash):
             self.build_return(400, {"error": "Username or password is not correct"})
         else:
             self.build_return(200)
