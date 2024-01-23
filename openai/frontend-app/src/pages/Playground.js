@@ -26,13 +26,17 @@ function Playground() {
 
   useEffect(
     () => async () => {
-      const response = await fetch(ENDPOINT_PROMPT, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "GET",
-      });
-      setMyPrompts(await response.json());
+      try {
+        const response = await fetch(ENDPOINT_PROMPT, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "GET",
+        });
+        setMyPrompts(await response.json());
+      } catch (error) {
+        setMyPrompts({});
+      }
     },
     [refreshFlag],
   );
