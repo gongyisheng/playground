@@ -450,11 +450,12 @@ def make_app():
 if __name__ == "__main__":
     import sys
 
-    db_name = str(sys.argv[1]) if len(sys.argv) > 1 else "test.db"
+    app_data_db_name = str(sys.argv[1]) if len(sys.argv) > 1 else "test-app-data.db"
+    key_db_name = str(sys.argv[2]) if len(sys.argv) > 2 else "test-key.db"
 
-    APP_DATA_DB_CONN = sqlite3.connect(db_name)
-    KEY_DB_CONN = sqlite3.connect("user_key.db")
-    print("Connected to database: ", db_name)
+    APP_DATA_DB_CONN = sqlite3.connect(app_data_db_name)
+    KEY_DB_CONN = sqlite3.connect(key_db_name)
+    print("Connected to database: [%s] [%s]" % (app_data_db_name, key_db_name))
 
     create_table()
     app = make_app()
