@@ -1,10 +1,13 @@
 import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 import md5 from "md5";
+
 import { ENDPOINT_SIGNIN } from "../constants";
 
 const logoSrc = "./logo.png";
 
 const SignIn = () => {
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -29,6 +32,9 @@ const SignIn = () => {
       });
       const data = await response.json();
       console.log(data);
+      if (response.status === 200) {
+        navigate('/playground');
+      }
     } catch (err) {
       console.error(err);
     }
