@@ -272,7 +272,8 @@ def get_user(username: str):
         return None
     else:
         return {"username": row[0], "password_hash": row[1]}
-    
+
+
 def validate_invitation_code(invitation_code: str):
     cursor = KEY_DB_CONN.cursor()
     cursor.execute(
@@ -286,6 +287,7 @@ def validate_invitation_code(invitation_code: str):
         return False
     else:
         return row[0] == INVITATION_CODE_STATUS_ACTIVE
+
 
 def expire_invitation_code(invitation_code: str):
     cursor = KEY_DB_CONN.cursor()
@@ -434,28 +436,37 @@ class PromptHandler(BaseHandler):
 
 
 class SignUpHandler(BaseHandler):
-
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
         password_hash = body.get("password_hash")
         invitation_code = body.get("invitation_code")
-        if not username or not password_hash or not invitation_code:
+        if not username:
             self.build_return(
                 400,
-                {
-                    "error": "username or password_hash or invitation_code is empty or not provided"
-                },
+                {"error": "Username is not provided"},
+            )
+        elif not password_hash:
+            self.build_return(
+                400,
+                {"error": "Password is not provided"},
+            )
+        elif not invitation_code:
+            self.build_return(
+                400,
+                {"error": "Invitation code is not provided"},
             )
         elif not validate_invitation_code(invitation_code):
-            self.build_return(400, {"error": "invitation code is not correct or expired"})
+            self.build_return(
+                400, {"error": "Invitation code is not correct or expired"}
+            )
         else:
             try:
                 expire_invitation_code(invitation_code)
                 insert_user(username, password_hash)
                 self.build_return(200)
             except sqlite3.IntegrityError:
-                self.build_return(400, {"error": "username already exists"})
+                self.build_return(400, {"error": "Username already exists"})
 
 
 class SignInHandler(BaseHandler):
@@ -470,14 +481,16 @@ class SignInHandler(BaseHandler):
         username = body.get("username")
         password_hash = body.get("password_hash")
         print(f"Receive post request, username: {username}")
-        if not username or not password_hash:
+        if not username:
             self.build_return(
-                400, {"error": "username or password_hash is empty or not provided"}
+                400, {"error": "Username is not provided"}
+            )
+        elif not password_hash:
+            self.build_return(
+                400, {"error": "Password is not provided"}
             )
         elif not self.validate_user(username, password_hash):
-            self.build_return(
-                400, {"error": "username or password_hash is not correct"}
-            )
+            self.build_return(400, {"error": "Username or password is not correct"})
         else:
             self.build_return(200)
 

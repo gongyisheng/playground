@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import md5 from "md5";
 
 import { ENDPOINT_SIGNIN } from "../constants";
@@ -10,6 +10,7 @@ const SignIn = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleUsernameChange = (e) => {
     setUsername(e.target.value);
@@ -21,6 +22,14 @@ const SignIn = () => {
 
   async function handleSignIn(e) {
     e.preventDefault();
+    if (username === "") {
+      setErrorMessage("Username is not provided.");
+      return;
+    } else if (password === "") {
+      setErrorMessage("Password is not provided.");
+      return;
+    }
+
     try {
       const response = await fetch(ENDPOINT_SIGNIN, {
         method: "POST",
@@ -33,10 +42,12 @@ const SignIn = () => {
       const data = await response.json();
       console.log(data);
       if (response.status === 200) {
-        navigate('/playground');
+        navigate("/playground");
+      } else {
+        setErrorMessage(data.error);
       }
     } catch (err) {
-      console.error(err);
+      setErrorMessage("Something went wrong. Please try again later.");
     }
   }
 
@@ -65,7 +76,6 @@ const SignIn = () => {
                 type="username"
                 autoComplete="username"
                 onChange={handleUsernameChange}
-                required
                 className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6"
               />
             </div>
@@ -87,16 +97,18 @@ const SignIn = () => {
                 type="password"
                 autoComplete="current-password"
                 onChange={handlePasswordChange}
-                required
                 className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 focus:border-black sm:text-sm sm:leading-6"
               />
             </div>
           </div>
 
           <div>
+            <div>
+              <p className="text-xs text-red-500 italic">{errorMessage}</p>
+            </div>
             <button
               type="submit"
-              className="flex w-full justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+              className="flex mt-2 w-full justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
             >
               Sign in
             </button>
