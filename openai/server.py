@@ -22,16 +22,34 @@ MODEL_MAPPING = {
 # personal prompt engineering: prompt.db
 # yipit: yipit.db
 APP_DATA_DB_CONN = None
-USER_KEY_DB_CONN = None
+KEY_DB_CONN = None
 
 
 def create_table():
     # app data database
     cursor = APP_DATA_DB_CONN.cursor()
+    # user tabble
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            monthly_budget INTEGER,
+            status INTEGER,
+            timestamp INTEGER,
+
+            UNIQUE(user_id)
+        );
+        """
+    )
+    APP_DATA_DB_CONN.commit()
+
+    # chat history table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             thread_id VARCHAR(255) UNIQUE,
             conversation TEXT,
             timestamp INTEGER,
@@ -41,41 +59,87 @@ def create_table():
         """
     )
     APP_DATA_DB_CONN.commit()
+
+    # saved prompt table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS saved_prompt (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             prompt_name VARCHAR(255),
             prompt_content TEXT,
             prompt_note TEXT,
             timestamp INTEGER,
 
-            UNIQUE(prompt_name)
+            UNIQUE(user_id, prompt_name)
         );
-        """
-    )
-    cursor.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_name ON saved_prompt (prompt_name);
         """
     )
     APP_DATA_DB_CONN.commit()
 
-    # user key database
-    cursor = USER_KEY_DB_CONN.cursor()
+    # audit log table
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            billing_period VARCHAR(255),
+            thread_id VARCHAR(255),
+            token_number INTEGER,
+            cost_per_token DOUBLE,
+            cost DOUBLE,
+            timestamp INTEGER
+        );
+        """
+    )
+    APP_DATA_DB_CONN.commit()
+
+    # audit status table
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS audit_status (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            billing_period VARCHAR(255),
+            sum_token_number INTEGER,
+            sum_cost DOUBLE,
+            timestamp INTEGER
+        );
+        """
+    )
+    APP_DATA_DB_CONN.commit()
+
+    # key database
+    cursor = KEY_DB_CONN.cursor()
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS user_key (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username VARCHAR(255) UNIQUE,
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username VARCHAR(255),
             password_hash VARCHAR(255),
+            status INTEGER,
             timestamp INTEGER,
 
             UNIQUE(username)
         );
         """
     )
-    USER_KEY_DB_CONN.commit()
+    KEY_DB_CONN.commit()
+
+    # api key database
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS api_key (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            api_key VARCHAR(255),
+            timestamp INTEGER,
+
+            UNIQUE(user_id, api_key)
+        );
+        """
+    )
+    KEY_DB_CONN.commit()
 
 
 def get_chat_history(thread_id: str):
@@ -158,7 +222,7 @@ def get_all_prompts():
 
 
 def insert_user(username: str, password_hash: str):
-    cursor = USER_KEY_DB_CONN.cursor()
+    cursor = KEY_DB_CONN.cursor()
     cursor.execute(
         """
         INSERT INTO user_key (username, password_hash)
@@ -166,11 +230,11 @@ def insert_user(username: str, password_hash: str):
         """,
         (username, password_hash),
     )
-    USER_KEY_DB_CONN.commit()
+    KEY_DB_CONN.commit()
 
 
 def get_user(username: str):
-    cursor = USER_KEY_DB_CONN.cursor()
+    cursor = KEY_DB_CONN.cursor()
     cursor.execute(
         """
         SELECT username, password_hash FROM user_key WHERE username = ?
@@ -389,7 +453,7 @@ if __name__ == "__main__":
     db_name = str(sys.argv[1]) if len(sys.argv) > 1 else "test.db"
 
     APP_DATA_DB_CONN = sqlite3.connect(db_name)
-    USER_KEY_DB_CONN = sqlite3.connect("user_key.db")
+    KEY_DB_CONN = sqlite3.connect("user_key.db")
     print("Connected to database: ", db_name)
 
     create_table()
