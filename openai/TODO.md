@@ -7,3 +7,7 @@ frontend
 backend
 - login cookie
 - billing, audit
+- improve log
+
+other
+- let's encrypt https
