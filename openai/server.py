@@ -17,6 +17,9 @@ MODEL_MAPPING = {
     "gpt-4": "gpt-4-1106-preview",
 }
 
+INVITATION_CODE_STATUS_ACTIVE = 0
+INVITATION_CODE_STATUS_EXPIRED = 1
+
 # sqlite3 connection
 # dev: test.db
 # personal prompt engineering: prompt.db
@@ -131,12 +134,14 @@ def create_table():
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS user_key (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             username VARCHAR(255),
             password_hash VARCHAR(255),
             status INTEGER,
             timestamp INTEGER,
 
+            UNIQUE(user_id)
             UNIQUE(username)
         );
         """
@@ -150,9 +155,13 @@ def create_table():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             api_key VARCHAR(255),
+            invitation_code VARCHAR(255),
+            invitation_code_status INTEGER,
             timestamp INTEGER,
 
-            UNIQUE(user_id, api_key)
+            UNIQUE(user_id)
+            UNIQUE(api_key)
+            UNIQUE(invitation_code)
         );
         """
     )
@@ -263,6 +272,30 @@ def get_user(username: str):
         return None
     else:
         return {"username": row[0], "password_hash": row[1]}
+    
+def validate_invitation_code(invitation_code: str):
+    cursor = KEY_DB_CONN.cursor()
+    cursor.execute(
+        """
+        SELECT invitation_code_status FROM api_key WHERE invitation_code = ?
+        """,
+        (invitation_code,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return False
+    else:
+        return row[0] == INVITATION_CODE_STATUS_ACTIVE
+
+def expire_invitation_code(invitation_code: str):
+    cursor = KEY_DB_CONN.cursor()
+    cursor.execute(
+        """
+        UPDATE api_key SET invitation_code_status = ? WHERE invitation_code = ?
+        """,
+        (INVITATION_CODE_STATUS_EXPIRED, invitation_code),
+    )
+    KEY_DB_CONN.commit()
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -401,36 +434,31 @@ class PromptHandler(BaseHandler):
 
 
 class SignUpHandler(BaseHandler):
-    def validate_passphrase(self, passphrase_hash):
-        correct_passphrase_hash = os.environ.get("PASSPHRASE_HASH", None)
-        if not correct_passphrase_hash:
-            print("PASSPHRASE_HASH is not set")
-            return False
-        return passphrase_hash == correct_passphrase_hash
 
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
         password_hash = body.get("password_hash")
-        passphrase_hash = body.get("passphrase_hash")
-        if not username or not password_hash or not passphrase_hash:
+        invitation_code = body.get("invitation_code")
+        if not username or not password_hash or not invitation_code:
             self.build_return(
                 400,
                 {
-                    "error": "username or password_hash or passphrase_hash is empty or not provided"
+                    "error": "username or password_hash or invitation_code is empty or not provided"
                 },
             )
-        elif not self.validate_passphrase(passphrase_hash):
-            self.build_return(400, {"error": "passphrase is not correct"})
+        elif not validate_invitation_code(invitation_code):
+            self.build_return(400, {"error": "invitation code is not correct or expired"})
         else:
             try:
+                expire_invitation_code(invitation_code)
                 insert_user(username, password_hash)
                 self.build_return(200)
             except sqlite3.IntegrityError:
                 self.build_return(400, {"error": "username already exists"})
 
 
-class LogInHandler(BaseHandler):
+class SignInHandler(BaseHandler):
     def validate_user(self, username, password_hash):
         user = get_user(username)
         if user is None:
@@ -441,6 +469,7 @@ class LogInHandler(BaseHandler):
         body = json.loads(self.request.body)
         username = body.get("username")
         password_hash = body.get("password_hash")
+        print(f"Receive post request, username: {username}")
         if not username or not password_hash:
             self.build_return(
                 400, {"error": "username or password_hash is empty or not provided"}
@@ -458,7 +487,7 @@ def make_app():
         [
             (r"/chat", ChatHandler),
             (r"/prompt", PromptHandler),
-            (r"/login", LogInHandler),
+            (r"/signin", SignInHandler),
             (r"/signup", SignUpHandler),
         ]
     )

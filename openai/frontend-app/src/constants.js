@@ -1,0 +1,12 @@
+const BASE_URL = "http://127.0.0.1:5600";
+
+const ENDPOINT_SIGNIN = BASE_URL + "/signin";
+const ENDPOINT_SIGNUP = BASE_URL + "/signup";
+
+const ENDPOINT_CHAT = BASE_URL + "/chat";
+const ENDPOINT_PROMPT = BASE_URL + "/prompt";
+
+export { ENDPOINT_SIGNIN };
+export { ENDPOINT_SIGNUP };
+export { ENDPOINT_CHAT };
+export { ENDPOINT_PROMPT };

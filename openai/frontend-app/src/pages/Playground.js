@@ -3,10 +3,7 @@ import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
 import Model from "../components/Model";
 import PromptConsole from "../components/PromptConsole";
-
-const BASE_URL = "http://127.0.0.1:5600";
-const ENDPOINT_CHAT = BASE_URL + "/chat";
-const ENDPOINT_PROMPT = BASE_URL + "/prompt";
+import { ENDPOINT_CHAT, ENDPOINT_PROMPT } from "../constants";
 
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 

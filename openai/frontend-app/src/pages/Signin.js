@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import md5 from "md5";
-import { ENDPOINT_SIGNUP } from "../constants";
+import { ENDPOINT_SIGNIN } from "../constants";
 
 const logoSrc = "./logo.png";
 
-const SignUp = () => {
+const SignIn = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [invitationCode, setInvitationCode] = useState("");
 
   const handleUsernameChange = (e) => {
     setUsername(e.target.value);
@@ -17,20 +16,15 @@ const SignUp = () => {
     setPassword(e.target.value);
   };
 
-  const handleInvitationCodeChange = (e) => {
-    setInvitationCode(e.target.value);
-  };
-
-  async function handleSignUp(e) {
+  async function handleSignIn(e) {
     e.preventDefault();
     try {
-      const response = await fetch(ENDPOINT_SIGNUP, {
+      const response = await fetch(ENDPOINT_SIGNIN, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: username,
           password_hash: md5(password),
-          invitation_code: invitationCode,
         }),
       });
       const data = await response.json();
@@ -45,12 +39,12 @@ const SignUp = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <img className="mx-auto h-20 w-auto" src={logoSrc} alt="Your Logo" />
         <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight">
-          Create a new account
+          Sign in to continue
         </h2>
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form className="space-y-6" action="#" onSubmit={handleSignUp}>
+        <form className="space-y-6" action="#" onSubmit={handleSignIn}>
           <div>
             <label
               htmlFor="username"
@@ -72,10 +66,10 @@ const SignUp = () => {
           </div>
 
           <div>
-            <div>
+            <div className="flex items-center justify-between">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium leading-6 text-balance"
+                className="block text-sm font-medium leading-6 text-black"
               >
                 Password
               </label>
@@ -90,31 +84,6 @@ const SignUp = () => {
                 required
                 className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 focus:border-black sm:text-sm sm:leading-6"
               />
-              <p class="text-gray-600 text-xs mt-1">
-                Must contain 1 uppercase letter, 1 number, min. 8 characters.
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <div>
-              <label
-                htmlFor="invitation-code"
-                className="block text-sm font-medium leading-6 text-black"
-              >
-                Invitation Code
-              </label>
-            </div>
-            <div className="mt-2">
-              <input
-                id="invitation-code"
-                name="invitation-code"
-                type="invitation-code"
-                autoComplete="off"
-                onChange={handleInvitationCodeChange}
-                required
-                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6"
-              />
             </div>
           </div>
 
@@ -123,18 +92,15 @@ const SignUp = () => {
               type="submit"
               className="flex w-full justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
             >
-              Register
+              Sign in
             </button>
           </div>
         </form>
 
         <p className="mt-10 text-center text-sm text-gray-400">
-          Don't have an invitation code?{" "}
-          <a
-            href="https://yishenggong.com/about-me"
-            className="font-semibold leading-6 text-red-500"
-          >
-            Contact with the author
+          Not a member?{" "}
+          <a href="/signup" className="font-semibold leading-6 text-red-500">
+            Sign up with invite code
           </a>
         </p>
       </div>
@@ -142,4 +108,4 @@ const SignUp = () => {
   );
 };
 
-export default SignUp;
+export default SignIn;
