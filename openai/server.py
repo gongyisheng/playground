@@ -85,8 +85,11 @@ def create_table():
             user_id INTEGER,
             billing_period VARCHAR(255),
             thread_id VARCHAR(255),
-            token_number INTEGER,
-            cost_per_token DOUBLE,
+            model VARCHAR(255),
+            input_token INTEGER,
+            cost_per_input_token DOUBLE,
+            output_token INTEGER,
+            cost_per_output_token DOUBLE,
             cost DOUBLE,
             timestamp INTEGER
         );
@@ -101,9 +104,23 @@ def create_table():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             billing_period VARCHAR(255),
-            sum_token_number INTEGER,
             sum_cost DOUBLE,
             timestamp INTEGER
+        );
+        """
+    )
+    APP_DATA_DB_CONN.commit()
+
+    # pricing table
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS pricing (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            model VARCHAR(255),
+            cost_per_input_token DOUBLE,
+            cost_per_output_token DOUBLE,
+            start_time INTEGER,
+            end_time INTEGER
         );
         """
     )
