@@ -84,7 +84,7 @@ class PricingModel(BaseModel):
     def get_pricing_by_model(self, model: str) -> list:
         return self.fetchall(
             """
-            SELECT * FROM pricing WHERE model = ?;
+            SELECT cost_per_input_token, cost_per_output_token, start_time, end_time FROM pricing WHERE model = ?;
             """,
             (model,),
             on_raise=True,
@@ -93,7 +93,7 @@ class PricingModel(BaseModel):
     def get_current_pricing_by_model(self, model: str) -> Tuple:
         return self.fetchone(
             """
-            SELECT * FROM pricing WHERE model = ? AND end_time = -1;
+            SELECT cost_per_input_token, cost_per_output_token FROM pricing WHERE model = ? AND end_time = -1;
             """,
             (model,),
             on_raise=True,
