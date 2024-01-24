@@ -1,0 +1,10 @@
+MODEL_MAPPING = {
+    "gpt-3.5": "gpt-3.5-turbo-1106",
+    "gpt-4": "gpt-4-1106-preview",
+}
+
+INVITATION_CODE_STATUS_ACTIVE = 0
+INVITATION_CODE_STATUS_EXPIRED = 1
+
+DEFAULT_MONTHLY_BUDGET = 5
+

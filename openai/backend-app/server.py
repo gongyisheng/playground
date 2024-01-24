@@ -1,9 +1,10 @@
 # server for customized chatbot
 import json
-import os
 import uuid
 import sqlite3
 import time
+import random
+import string
 
 from openai import OpenAI
 import tornado.ioloop
@@ -12,13 +13,11 @@ import tornado.web
 OPENAI_CLIENT = OpenAI()
 MESSAGE_STORAGE = {}
 
-MODEL_MAPPING = {
-    "gpt-3.5": "gpt-3.5-turbo-1106",
-    "gpt-4": "gpt-4-1106-preview",
-}
 
-INVITATION_CODE_STATUS_ACTIVE = 0
-INVITATION_CODE_STATUS_EXPIRED = 1
+SESSION_COOKIE_NAME = "_chat_session"
+SESSION_COOKIE_EXPIRE_TIME = 60 * 60 * 24 * 30 # 30 days
+SESSION_COOKIE_PATH = "/"
+# SESSION_COOKIE_DOMAIN = "yishenggong.com"
 
 # sqlite3 connection
 # dev: test.db
@@ -31,103 +30,7 @@ KEY_DB_CONN = None
 def create_table():
     # app data database
     cursor = APP_DATA_DB_CONN.cursor()
-    # user tabble
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS user (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            monthly_budget INTEGER,
-            status INTEGER,
-            timestamp INTEGER,
-
-            UNIQUE(user_id)
-        );
-        """
-    )
-    APP_DATA_DB_CONN.commit()
-
-    # chat history table
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            thread_id VARCHAR(255) UNIQUE,
-            conversation TEXT,
-            timestamp INTEGER,
-
-            UNIQUE(thread_id)
-        );
-        """
-    )
-    APP_DATA_DB_CONN.commit()
-
-    # saved prompt table
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS saved_prompt (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            prompt_name VARCHAR(255),
-            prompt_content TEXT,
-            prompt_note TEXT,
-            timestamp INTEGER,
-
-            UNIQUE(user_id, prompt_name)
-        );
-        """
-    )
-    APP_DATA_DB_CONN.commit()
-
-    # audit log table
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS audit_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            billing_period VARCHAR(255),
-            thread_id VARCHAR(255),
-            model VARCHAR(255),
-            input_token INTEGER,
-            cost_per_input_token DOUBLE,
-            output_token INTEGER,
-            cost_per_output_token DOUBLE,
-            cost DOUBLE,
-            timestamp INTEGER
-        );
-        """
-    )
-    APP_DATA_DB_CONN.commit()
-
-    # audit status table
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS audit_status (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            billing_period VARCHAR(255),
-            sum_cost DOUBLE,
-            timestamp INTEGER
-        );
-        """
-    )
-    APP_DATA_DB_CONN.commit()
-
-    # pricing table
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS pricing (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            model VARCHAR(255),
-            cost_per_input_token DOUBLE,
-            cost_per_output_token DOUBLE,
-            start_time INTEGER,
-            end_time INTEGER
-        );
-        """
-    )
-    APP_DATA_DB_CONN.commit()
+    
 
     # key database
     cursor = KEY_DB_CONN.cursor()
@@ -168,86 +71,33 @@ def create_table():
     KEY_DB_CONN.commit()
 
 
-def get_chat_history(thread_id: str):
-    cursor = APP_DATA_DB_CONN.cursor()
-    cursor.execute(
-        """
-        SELECT conversation FROM chat_history WHERE thread_id = ?
-        """,
-        (thread_id,),
-    )
-    row = cursor.fetchone()
-    if row is None:
-        return None
-    else:
-        return json.loads(row[0])
 
 
-def save_chat_history(thread_id: str, conversation: list):
-    cursor = APP_DATA_DB_CONN.cursor()
-
-    # insert chat history
-    cursor.execute(
-        """
-        INSERT INTO chat_history (thread_id, conversation, timestamp)
-        VALUES (?, ?, ?) 
-        ON CONFLICT(thread_id) DO UPDATE SET conversation = ?
-        """,
-        (
-            thread_id,
-            json.dumps(conversation),
-            int(time.time()),
-            json.dumps(conversation),
-        ),
-    )
-    APP_DATA_DB_CONN.commit()
 
 
-def save_prompt(prompt_name: str, prompt_content: str, prompt_note: str):
-    cursor = APP_DATA_DB_CONN.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO saved_prompt (prompt_name, prompt_content, prompt_note, timestamp)
-        VALUES (?, ?, ?, ?) 
-        ON CONFLICT(prompt_name) DO UPDATE SET prompt_content = ?, timestamp = ?
-        """,
-        (
-            prompt_name,
-            prompt_content,
-            prompt_note,
-            int(time.time()),
-            prompt_content,
-            int(time.time()),
-        ),
-    )
-    APP_DATA_DB_CONN.commit()
 
 
-def delete_prompt(prompt_name: str):
-    pass
+
+# def get_all_prompts():
+#     cursor = APP_DATA_DB_CONN.cursor()
+#     cursor.execute(
+#         """
+#         SELECT prompt_name, prompt_content, prompt_note FROM saved_prompt
+#         """
+#     )
+#     rows = cursor.fetchall()
+#     PROMPTS = {}
+#     for row in rows:
+#         prompt_name, prompt_content, prompt_note = row
+#         PROMPTS[prompt_name] = {
+#             "promptName": prompt_name,
+#             "promptContent": prompt_content,
+#             "promptNote": prompt_note,
+#         }
+#     return PROMPTS
 
 
-def get_all_prompts():
-    cursor = APP_DATA_DB_CONN.cursor()
-    cursor.execute(
-        """
-        SELECT prompt_name, prompt_content, prompt_note FROM saved_prompt
-        """
-    )
-    rows = cursor.fetchall()
-    PROMPTS = {}
-    for row in rows:
-        prompt_name, prompt_content, prompt_note = row
-        PROMPTS[prompt_name] = {
-            "promptName": prompt_name,
-            "promptContent": prompt_content,
-            "promptNote": prompt_note,
-        }
-    return PROMPTS
-
-
-def insert_user(username: str, password_hash: str):
+def create_user(username: str, password_hash: str):
     cursor = KEY_DB_CONN.cursor()
     cursor.execute(
         """
@@ -258,6 +108,20 @@ def insert_user(username: str, password_hash: str):
     )
     KEY_DB_CONN.commit()
 
+
+def get_user_id_by_username(username: str):
+    cursor = KEY_DB_CONN.cursor()
+    cursor.execute(
+        """
+        SELECT user_id FROM user_key WHERE username = ?
+        """,
+        (username,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    else:
+        return row[0]
 
 def validate_user(username: str, password_hash: str):
     cursor = KEY_DB_CONN.cursor()
@@ -435,6 +299,27 @@ class PromptHandler(BaseHandler):
             self.build_return(200)
 
 
+class SessionManager():
+    def __init__(self):
+        self.cursor = APP_DATA_DB_CONN.cursor()
+
+
+        
+
+    def get_user_id_by_session(self, session_id: str):
+        self.cursor.execute(
+            """
+            SELECT user_id FROM session WHERE session_id = ?
+            """,
+            (session_id,),
+        )
+        row = self.cursor.fetchone()
+        if row is None:
+            return None
+        else:
+            return row[0]
+
+
 class SignUpHandler(BaseHandler):
     def post(self):
         body = json.loads(self.request.body)
@@ -463,7 +348,7 @@ class SignUpHandler(BaseHandler):
         else:
             try:
                 expire_invitation_code(invitation_code)
-                insert_user(username, password_hash)
+                create_user(username, password_hash)
                 self.build_return(200)
             except sqlite3.IntegrityError:
                 self.build_return(400, {"error": "Username already exists"})
@@ -471,23 +356,34 @@ class SignUpHandler(BaseHandler):
 
 class SignInHandler(BaseHandler):
 
+    session_manager = SessionManager()
+
     def post(self):
-        body = json.loads(self.request.body)
-        username = body.get("username")
-        password_hash = body.get("password_hash")
-        print(f"Receive post request, username: {username}")
-        if not username:
-            self.build_return(
-                400, {"error": "Username is not provided"}
-            )
-        elif not password_hash:
-            self.build_return(
-                400, {"error": "Password is not provided"}
-            )
-        elif not validate_user(username, password_hash):
-            self.build_return(400, {"error": "Username or password is not correct"})
+        cookie = self.get_cookie("_chat_session")
+        if cookie is not None:
+            print(f"Receive post request, cookie: {cookie}")
+            _, session_id = cookie.split("=")
+            if self.session_manager.validate_session(user_id, session_id):
+                self.build_return(200)
         else:
-            self.build_return(200)
+            body = json.loads(self.request.body)
+            username = body.get("username")
+            password_hash = body.get("password_hash")
+            print(f"Receive post request, username: {username}")
+            if not username:
+                self.build_return(
+                    400, {"error": "Username is not provided"}
+                )
+            elif not password_hash:
+                self.build_return(
+                    400, {"error": "Password is not provided"}
+                )
+            elif not validate_user(username, password_hash):
+                self.build_return(400, {"error": "Username or password is not correct"})
+            else:
+                user_id = get_user_id_by_username(username)
+                session_id = create_session(user_id)
+                self.set_cookie("_chat_session", session_id)
 
 
 def make_app():
