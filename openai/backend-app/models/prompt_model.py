@@ -62,7 +62,7 @@ class PromptModel(BaseModel):
         )
         cursor.close()
     
-    def get_prompt_by_user_id(self, user_id: int) -> list:
+    def get_prompts_by_user_id(self, user_id: int) -> list:
         return self.fetchall(
             """
             SELECT prompt_name, prompt_content, prompt_note FROM saved_prompt WHERE user_id = ?;
@@ -80,15 +80,15 @@ if __name__ == "__main__":
 
     user_id = 1
     prompt_model.save_prompt(user_id, "test1", "test1", "test1")
-    res = prompt_model.get_prompt_by_user_id(user_id)
+    res = prompt_model.get_prompts_by_user_id(user_id)
     print("user prompts:", res)
 
     prompt_model.save_prompt(user_id, "test2", "test2", "test2")
-    res = prompt_model.get_prompt_by_user_id(user_id)
+    res = prompt_model.get_prompts_by_user_id(user_id)
     print("user prompts:", res)
 
     prompt_model.save_prompt(user_id, "test2", "test2-new", "test2-new")
-    res = prompt_model.get_prompt_by_user_id(user_id)
+    res = prompt_model.get_prompts_by_user_id(user_id)
     print("user prompts:", res)
 
     conn.close()

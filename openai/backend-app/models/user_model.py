@@ -2,13 +2,15 @@ import sqlite3
 from typing import Tuple
 
 from base_model import BaseModel
-from constants import DEFAULT_MONTHLY_BUDGET
 
 class UserModel(BaseModel):
 
     # user status
     USER_STATUS_ACTIVE = 0
     USER_STATUS_INACTIVE = 1
+
+    # budget
+    DEFAULT_MONTHLY_BUDGET = 5
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
@@ -50,7 +52,7 @@ class UserModel(BaseModel):
             INSERT INTO user (monthly_budget, status)
             VALUES (?, ?);
             """,
-            (DEFAULT_MONTHLY_BUDGET, self.USER_STATUS_ACTIVE),
+            (self.DEFAULT_MONTHLY_BUDGET, self.USER_STATUS_ACTIVE),
             commit=True,
             on_raise=True,
         )
@@ -58,7 +60,7 @@ class UserModel(BaseModel):
         cursor.close()
         return user_id
     
-    def get_user(self, user_id: int) -> Tuple:
+    def _get_user(self, user_id: int) -> Tuple:
         # return user info
         return self.fetchone(
             """
@@ -69,11 +71,11 @@ class UserModel(BaseModel):
         )
     
     def get_user_status(self, user_id: int) -> int:
-        user_info = self.get_user(user_id)
+        user_info = self._get_user(user_id)
         return user_info[2]
     
     def get_user_monthly_budget(self, user_id: int) -> int:
-        user_info = self.get_user(user_id)
+        user_info = self._get_user(user_id)
         return user_info[1]
     
     def update_user_status(self, user_id: int, status: int) -> None:

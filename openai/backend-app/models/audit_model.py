@@ -13,7 +13,7 @@ class AuditModel(BaseModel):
         self.pricing_model = PricingModel(conn)
         self.status_cache = dbm.open("audit-status", "c")
 
-    def create_tables(self):
+    def create_tables(self) -> None:
         # audit log table
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -37,7 +37,7 @@ class AuditModel(BaseModel):
             on_raise=True,
         )
     
-    def drop_tables(self):
+    def drop_tables(self) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
@@ -83,12 +83,13 @@ class AuditModel(BaseModel):
         if key in self.status_cache:
             return float(self.status_cache[key])
         else:
-            return self.fetchone(
+            res = self.fetchone(
                 """
                 SELECT SUM(cost) FROM audit_log WHERE user_id = ? AND billing_period = ?;
                 """,
                 (user_id, billing_period),
             )
+            return res[0] if res else 0.0
 
 if __name__ == "__main__":
     # unittest
