@@ -2,7 +2,7 @@ import sqlite3
 import time
 from typing import Optional
 
-from base_model import BaseModel
+from .base_model import BaseModel
 
 class UserKeyModel(BaseModel):
     def __init__(self, conn: sqlite3.Connection) -> None:
@@ -55,6 +55,14 @@ class UserKeyModel(BaseModel):
         )
         cursor.close()
 
+    def validate_username(self, username: str) -> bool:
+        res = self.fetchone(
+            """
+            SELECT username FROM user_key WHERE username = ?
+            """,
+            (username,),
+        )
+        return res is not None
     
     def validate_user(self, username: str, password_hash: str):
         res = self.fetchone(
@@ -65,7 +73,7 @@ class UserKeyModel(BaseModel):
         )
         return (res is not None) and (res[0] == password_hash)
 
-    def get_user_id_by_username_password(self, username: str) -> Optional[int]:
+    def get_user_id_by_username_password_hash(self, username: str) -> Optional[int]:
         res = self.fetchone(
             """
             SELECT user_id FROM user_key WHERE username = ?
@@ -86,11 +94,17 @@ if __name__ == "__main__":
     username = "test1"
     password_hash = "test1"
     user_key_model.create_user(user_id, username, password_hash)
-    res = user_key_model.get_user_id_by_username_password(username)
+    res = user_key_model.get_user_id_by_username_password_hash(username)
     print("user_id:", res)
+
+    res = user_key_model.validate_username(username)
+    print("validate_username:", res)
 
     res = user_key_model.validate_user(username, password_hash)
     print("validate_user:", res)
+
+    res = user_key_model.validate_username("test2")
+    print("validate_username:", res)
 
     res = user_key_model.validate_user(username, "test2")
     print("validate_user:", res)

@@ -2,8 +2,8 @@ import dbm
 import sqlite3
 import time
 
-from base_model import BaseModel
-from pricing_model import PricingModel
+from .base_model import BaseModel
+from .pricing_model import PricingModel
 
 
 class AuditModel(BaseModel):

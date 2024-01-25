@@ -2,7 +2,7 @@ import sqlite3
 import time
 from typing import Optional
 
-from base_model import BaseModel
+from .base_model import BaseModel
 
 class ApiKeyModel(BaseModel):
     

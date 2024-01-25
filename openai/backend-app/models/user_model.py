@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Tuple
 
-from base_model import BaseModel
+from .base_model import BaseModel
 
 class UserModel(BaseModel):
 

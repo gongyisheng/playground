@@ -2,8 +2,9 @@ import random
 import string
 import sqlite3
 import time
+from typing import Optional
 
-from base_model import BaseModel
+from .base_model import BaseModel
 
 class SessionModel(BaseModel):
 
@@ -30,7 +31,7 @@ class SessionModel(BaseModel):
                 status INTEGER,
                 last_active_time INTEGER,
 
-                UNIQUE(user_id, session_id)
+                UNIQUE(session_id)
             );
             """,
             commit=True,
@@ -71,12 +72,12 @@ class SessionModel(BaseModel):
         cursor.close()
         return session_id
 
-    def validate_session(self, user_id: int, session_id: str) -> bool:
+    def validate_session(self, session_id: str) -> bool:
         res = self.fetchone(
             """
-            SELECT status, last_active_time FROM session WHERE user_id = ? AND session_id = ?
+            SELECT status, last_active_time FROM session WHERE session_id = ?
             """,
-            (user_id, session_id),
+            (session_id,),
             on_raise=True,
         )
         if res is None:
@@ -93,18 +94,28 @@ class SessionModel(BaseModel):
             else:
                 return False
     
-    def expire_session(self, user_id: int, session_id: str) -> None:
+    def expire_session(self, session_id: str) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
             """
-            UPDATE session SET status = ? WHERE user_id = ? AND session_id = ?
+            UPDATE session SET status = ? WHERE session_id = ?
             """,
-            (self.SESSION_STATUS_EXPIRED, user_id, session_id),
+            (self.SESSION_STATUS_EXPIRED, session_id),
             commit=True,
             on_raise=True,
         )
         cursor.close()
+    
+    def get_user_id_by_session(self, session_id: str) -> Optional[int]:
+        res = self.fetchone(
+            """
+            SELECT user_id FROM session WHERE session_id = ?
+            """,
+            (session_id,),
+            on_raise=True,
+        )
+        return res[0] if res else None
 
 if __name__ == '__main__':
     conn = sqlite3.connect('unittest.db')
@@ -116,12 +127,15 @@ if __name__ == '__main__':
     user_id = 1
     session_id = session_model.create_session(user_id)
     print(session_id)
-    res = session_model.validate_session(user_id, session_id)
+    res = session_model.validate_session(session_id)
     print("validate session: ", res)
 
-    session_model.expire_session(user_id, session_id)
-    res = session_model.validate_session(user_id, session_id)
+    session_model.expire_session(session_id)
+    res = session_model.validate_session(session_id)
     print("validate session: ", res)
+
+    _user_id = session_model.get_user_id_by_session(session_id)
+    print("user_id: ", _user_id)
 
     conn.close()
 

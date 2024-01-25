@@ -1,6 +1,6 @@
 import sqlite3
 
-from base_model import BaseModel
+from .base_model import BaseModel
 
 class PromptModel(BaseModel):
 

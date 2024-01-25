@@ -2,20 +2,29 @@
 import json
 import uuid
 import sqlite3
-import time
-import random
-import string
 
 from openai import OpenAI
 import tornado.ioloop
 import tornado.web
 
-OPENAI_CLIENT = OpenAI()
+from models.user_model import UserModel
+from models.session_model import SessionModel
+from models.chat_history_model import ChatHistoryModel
+from models.prompt_model import PromptModel
+from models.audit_model import AuditModel
+
+from models.api_key_model import ApiKeyModel
+from models.user_key_model import UserKeyModel
+
 MESSAGE_STORAGE = {}
 
+MODEL_MAPPING = {
+    "gpt-3.5": "gpt-3.5-turbo-1106",
+    "gpt-4": "gpt-4-1106-preview",
+}
 
 SESSION_COOKIE_NAME = "_chat_session"
-SESSION_COOKIE_EXPIRE_TIME = 60 * 60 * 24 * 30 # 30 days
+SESSION_COOKIE_EXPIRE_DAYS = 30 # 30 days
 SESSION_COOKIE_PATH = "/"
 # SESSION_COOKIE_DOMAIN = "yishenggong.com"
 
@@ -26,145 +35,8 @@ SESSION_COOKIE_PATH = "/"
 APP_DATA_DB_CONN = None
 KEY_DB_CONN = None
 
-
-def create_table():
-    # app data database
-    cursor = APP_DATA_DB_CONN.cursor()
-    
-
-    # key database
-    cursor = KEY_DB_CONN.cursor()
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS user_key (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            username VARCHAR(255),
-            password_hash VARCHAR(255),
-            status INTEGER,
-            timestamp INTEGER,
-
-            UNIQUE(user_id)
-            UNIQUE(username)
-        );
-        """
-    )
-    KEY_DB_CONN.commit()
-
-    # api key database
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS api_key (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            api_key VARCHAR(255),
-            invitation_code VARCHAR(255),
-            invitation_code_status INTEGER,
-            timestamp INTEGER,
-
-            UNIQUE(user_id)
-            UNIQUE(api_key)
-            UNIQUE(invitation_code)
-        );
-        """
-    )
-    KEY_DB_CONN.commit()
-
-
-
-
-
-
-
-
-
-# def get_all_prompts():
-#     cursor = APP_DATA_DB_CONN.cursor()
-#     cursor.execute(
-#         """
-#         SELECT prompt_name, prompt_content, prompt_note FROM saved_prompt
-#         """
-#     )
-#     rows = cursor.fetchall()
-#     PROMPTS = {}
-#     for row in rows:
-#         prompt_name, prompt_content, prompt_note = row
-#         PROMPTS[prompt_name] = {
-#             "promptName": prompt_name,
-#             "promptContent": prompt_content,
-#             "promptNote": prompt_note,
-#         }
-#     return PROMPTS
-
-
-def create_user(username: str, password_hash: str):
-    cursor = KEY_DB_CONN.cursor()
-    cursor.execute(
-        """
-        INSERT INTO user_key (username, password_hash)
-        VALUES (?, ?)
-        """,
-        (username, password_hash),
-    )
-    KEY_DB_CONN.commit()
-
-
-def get_user_id_by_username(username: str):
-    cursor = KEY_DB_CONN.cursor()
-    cursor.execute(
-        """
-        SELECT user_id FROM user_key WHERE username = ?
-        """,
-        (username,),
-    )
-    row = cursor.fetchone()
-    if row is None:
-        return None
-    else:
-        return row[0]
-
-def validate_user(username: str, password_hash: str):
-    cursor = KEY_DB_CONN.cursor()
-    cursor.execute(
-        """
-        SELECT username, password_hash FROM user_key WHERE username = ?
-        """,
-        (username,),
-    )
-    row = cursor.fetchone()
-    if row is None:
-        return None
-    else:
-        return row[1] == password_hash
-
-
-def validate_invitation_code(invitation_code: str):
-    cursor = KEY_DB_CONN.cursor()
-    cursor.execute(
-        """
-        SELECT invitation_code_status FROM api_key WHERE invitation_code = ?
-        """,
-        (invitation_code,),
-    )
-    row = cursor.fetchone()
-    if row is None:
-        return False
-    else:
-        return row[0] == INVITATION_CODE_STATUS_ACTIVE
-
-
-def expire_invitation_code(invitation_code: str):
-    cursor = KEY_DB_CONN.cursor()
-    cursor.execute(
-        """
-        UPDATE api_key SET invitation_code_status = ? WHERE invitation_code = ?
-        """,
-        (INVITATION_CODE_STATUS_EXPIRED, invitation_code),
-    )
-    KEY_DB_CONN.commit()
-
-
 class BaseHandler(tornado.web.RequestHandler):
+
     def set_default_headers(self):
         # Allow all origins
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -187,8 +59,26 @@ class BaseHandler(tornado.web.RequestHandler):
         self.finish()
         return
 
+class AuthHandler(BaseHandler):
 
-class ChatHandler(BaseHandler):
+    session_model = SessionModel(APP_DATA_DB_CONN)
+    api_key_model = ApiKeyModel(KEY_DB_CONN)
+
+    def prepare(self):
+        # get session_id from cookie 
+        session_id = self.get_cookie(SESSION_COOKIE_NAME)
+        is_valid = self.session_model.validate_session(session_id)
+        if not is_valid:
+            self.build_return(401, {"error": "Session is not valid or expired"})
+        else:
+            self.user_id = self.session_model.get_user_id_by_session(session_id)
+            self.api_key = self.api_key_model.get_api_key_by_user(self.user_id)
+
+class ChatHandler(AuthHandler):
+
+    chat_history_model = ChatHistoryModel(APP_DATA_DB_CONN)
+    audit_model = AuditModel(APP_DATA_DB_CONN)
+
     def validate_conversation(self, conversation):
         role = ["system", "user", "assistant"]
         for i in range(len(conversation)):
@@ -257,12 +147,14 @@ class ChatHandler(BaseHandler):
         print(f"Receive get request, uuid: {thread_id}, model: {real_model}")
 
         # create openai stream
+        OPENAI_CLIENT = OpenAI(api_key=self.api_key)
         stream = OPENAI_CLIENT.chat.completions.create(
             model=real_model, messages=conversation, stream=True
         )
 
         assistant_message = ""
         for chunk in stream:
+            print(chunk)
             content = chunk.choices[0].delta.content
             if content is not None:
                 assistant_message += content
@@ -271,15 +163,25 @@ class ChatHandler(BaseHandler):
 
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
-        save_chat_history(thread_id, conversation)
+        self.chat_history_model.save_chat_history(self.user_id, thread_id, conversation) # need user_id
         del MESSAGE_STORAGE[thread_id]
         self.finish()
 
 
-class PromptHandler(BaseHandler):
+class PromptHandler(AuthHandler):
+
+    prompt_model = PromptModel(APP_DATA_DB_CONN)
+
     def get(self):
         print("Receive get request for prompts")
-        my_prompts = get_all_prompts()
+        my_prompts = {}
+        for row in self.prompt_model.get_prompts_by_user_id(self.user_id):
+            prompt_name, prompt_content, prompt_note = row
+            my_prompts[prompt_name] = {
+                "promptName": prompt_name,
+                "promptContent": prompt_content,
+                "promptNote": prompt_note,
+            }
         self.write(json.dumps(my_prompts))
         self.set_status(200)
         self.finish()
@@ -294,33 +196,16 @@ class PromptHandler(BaseHandler):
                 400, {"error": "promptName or promptContent is empty or not provided"}
             )
         else:
-            save_prompt(promptName, promptContent, promptNote)
+            self.prompt_model.save_prompt(self.user_id, promptName, promptContent, promptNote)
             print(f"Save prompt, name: {promptName}, content: {promptContent}")
             self.build_return(200)
 
-
-class SessionManager():
-    def __init__(self):
-        self.cursor = APP_DATA_DB_CONN.cursor()
-
-
-        
-
-    def get_user_id_by_session(self, session_id: str):
-        self.cursor.execute(
-            """
-            SELECT user_id FROM session WHERE session_id = ?
-            """,
-            (session_id,),
-        )
-        row = self.cursor.fetchone()
-        if row is None:
-            return None
-        else:
-            return row[0]
-
-
 class SignUpHandler(BaseHandler):
+
+    user_model = UserModel(APP_DATA_DB_CONN)
+    user_key_model = UserKeyModel(KEY_DB_CONN)
+    api_key_model = ApiKeyModel(KEY_DB_CONN)
+
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
@@ -341,49 +226,66 @@ class SignUpHandler(BaseHandler):
                 400,
                 {"error": "Invitation code is not provided"},
             )
-        elif not validate_invitation_code(invitation_code):
+        elif self.user_key_model.validate_username(username):
+            self.build_return(400, {"error": "Username already exists"})
+        elif not self.api_key_model.validate_invitation_code(invitation_code):
             self.build_return(
                 400, {"error": "Invitation code is not correct or expired"}
             )
         else:
-            try:
-                expire_invitation_code(invitation_code)
-                create_user(username, password_hash)
-                self.build_return(200)
-            except sqlite3.IntegrityError:
-                self.build_return(400, {"error": "Username already exists"})
+            user_id = self.user_model.create_user()
+            self.user_key_model.create_user(user_id, username, password_hash)
+            self.api_key_model.claim_invitation_code(user_id, invitation_code)
+            self.build_return(200)
 
 
 class SignInHandler(BaseHandler):
 
-    session_manager = SessionManager()
+    user_key_model = UserKeyModel(KEY_DB_CONN)
+    session_model = SessionModel(APP_DATA_DB_CONN)
 
     def post(self):
-        cookie = self.get_cookie("_chat_session")
-        if cookie is not None:
-            print(f"Receive post request, cookie: {cookie}")
-            _, session_id = cookie.split("=")
-            if self.session_manager.validate_session(user_id, session_id):
-                self.build_return(200)
+        body = json.loads(self.request.body)
+        username = body.get("username")
+        password_hash = body.get("password_hash")
+        print(f"Receive post request, username: {username}")
+        if not username:
+            self.build_return(
+                400, {"error": "Username is not provided"}
+            )
+        elif not password_hash:
+            self.build_return(
+                400, {"error": "Password is not provided"}
+            )
+        elif not self.user_key_model.validate_user(username, password_hash):
+            self.build_return(400, {"error": "Username or password is not correct"})
         else:
-            body = json.loads(self.request.body)
-            username = body.get("username")
-            password_hash = body.get("password_hash")
-            print(f"Receive post request, username: {username}")
-            if not username:
-                self.build_return(
-                    400, {"error": "Username is not provided"}
-                )
-            elif not password_hash:
-                self.build_return(
-                    400, {"error": "Password is not provided"}
-                )
-            elif not validate_user(username, password_hash):
-                self.build_return(400, {"error": "Username or password is not correct"})
-            else:
-                user_id = get_user_id_by_username(username)
-                session_id = create_session(user_id)
-                self.set_cookie("_chat_session", session_id)
+            user_id = self.user_key_model.get_user_id_by_username_password_hash(username, password_hash)
+            session_id = self.session_model.create_session(user_id)
+            self.set_cookie(SESSION_COOKIE_NAME, session_id, expires_days=SESSION_COOKIE_EXPIRE_DAYS, path=SESSION_COOKIE_PATH)
+            self.build_return(200)
+
+class InviteHandler(BaseHandler):
+
+    api_key_model = ApiKeyModel(KEY_DB_CONN)
+
+    def post(self):
+        body = json.loads(self.request.body)
+        api_key = body.get("api_key")
+        invitation_code = body.get("invitation_code")
+        if not api_key:
+            self.build_return(
+                400,
+                {"error": "API key is not provided"},
+            )
+        elif not invitation_code:
+            self.build_return(
+                400,
+                {"error": "Invitation code is not provided"},
+            )
+        else:
+            self.api_key_model.insert_api_key_invitation_code(api_key, invitation_code)
+            self.build_return(200)
 
 
 def make_app():
@@ -393,6 +295,7 @@ def make_app():
             (r"/prompt", PromptHandler),
             (r"/signin", SignInHandler),
             (r"/signup", SignUpHandler),
+            (r"/invite", InviteHandler),
         ]
     )
 
@@ -407,7 +310,21 @@ if __name__ == "__main__":
     KEY_DB_CONN = sqlite3.connect(key_db_name)
     print("Connected to database: [%s] [%s]" % (app_data_db_name, key_db_name))
 
-    create_table()
+    model = ApiKeyModel(KEY_DB_CONN)
+    model.create_tables()
+    model = UserKeyModel(KEY_DB_CONN)
+    model.create_tables()
+    model = UserModel(APP_DATA_DB_CONN)
+    model.create_tables()
+    model = SessionModel(APP_DATA_DB_CONN)
+    model.create_tables()
+    model = ChatHistoryModel(APP_DATA_DB_CONN)
+    model.create_tables()
+    model = PromptModel(APP_DATA_DB_CONN)
+    model.create_tables()
+    model = AuditModel(APP_DATA_DB_CONN)
+    model.create_tables()
+
     app = make_app()
     app.listen(5600)
     print("Starting Tornado server on http://localhost:5600")
