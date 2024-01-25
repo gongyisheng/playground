@@ -5,7 +5,6 @@ import time
 from .base_model import BaseModel
 from .pricing_model import PricingModel
 
-
 class AuditModel(BaseModel):
 
     def __init__(self, conn: sqlite3.Connection) -> None:
@@ -36,6 +35,24 @@ class AuditModel(BaseModel):
             commit=True,
             on_raise=True,
         )
+
+        # budget table
+        self._execute_sql(
+            cursor,
+            """
+            CREATE TABLE IF NOT EXISTS budget (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                monthly_budget DOUBLE,
+
+                UNIQUE(user_id)
+            );
+            """,
+            commit=True,
+            on_raise=True,
+        )
+                
+        cursor.close()
     
     def drop_tables(self) -> None:
         cursor = self.conn.cursor()
@@ -90,6 +107,29 @@ class AuditModel(BaseModel):
                 (user_id, billing_period),
             )
             return res[0] if res else 0.0
+    
+    def insert_budget_by_user_id(self, user_id: int, monthly_budget: float) -> None:
+        cursor = self.conn.cursor()
+        self._execute_sql(
+            cursor,
+            """
+            INSERT INTO budget (user_id, monthly_budget)
+            VALUES (?, ?);
+            """,
+            (user_id, monthly_budget),
+            commit=True,
+            on_raise=True,
+        )
+        cursor.close()
+    
+    def get_budget_by_user_id(self, user_id: int) -> float:
+        res = self.fetchone(
+            """
+            SELECT monthly_budget FROM budget WHERE user_id = ?;
+            """,
+            (user_id,),
+        )
+        return res[0] if res else 0.0
 
 if __name__ == "__main__":
     # unittest
@@ -114,5 +154,10 @@ if __name__ == "__main__":
     # test insert
     audit_model.insert_audit_log(user_id, billing_period, thread_id, model, 200, 200)
     res = audit_model.get_total_cost_by_user_id_billing_period(user_id, billing_period)
+    print(res)
+
+    # test insert budget
+    audit_model.insert_budget_by_user_id(user_id, 100.0)
+    res = audit_model.get_budget_by_user_id(user_id)
     print(res)
         

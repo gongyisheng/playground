@@ -1,10 +1,12 @@
 # server for customized chatbot
 from datetime import datetime
 import json
-import uuid
 import sqlite3
+import uuid
 
+from Crypto.Cipher import AES
 from openai import OpenAI
+import yaml
 import tiktoken
 import tiktoken_ext.openai_public
 import tornado.ioloop
@@ -21,22 +23,14 @@ from models.api_key_model import ApiKeyModel
 from models.user_key_model import UserKeyModel
 
 MESSAGE_STORAGE = {}
-
-MODEL_MAPPING = {
-    "gpt-3.5": "gpt-3.5-turbo-1106",
-    "gpt-4": "gpt-4-1106-preview",
-}
 ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 
-SESSION_COOKIE_NAME = "_chat_session"
-SESSION_COOKIE_EXPIRE_DAYS = 30 # 30 days
-SESSION_COOKIE_PATH = "/"
-# SESSION_COOKIE_DOMAIN = "yishenggong.com"
+def read_config(file_path):
+    with open(file_path, "r") as yamlfile:
+        data = yaml.load(yamlfile, Loader=yaml.FullLoader)
+        print("Read config successful. env: %s" % data["environment"])
+    return data
 
-# sqlite3 connection
-# dev: test.db
-# personal prompt engineering: prompt.db
-# yipit: yipit.db
 class Global:
     api_key_model = None
     user_key_model = None
@@ -46,18 +40,37 @@ class Global:
     prompt_model = None
     audit_model = None
     pricing_model = None
+    config = None
+
+def encrypt_data(plaintext: str, key: str, salt: str) -> bytes:
+    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
+    ciphertext = cipher.encrypt(plaintext.encode("ascii"))
+    return ciphertext
+
+def decrypt_data(ciphertext: bytes, key: str, salt: str) -> str:
+    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
+    plaintext = cipher.decrypt(ciphertext).decode("ascii")
+    return plaintext
 
 class BaseHandler(tornado.web.RequestHandler):
 
+    def prepare(self):
+        super().prepare()
+        self.encrypt_key = Global.config['encrypt_key']
+        self.encrypt_salt = Global.config['encrypt_salt']
+
     def set_default_headers(self):
         # Allow all origins
-        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Origin", Global.config['access_control_allow_origin'])
 
         # Allow specific headers
-        self.set_header("Access-Control-Allow-Headers", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
 
         # Allow specific methods
         self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+        # Allow credentials
+        self.set_header("Access-Control-Allow-Credentials", "true")
 
     def options(self):
         # Handle preflight OPTIONS requests
@@ -74,14 +87,21 @@ class BaseHandler(tornado.web.RequestHandler):
 class AuthHandler(BaseHandler):
 
     def prepare(self):
+        super().prepare()
+        # options request does not need auth
+        if self.request.method == "OPTIONS":
+            return
+
         # get session_id from cookie 
-        session_id = self.get_cookie(SESSION_COOKIE_NAME)
+        session_id = self.get_cookie(Global.config['session_cookie_name'], None)
         is_valid = Global.session_model.validate_session(session_id)
         if not is_valid:
             self.build_return(401, {"error": "Unauthorized operation"})
+            return
         else:
             self.user_id = Global.session_model.get_user_id_by_session(session_id)
-            self.api_key = Global.api_key_model.get_api_key_by_user(self.user_id)
+            encrypted_api_key = Global.api_key_model.get_api_key_by_user(self.user_id)
+            self.api_key = decrypt_data(encrypted_api_key, self.encrypt_key, self.encrypt_salt)
 
 class ChatHandler(AuthHandler):
 
@@ -119,12 +139,14 @@ class ChatHandler(AuthHandler):
         passed, error = self.validate_conversation(conversation)
         if not passed:
             self.build_return(400, {"error": error})
-        MESSAGE_STORAGE[thread_id] = conversation
-
-        print(
-            f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
-        )
-        self.build_return(200, {"thread_id": thread_id})
+            return
+        else:
+            MESSAGE_STORAGE[thread_id] = conversation
+            print(
+                f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
+            )
+            self.build_return(200, {"thread_id": thread_id})
+            return
 
     def build_sse_message(self, data):
         body = json.dumps({"content": data})
@@ -146,15 +168,28 @@ class ChatHandler(AuthHandler):
         model = self.get_argument("model")
         if thread_id is None or model is None:
             self.build_return(400, {"error": "thread_id or model is missing"})
+            return
 
-        real_model = MODEL_MAPPING.get(model.lower(), None)
+        real_model = Global.config['model_mapping'].get(model.lower(), None)
         if real_model is None:
             self.build_return(400, {"error": "model is not supported"})
+            return
 
         conversation = MESSAGE_STORAGE.get(thread_id)
         if conversation is None:
             self.build_return(400, {"error": "thread_id not found in message storage"})
+            return
         print(f"Receive get request, uuid: {thread_id}, model: {real_model}")
+
+        billing_period = datetime.now().strftime("%Y-%m")
+        user_cost = Global.audit_model.get_total_cost_by_user_id_billing_period(self.user_id, billing_period)
+        user_limit = Global.audit_model.get_budget_by_user_id(self.user_id)
+
+        if user_cost >= user_limit:
+            del MESSAGE_STORAGE[thread_id]
+            self.write(self.build_sse_message("You have exceeded your monthly budget. Please contact to author.\nhttps://yishenggong.com/about-me"))
+            self.flush()
+            return
 
         # create openai stream
         OPENAI_CLIENT = OpenAI(api_key=self.api_key)
@@ -216,67 +251,85 @@ class PromptHandler(AuthHandler):
             self.build_return(
                 400, {"error": "promptName or promptContent is empty or not provided"}
             )
+            return
         else:
             Global.prompt_model.save_prompt(self.user_id, promptName, promptContent, promptNote)
             print(f"Save prompt, name: {promptName}, content: {promptContent}")
             self.build_return(200)
+            return
 
 class SignUpHandler(BaseHandler):
 
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
-        password_hash = body.get("password_hash")
+        password = body.get("password")
         invitation_code = body.get("invitation_code")
         if not username:
             self.build_return(
                 400,
                 {"error": "Username is not provided"},
             )
-        elif not password_hash:
+            return
+        elif not password:
             self.build_return(
                 400,
                 {"error": "Password is not provided"},
             )
+            return
         elif not invitation_code:
             self.build_return(
                 400,
                 {"error": "Invitation code is not provided"},
             )
+            return
         elif Global.user_key_model.validate_username(username):
             self.build_return(400, {"error": "Username already exists"})
-        elif not Global.api_key_model.validate_invitation_code(invitation_code):
+            return
+        
+        encrypted_invitation_code = encrypt_data(invitation_code, self.encrypt_key, self.encrypt_salt)
+        if not Global.api_key_model.validate_invitation_code(encrypted_invitation_code):
             self.build_return(
                 400, {"error": "Invitation code is not correct or expired"}
             )
+            return
         else:
             user_id = Global.user_model.create_user()
-            Global.user_key_model.create_user(user_id, username, password_hash)
-            Global.api_key_model.claim_invitation_code(user_id, invitation_code)
+            encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
+            Global.user_key_model.create_user(user_id, username, encrypted_pwd)
+            Global.api_key_model.claim_invitation_code(user_id, encrypted_invitation_code)
+            Global.audit_model.insert_budget_by_user_id(user_id, Global.config['default_monthly_budget'])
             self.build_return(200)
+            return
 
 class SignInHandler(BaseHandler):
 
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
-        password_hash = body.get("password_hash")
+        password = body.get("password")
         print(f"Receive post request, username: {username}")
         if not username:
             self.build_return(
                 400, {"error": "Username is not provided"}
             )
-        elif not password_hash:
+            return
+        elif not password:
             self.build_return(
                 400, {"error": "Password is not provided"}
             )
-        elif not Global.user_key_model.validate_user(username, password_hash):
+            return
+        
+        encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
+        if not Global.user_key_model.validate_user(username, encrypted_pwd):
             self.build_return(400, {"error": "Username or password is not correct"})
+            return
         else:
-            user_id = Global.user_key_model.get_user_id_by_username_password_hash(username, password_hash)
+            user_id = Global.user_key_model.get_user_id_by_username_password(username, encrypted_pwd)
             session_id = Global.session_model.create_session(user_id)
-            self.set_cookie(SESSION_COOKIE_NAME, session_id, expires_days=SESSION_COOKIE_EXPIRE_DAYS, path=SESSION_COOKIE_PATH)
+            self.set_cookie(Global.config['session_cookie_name'], session_id, expires_days=Global.config['session_cookie_expires_days'], path=Global.config['session_cookie_path'], domain=Global.config.get('session_cookie_domain'))
             self.build_return(200)
+            return
 
 class InviteHandler(BaseHandler):
 
@@ -289,14 +342,19 @@ class InviteHandler(BaseHandler):
                 400,
                 {"error": "API key is not provided"},
             )
+            return
         elif not invitation_code:
             self.build_return(
                 400,
                 {"error": "Invitation code is not provided"},
             )
+            return
         else:
-            Global.api_key_model.insert_api_key_invitation_code(api_key, invitation_code)
+            encrypted_api_key = encrypt_data(api_key, self.encrypt_key, self.encrypt_salt)
+            encrypted_invitation_code = encrypt_data(invitation_code, self.encrypt_key, self.encrypt_salt)
+            Global.api_key_model.insert_api_key_invitation_code(encrypted_api_key, encrypted_invitation_code)
             self.build_return(200)
+            return
 
 class AuditHandler(AuthHandler):
 
@@ -304,7 +362,9 @@ class AuditHandler(AuthHandler):
         print("Receive get request for audit")
         billing_period = datetime.now().strftime("%Y-%m")
         cost = Global.audit_model.get_total_cost_by_user_id_billing_period(self.user_id, billing_period)
-        self.build_return(200, {"cost": cost})
+        limit = Global.audit_model.get_budget_by_user_id(self.user_id)
+        self.build_return(200, {"cost": str(int(cost*10000)/10000.0), "limit": str(int(limit*100)/100.0)})
+        return
 
 def make_app():
     return tornado.web.Application(
@@ -320,14 +380,17 @@ def make_app():
 
 
 if __name__ == "__main__":
-    import sys
+    from argparse import ArgumentParser
 
-    app_data_db_name = str(sys.argv[1]) if len(sys.argv) > 1 else "test-app-data.db"
-    key_db_name = str(sys.argv[2]) if len(sys.argv) > 2 else "test-key.db"
+    parser = ArgumentParser()
+    parser.add_argument("--config", dest="config", default="backend-config.test.yaml")
+    args = parser.parse_args()
 
-    APP_DATA_DB_CONN = sqlite3.connect(app_data_db_name)
-    KEY_DB_CONN = sqlite3.connect(key_db_name)
-    print("Connected to database: [%s] [%s]" % (app_data_db_name, key_db_name))
+    Global.config = read_config(args.config)
+
+    APP_DATA_DB_CONN = sqlite3.connect(Global.config['app_data_db_name'])
+    KEY_DB_CONN = sqlite3.connect(Global.config['key_db_name'])
+    print("Connected to database: [%s] [%s]" % (Global.config['app_data_db_name'], Global.config['key_db_name']))
 
     Global.api_key_model = ApiKeyModel(KEY_DB_CONN)
     Global.api_key_model.create_tables()
@@ -346,10 +409,21 @@ if __name__ == "__main__":
     Global.pricing_model = PricingModel(APP_DATA_DB_CONN)
     Global.pricing_model.create_tables()
 
-    # Global.pricing_model.create_pricing("gpt-3.5-turbo-1106", 0.001/1000, 0.002/1000, 0)
-    # Global.pricing_model.create_pricing("gpt-4-1106-preview", 0.01/1000, 0.03/1000, 0)
+    # init price
+    if Global.pricing_model.get_current_pricing_by_model("gpt-3.5-turbo-1106") is None:
+        Global.pricing_model.create_pricing("gpt-3.5-turbo-1106", 0.001/1000, 0.002/1000, 0)
+    if Global.pricing_model.get_current_pricing_by_model("gpt-4-1106-preview") is None:
+        Global.pricing_model.create_pricing("gpt-4-1106-preview", 0.01/1000, 0.03/1000, 0)
 
     app = make_app()
-    app.listen(5600)
-    print("Starting Tornado server on http://localhost:5600")
+    if Global.config['enable_https']:
+        app.listen(443, ssl_options={
+            "certfile": Global.config['https_certfile_path'],
+            "keyfile": Global.config['https_keyfile_path'],
+        })
+        print("Starting Tornado server on https://localhost:443")
+    else:
+        app.listen(Global.config['port'])
+        print(f"Starting Tornado server on http://localhost:{Global.config['port']}")
+    
     tornado.ioloop.IOLoop.current().start()

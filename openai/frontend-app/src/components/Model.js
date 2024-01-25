@@ -5,7 +5,7 @@ const modelIcons = {
   "GPT-4": "./static/gpt4.png",
 };
 
-function Model({ onChange }) {
+function Model({ onChange, cost, limit }) {
   const [chosenModel, setChosenModel] = useState("GPT-3.5");
 
   function renderButtonStyle(model) {
@@ -39,9 +39,14 @@ function Model({ onChange }) {
   };
 
   return (
-    <div className="px-4 py-4 gap-2">
-      {renderModelBlock("GPT-3.5", onClick)}
-      {renderModelBlock("GPT-4", onClick)}
+    <div>
+      <div className="px-4 py-4 gap-2">
+        {renderModelBlock("GPT-3.5", onClick)}
+        {renderModelBlock("GPT-4", onClick)}
+      </div>
+      <div className="px-4 py-4 justify-center">
+        <span className="text-sm italic">Cost this month: ${cost}/${limit}</span>
+      </div>
     </div>
   );
 }

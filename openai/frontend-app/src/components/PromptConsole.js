@@ -41,18 +41,28 @@ function PromptConsole({
 
   const renderPromptOptions = () => {
     var entries = Object.entries(myPrompts);
-    return entries.map(([k, v]) => (
-      <li key={k}>
-        <a
-          id={v.promptName}
-          href="#"
-          className="block px-4 py-2 hover:bg-gray-100"
-          onClick={handlePromptOptionClick}
-        >
-          {v.promptName}
-        </a>
-      </li>
-    ));
+    if (entries.length > 0) {
+      return entries.map(([k, v]) => (
+        <li key={k}>
+          <a
+            id={v.promptName}
+            href="#"
+            className="block px-4 py-2 hover:bg-gray-100"
+            onClick={handlePromptOptionClick}
+          >
+            {v.promptName}
+          </a>
+        </li>
+      ));
+    } else {
+      return (
+        <li>
+          <a className="block px-4 py-2 italic">
+            No prompts yet
+          </a>
+        </li>
+      );
+    }
   };
 
   // prompt name related

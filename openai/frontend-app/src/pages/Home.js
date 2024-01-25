@@ -1,9 +1,24 @@
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { SESSION_COOKIE_NAME } from "../constants";
+import { getCookie } from "../utils/cookie";
+
 const Home = () => {
+  const navigate = useNavigate();
+  const redirect = () => {
+    if (getCookie(SESSION_COOKIE_NAME)) {
+      navigate("/playground");
+    }
+    else {
+      navigate("/signin");
+    }
+  }
+  useEffect(() => {
+    redirect();
+  }, []);
   return (
-    <div>
-      <h1>Home</h1>
-      <p>Home page content</p>
-    </div>
+    <div></div>
   );
 };
 

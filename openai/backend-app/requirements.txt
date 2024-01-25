@@ -1,3 +1,5 @@
+pycryptodome==3.11.0
+pyyaml==6.0
 openai==1.6.1
 tiktoken==0.5.2
 tornado==6.2.0

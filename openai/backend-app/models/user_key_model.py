@@ -17,7 +17,7 @@ class UserKeyModel(BaseModel):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 username VARCHAR(255),
-                password_hash VARCHAR(255),
+                password BLOB,
                 update_time INTEGER,
 
                 UNIQUE(user_id)
@@ -41,15 +41,15 @@ class UserKeyModel(BaseModel):
         )
         cursor.close()
     
-    def create_user(self, user_id: int, username: str, password_hash: str):
+    def create_user(self, user_id: int, username: str, password: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
             """
-            INSERT INTO user_key (user_id, username, password_hash, update_time)
+            INSERT INTO user_key (user_id, username, password, update_time)
             VALUES (?, ?, ?, ?)
             """,
-            (user_id, username, password_hash, int(time.time())),
+            (user_id, username, password, int(time.time())),
             commit=True,
             on_raise=True,
         )
@@ -64,21 +64,21 @@ class UserKeyModel(BaseModel):
         )
         return res is not None
     
-    def validate_user(self, username: str, password_hash: str):
+    def validate_user(self, username: str, password: bytes) -> bool:
         res = self.fetchone(
             """
-            SELECT password_hash FROM user_key WHERE username = ?
+            SELECT password FROM user_key WHERE username = ?
             """,
             (username,),
         )
-        return (res is not None) and (res[0] == password_hash)
+        return (res is not None) and (res[0] == password)
 
-    def get_user_id_by_username_password_hash(self, username: str, password_hash: str) -> Optional[int]:
+    def get_user_id_by_username_password(self, username: str, password: bytes) -> Optional[int]:
         res = self.fetchone(
             """
-            SELECT user_id FROM user_key WHERE username = ? AND password_hash = ?
+            SELECT user_id FROM user_key WHERE username = ? AND password = ?
             """,
-            (username, password_hash),
+            (username, password),
         )
         return res[0] if res else None
 
@@ -92,20 +92,20 @@ if __name__ == "__main__":
 
     user_id = 1
     username = "test1"
-    password_hash = "test1"
-    user_key_model.create_user(user_id, username, password_hash)
-    res = user_key_model.get_user_id_by_username_password_hash(username, password_hash)
+    password = b"test1"
+    user_key_model.create_user(user_id, username, password)
+    res = user_key_model.get_user_id_by_username_password(username, password)
     print("user_id:", res)
 
     res = user_key_model.validate_username(username)
     print("validate_username:", res)
 
-    res = user_key_model.validate_user(username, password_hash)
+    res = user_key_model.validate_user(username, password)
     print("validate_user:", res)
 
     res = user_key_model.validate_username("test2")
     print("validate_username:", res)
 
-    res = user_key_model.validate_user(username, "test2")
+    res = user_key_model.validate_user(username, b"test2")
     print("validate_user:", res)
     

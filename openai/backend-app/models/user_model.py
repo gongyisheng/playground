@@ -23,7 +23,6 @@ class UserModel(BaseModel):
             """
             CREATE TABLE IF NOT EXISTS user (
                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                monthly_budget INTEGER,
                 status INTEGER,
 
                 UNIQUE(user_id)
@@ -49,10 +48,10 @@ class UserModel(BaseModel):
         self._execute_sql(
             cursor,
             """
-            INSERT INTO user (monthly_budget, status)
-            VALUES (?, ?);
+            INSERT INTO user (status)
+            VALUES (?);
             """,
-            (self.DEFAULT_MONTHLY_BUDGET, self.USER_STATUS_ACTIVE),
+            (self.USER_STATUS_ACTIVE, ),
             commit=True,
             on_raise=True,
         )
@@ -72,10 +71,6 @@ class UserModel(BaseModel):
     
     def get_user_status(self, user_id: int) -> int:
         user_info = self._get_user(user_id)
-        return user_info[2]
-    
-    def get_user_monthly_budget(self, user_id: int) -> int:
-        user_info = self._get_user(user_id)
         return user_info[1]
     
     def update_user_status(self, user_id: int, status: int) -> None:
@@ -91,20 +86,6 @@ class UserModel(BaseModel):
             on_raise=True
         )
         cursor.close()
-    
-    def update_user_monthly_budget(self, user_id: int, monthly_budget: int) -> None:
-        # update user monthly budget
-        cursor = self.conn.cursor()
-        self._execute_sql(
-            cursor,
-            """
-            UPDATE user SET monthly_budget = ? WHERE user_id = ?;
-            """,
-            (monthly_budget, user_id),
-            commit=True,
-            on_raise=True
-        )
-        cursor.close()
 
 if __name__ == "__main__":
     conn = sqlite3.connect("unittest.db")
@@ -116,13 +97,9 @@ if __name__ == "__main__":
     user_id = user_model.create_user()
     print("user_id: ", user_id)
 
-    user_info = user_model.get_user(user_id)
+    user_info = user_model._get_user(user_id)
     print("user_info:", user_info)
 
     user_model.update_user_status(user_id, UserModel.USER_STATUS_INACTIVE)
     user_status = user_model.get_user_status(user_id)
     print("user_status:", user_status)
-
-    user_model.update_user_monthly_budget(user_id, 100)
-    user_monthly_budget = user_model.get_user_monthly_budget(user_id)
-    print("user_monthly_budget:", user_monthly_budget)

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
 import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
 import Model from "../components/Model";
 import PromptConsole from "../components/PromptConsole";
-import { ENDPOINT_CHAT, ENDPOINT_PROMPT } from "../constants";
+import { ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT } from "../constants";
 
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 
@@ -13,6 +15,7 @@ var threadId = "";
 var model = "GPT-3.5";
 
 function Playground() {
+  const navigate = useNavigate();
   const [promptName, setPromptName] = useState("");
   const [promptContent, setPromptContent] = useState("");
   const [promptNote, setPromptNote] = useState("");
@@ -20,6 +23,8 @@ function Playground() {
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
   const [myPrompts, setMyPrompts] = useState({});
+  const [cost, setCost] = useState(0.0);
+  const [limit, setLimit] = useState(0.0);
 
   useEffect(
     () => async () => {
@@ -28,13 +33,22 @@ function Playground() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include", // <-- includes cookies in the request
           method: "GET",
         });
-        setMyPrompts(await response.json());
+        if (response.status === 200) {
+          setMyPrompts(await response.json());
+        } else if (response.status === 401) {
+          // redirect to signin page if not logged in
+          navigate("/signin");
+          setMyPrompts({});
+        }
       } catch (error) {
         setMyPrompts({});
       }
+      refrestCostAndLimit();
     },
+    
     [refreshFlag],
   );
 
@@ -77,16 +91,20 @@ function Playground() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include", // <-- includes cookies in the request
       body: JSON.stringify({
         promptName: promptName,
         promptContent: promptContent,
         promptNote: promptNote,
       }),
     });
-    const status = response.status;
-    if (status === 200) {
+    if (response.status === 200) {
       alert("Save prompt success.");
-    } else {
+    } else if (response.status === 401) {
+      // redirect to signin page if not logged in
+      navigate("/signin");
+    }
+    else {
       alert("Save prompt failed.");
     }
   };
@@ -108,17 +126,22 @@ function Playground() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include", // <-- includes cookies in the request
       body: JSON.stringify({
         conversation: conversation,
         thread_id: threadId,
       }),
     });
-    const status = response.status;
-    const data = await response.json();
-    if (status === 200) {
+    
+    if (response.status === 200) {
+      const data = await response.json();
       threadId = data.thread_id;
       setSSEStatus(true);
+    } else if (response.status === 401) {
+      // redirect to signin page if not logged in
+      navigate("/signin");
     } else {
+      const data = await response.json();
       console.error(
         "error sending chat request:",
         data,
@@ -133,8 +156,10 @@ function Playground() {
     if (!SSEStatus || conversation.length === 0) {
       return;
     }
+    
     const sse = new EventSource(
       `${ENDPOINT_CHAT}?thread_id=${threadId}&model=${model}`,
+      { withCredentials: true }
     );
 
     // Event listener for SSE messages
@@ -148,7 +173,10 @@ function Playground() {
       setSSEStatus(false);
     };
 
-    return () => sse.close();
+    return () => {
+      sse.close();
+      refrestCostAndLimit();
+    }
   }, [SSEStatus]);
 
   // Flush SSEData to conversation
@@ -181,10 +209,28 @@ function Playground() {
     sendChatRequest();
   };
 
+  const refrestCostAndLimit = async () => {
+    const response = await fetch(ENDPOINT_AUDIT, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // <-- includes cookies in the request
+    });
+    if (response.status === 200) {
+      const data = await response.json();
+      setCost(data.cost);
+      setLimit(data.limit);
+    } else if (response.status === 401) {
+      // redirect to signin page if not logged in
+      navigate("/signin");
+    }
+  }
+
   return (
     <div className="grid grid-cols-12 h-screen max-h-screen">
       <div className="col-span-2">
-        <Model onChange={handleModelChange} />
+        <Model onChange={handleModelChange} cost={ cost } limit={ limit } />
       </div>
       <div className="col-span-7 flex flex-col px-8 overflow-y-scroll">
         <div className="grow pt-4">

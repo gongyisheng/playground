@@ -1,0 +1,33 @@
+environment: test
+
+# corp related
+access_control_allow_origin: http://127.0.0.1:3000
+
+# https related
+port: 5600
+enable_https: false
+https_certfile_path: "certs/localhost.crt"
+https_keyfile_path: "certs/localhost.key"
+
+# session cookie related
+session_cookie_name: "_chat_session"
+session_cookie_expires_days: 30
+session_cookie_path: "/"
+# session_cookie_domain: ""
+# session_cookie_secure: false
+
+# model name related
+model_mapping:
+  gpt-3.5: "gpt-3.5-turbo-1106"
+  gpt-4: "gpt-4-1106-preview"
+
+# encrypt/decrypt related
+encrypt_key: "12345678901234567890123456789012"
+encrypt_salt: "1234123412341234" # must be 16 bytes
+
+# database file related
+app_data_db_name: "test-app-data.db"
+key_db_name: "test-key-data.db"
+
+# user budget
+default_monthly_budget: 5

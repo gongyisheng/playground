@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import md5 from "md5";
 
 import { ENDPOINT_SIGNIN } from "../constants";
+import { getCookie } from "../utils/cookie";
 
 const logoSrc = "./logo.png";
 
@@ -33,20 +34,25 @@ const SignIn = () => {
     try {
       const response = await fetch(ENDPOINT_SIGNIN, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include", // <-- includes cookies in the request
         body: JSON.stringify({
           username: username,
-          password_hash: md5(password),
+          password: md5(password),
         }),
       });
-      const data = await response.json();
-      console.log(data);
+
       if (response.status === 200) {
+        console.log(response.headers.getSetCookie());
         navigate("/playground");
       } else {
+        const data = await response.json();
         setErrorMessage(data.error);
       }
     } catch (err) {
+      console.log(err);
       setErrorMessage("Something went wrong. Please try again later.");
     }
   }
