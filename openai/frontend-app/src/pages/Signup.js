@@ -44,18 +44,19 @@ const SignUp = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: username,
-          password_hash: md5(password),
+          password: md5(password),
           invitation_code: invitationCode,
         }),
       });
-      const data = await response.json();
-      console.log(data);
+
       if (response.status === 200) {
         navigate("/signin");
       } else {
+        const data = await response.json();
         setErrorMessage(data.error);
       }
     } catch (err) {
+      console.log(err);
       setErrorMessage("Something went wrong. Please try again later.");
     }
   }

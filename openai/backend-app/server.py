@@ -55,18 +55,22 @@ def decrypt_data(ciphertext: bytes, key: str, salt: str) -> str:
 class BaseHandler(tornado.web.RequestHandler):
 
     def prepare(self):
+        super().prepare()
         self.encrypt_key = Global.config['encrypt_key']
         self.encrypt_salt = Global.config['encrypt_salt']
 
     def set_default_headers(self):
         # Allow all origins
-        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Origin", "http://127.0.0.1:3000")
 
         # Allow specific headers
-        self.set_header("Access-Control-Allow-Headers", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
 
         # Allow specific methods
         self.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+        # Allow credentials
+        self.set_header("Access-Control-Allow-Credentials", "true")
 
     def options(self):
         # Handle preflight OPTIONS requests
@@ -84,6 +88,10 @@ class AuthHandler(BaseHandler):
 
     def prepare(self):
         super().prepare()
+        # options request does not need auth
+        if self.request.method == "OPTIONS":
+            return
+
         # get session_id from cookie 
         session_id = self.get_cookie(Global.config['session_cookie_name'], None)
         is_valid = Global.session_model.validate_session(session_id)

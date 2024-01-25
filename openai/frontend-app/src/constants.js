@@ -6,7 +6,10 @@ const ENDPOINT_SIGNUP = BASE_URL + "/signup";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
 const ENDPOINT_PROMPT = BASE_URL + "/prompt";
 
+const SESSION_COOKIE_NAME = "_chat_session";
+
 export { ENDPOINT_SIGNIN };
 export { ENDPOINT_SIGNUP };
 export { ENDPOINT_CHAT };
 export { ENDPOINT_PROMPT };
+export { SESSION_COOKIE_NAME }
