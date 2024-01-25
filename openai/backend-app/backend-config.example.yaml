@@ -28,3 +28,6 @@ encrypt_salt: "1234123412341234" # must be 16 bytes
 # database file related
 app_data_db_name: "test-app-data.db"
 key_db_name: "test-key-data.db"
+
+# user budget
+default_monthly_budget: 5

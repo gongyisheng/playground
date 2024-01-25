@@ -5,7 +5,7 @@ import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
 import Model from "../components/Model";
 import PromptConsole from "../components/PromptConsole";
-import { ENDPOINT_CHAT, ENDPOINT_PROMPT } from "../constants";
+import { ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT } from "../constants";
 
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 
@@ -23,6 +23,8 @@ function Playground() {
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
   const [myPrompts, setMyPrompts] = useState({});
+  const [cost, setCost] = useState("$0.00");
+  const [limit, setLimit] = useState("$0.00");
 
   useEffect(
     () => async () => {
@@ -44,7 +46,9 @@ function Playground() {
       } catch (error) {
         setMyPrompts({});
       }
+      refrestCostAndLimit();
     },
+    
     [refreshFlag],
   );
 
@@ -169,7 +173,10 @@ function Playground() {
       setSSEStatus(false);
     };
 
-    return () => sse.close();
+    return () => {
+      sse.close();
+      refrestCostAndLimit();
+    }
   }, [SSEStatus]);
 
   // Flush SSEData to conversation
@@ -202,10 +209,28 @@ function Playground() {
     sendChatRequest();
   };
 
+  const refrestCostAndLimit = async () => {
+    const response = await fetch(ENDPOINT_AUDIT, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // <-- includes cookies in the request
+    });
+    if (response.status === 200) {
+      const data = await response.json();
+      setCost("$"+data.cost);
+      setLimit("$"+data.limit);
+    } else if (response.status === 401) {
+      // redirect to signin page if not logged in
+      navigate("/signin");
+    }
+  }
+
   return (
     <div className="grid grid-cols-12 h-screen max-h-screen">
       <div className="col-span-2">
-        <Model onChange={handleModelChange} />
+        <Model onChange={handleModelChange} cost={ cost } limit={ limit } />
       </div>
       <div className="col-span-7 flex flex-col px-8 overflow-y-scroll">
         <div className="grow pt-4">

@@ -288,6 +288,7 @@ class SignUpHandler(BaseHandler):
             encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
             Global.user_key_model.create_user(user_id, username, encrypted_pwd)
             Global.api_key_model.claim_invitation_code(user_id, encrypted_invitation_code)
+            Global.audit_model.insert_budget_by_user_id(user_id, Global.config['default_monthly_budget'])
             self.build_return(200)
             return
 
@@ -351,7 +352,8 @@ class AuditHandler(AuthHandler):
         print("Receive get request for audit")
         billing_period = datetime.now().strftime("%Y-%m")
         cost = Global.audit_model.get_total_cost_by_user_id_billing_period(self.user_id, billing_period)
-        self.build_return(200, {"cost": cost})
+        limit = Global.audit_model.get_budget_by_user_id(self.user_id)
+        self.build_return(200, {"cost": str(int(cost*10000)/10000.0), "limit": str(int(limit*100)/100.0)})
         return
 
 def make_app():
