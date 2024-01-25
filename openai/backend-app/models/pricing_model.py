@@ -126,4 +126,3 @@ if __name__ == '__main__':
 
     pricing = pricing_model.get_pricing_by_model(model)
     print("all pricing: ", pricing)
-    

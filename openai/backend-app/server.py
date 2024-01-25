@@ -1,9 +1,12 @@
 # server for customized chatbot
+from datetime import datetime
 import json
 import uuid
 import sqlite3
 
 from openai import OpenAI
+import tiktoken
+import tiktoken_ext.openai_public
 import tornado.ioloop
 import tornado.web
 
@@ -12,6 +15,7 @@ from models.session_model import SessionModel
 from models.chat_history_model import ChatHistoryModel
 from models.prompt_model import PromptModel
 from models.audit_model import AuditModel
+from models.pricing_model import PricingModel
 
 from models.api_key_model import ApiKeyModel
 from models.user_key_model import UserKeyModel
@@ -22,6 +26,7 @@ MODEL_MAPPING = {
     "gpt-3.5": "gpt-3.5-turbo-1106",
     "gpt-4": "gpt-4-1106-preview",
 }
+ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 
 SESSION_COOKIE_NAME = "_chat_session"
 SESSION_COOKIE_EXPIRE_DAYS = 30 # 30 days
@@ -40,6 +45,7 @@ class Global:
     chat_history_model = None
     prompt_model = None
     audit_model = None
+    pricing_model = None
 
 class BaseHandler(tornado.web.RequestHandler):
 
@@ -124,6 +130,10 @@ class ChatHandler(AuthHandler):
         body = json.dumps({"content": data})
         return f"data: {body}\n\n"
 
+    def get_token_num(self, message):
+        num_tokens = len(ENC.encode(message))
+        return num_tokens
+
     def get(self):
         global MESSAGE_STORAGE
         # set headers for SSE to work
@@ -160,12 +170,26 @@ class ChatHandler(AuthHandler):
                 self.write(self.build_sse_message(content))
                 self.flush()
 
+        del MESSAGE_STORAGE[thread_id]
+
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
-        Global.chat_history_model.save_chat_history(self.user_id, thread_id, conversation) # need user_id
-        del MESSAGE_STORAGE[thread_id]
-        self.finish()
+        Global.chat_history_model.save_chat_history(self.user_id, thread_id, conversation)
 
+        # audit cost
+        input_token = 0
+        for i in range(len(conversation)-1):
+            item = conversation[i]
+            input_token += self.get_token_num(item["content"])
+        print(f"input_token: {input_token}")
+
+        output_token = self.get_token_num(assistant_message)
+        print(f"output_token: {output_token}")
+        
+        billing_period = datetime.now().strftime("%Y-%m")
+        Global.audit_model.insert_audit_log(self.user_id, billing_period, thread_id, real_model, input_token, output_token)
+
+        self.finish()
 
 class PromptHandler(AuthHandler):
 
@@ -231,7 +255,6 @@ class SignUpHandler(BaseHandler):
             Global.api_key_model.claim_invitation_code(user_id, invitation_code)
             self.build_return(200)
 
-
 class SignInHandler(BaseHandler):
 
     def post(self):
@@ -275,6 +298,13 @@ class InviteHandler(BaseHandler):
             Global.api_key_model.insert_api_key_invitation_code(api_key, invitation_code)
             self.build_return(200)
 
+class AuditHandler(AuthHandler):
+
+    def get(self):
+        print("Receive get request for audit")
+        billing_period = datetime.now().strftime("%Y-%m")
+        cost = Global.audit_model.get_total_cost_by_user_id_billing_period(self.user_id, billing_period)
+        self.build_return(200, {"cost": cost})
 
 def make_app():
     return tornado.web.Application(
@@ -284,6 +314,7 @@ def make_app():
             (r"/signin", SignInHandler),
             (r"/signup", SignUpHandler),
             (r"/invite", InviteHandler),
+            (r"/audit", AuditHandler),
         ]
     )
 
@@ -312,6 +343,11 @@ if __name__ == "__main__":
     Global.prompt_model.create_tables()
     Global.audit_model = AuditModel(APP_DATA_DB_CONN)
     Global.audit_model.create_tables()
+    Global.pricing_model = PricingModel(APP_DATA_DB_CONN)
+    Global.pricing_model.create_tables()
+
+    # Global.pricing_model.create_pricing("gpt-3.5-turbo-1106", 0.001/1000, 0.002/1000, 0)
+    # Global.pricing_model.create_pricing("gpt-4-1106-preview", 0.01/1000, 0.03/1000, 0)
 
     app = make_app()
     app.listen(5600)
