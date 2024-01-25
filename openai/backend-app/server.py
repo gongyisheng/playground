@@ -1,8 +1,9 @@
 # server for customized chatbot
 from datetime import datetime
 import json
-import uuid
+import os
 import sqlite3
+import uuid
 
 from openai import OpenAI
 import tiktoken
@@ -320,14 +321,18 @@ def make_app():
 
 
 if __name__ == "__main__":
-    import sys
+    from argparse import ArgumentParser
 
-    app_data_db_name = str(sys.argv[1]) if len(sys.argv) > 1 else "test-app-data.db"
-    key_db_name = str(sys.argv[2]) if len(sys.argv) > 2 else "test-key.db"
+    parser = ArgumentParser()
+    parser.add_argument("--app_data_db_name", type=str, dest="app_data_db_name", default="test-app-data.db")
+    parser.add_argument("--key_db_name", type=str, dest="key_db_name", default="test-key.db")
+    parser.add_argument("--use_ssl", dest="use_ssl", action="store_true")
+    parser.add_argument("--port", dest="port", type=int, default=5600)
+    args = parser.parse_args()
 
-    APP_DATA_DB_CONN = sqlite3.connect(app_data_db_name)
-    KEY_DB_CONN = sqlite3.connect(key_db_name)
-    print("Connected to database: [%s] [%s]" % (app_data_db_name, key_db_name))
+    APP_DATA_DB_CONN = sqlite3.connect(args.app_data_db_name)
+    KEY_DB_CONN = sqlite3.connect(args.key_db_name)
+    print("Connected to database: [%s] [%s]" % (args.app_data_db_name, args.key_db_name))
 
     Global.api_key_model = ApiKeyModel(KEY_DB_CONN)
     Global.api_key_model.create_tables()
@@ -350,6 +355,14 @@ if __name__ == "__main__":
     # Global.pricing_model.create_pricing("gpt-4-1106-preview", 0.01/1000, 0.03/1000, 0)
 
     app = make_app()
-    app.listen(5600)
-    print("Starting Tornado server on http://localhost:5600")
+    if args.use_ssl:
+        app.listen(443, ssl_options={
+            "certfile": os.environ.get("CHATBACKEND_CERTFILE_PATH"),
+            "keyfile": os.environ.get("CHATBACKEND_KEYFILE_PATH"),
+        })
+        print("Starting Tornado server on https://localhost:443")
+    else:
+        app.listen(args.port)
+        print(f"Starting Tornado server on http://localhost:{args.port}")
+    
     tornado.ioloop.IOLoop.current().start()
