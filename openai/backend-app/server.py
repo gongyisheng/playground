@@ -181,6 +181,16 @@ class ChatHandler(AuthHandler):
             return
         print(f"Receive get request, uuid: {thread_id}, model: {real_model}")
 
+        billing_period = datetime.now().strftime("%Y-%m")
+        user_cost = Global.audit_model.get_total_cost_by_user_id_billing_period(self.user_id, billing_period)
+        user_limit = Global.audit_model.get_budget_by_user_id(self.user_id)
+
+        if user_cost >= user_limit:
+            del MESSAGE_STORAGE[thread_id]
+            self.write(self.build_sse_message("You have exceeded your monthly budget. Please contact to author.\nhttps://yishenggong.com/about-me"))
+            self.flush()
+            return
+
         # create openai stream
         OPENAI_CLIENT = OpenAI(api_key=self.api_key)
         stream = OPENAI_CLIENT.chat.completions.create(
