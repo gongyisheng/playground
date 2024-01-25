@@ -73,12 +73,12 @@ class UserKeyModel(BaseModel):
         )
         return (res is not None) and (res[0] == password_hash)
 
-    def get_user_id_by_username_password_hash(self, username: str) -> Optional[int]:
+    def get_user_id_by_username_password_hash(self, username: str, password_hash: str) -> Optional[int]:
         res = self.fetchone(
             """
-            SELECT user_id FROM user_key WHERE username = ?
+            SELECT user_id FROM user_key WHERE username = ? AND password_hash = ?
             """,
-            (username,),
+            (username, password_hash),
         )
         return res[0] if res else None
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     username = "test1"
     password_hash = "test1"
     user_key_model.create_user(user_id, username, password_hash)
-    res = user_key_model.get_user_id_by_username_password_hash(username)
+    res = user_key_model.get_user_id_by_username_password_hash(username, password_hash)
     print("user_id:", res)
 
     res = user_key_model.validate_username(username)

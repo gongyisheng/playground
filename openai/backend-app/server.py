@@ -32,8 +32,14 @@ SESSION_COOKIE_PATH = "/"
 # dev: test.db
 # personal prompt engineering: prompt.db
 # yipit: yipit.db
-APP_DATA_DB_CONN = None
-KEY_DB_CONN = None
+class Global:
+    api_key_model = None
+    user_key_model = None
+    user_model = None
+    session_model = None
+    chat_history_model = None
+    prompt_model = None
+    audit_model = None
 
 class BaseHandler(tornado.web.RequestHandler):
 
@@ -61,23 +67,17 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class AuthHandler(BaseHandler):
 
-    session_model = SessionModel(APP_DATA_DB_CONN)
-    api_key_model = ApiKeyModel(KEY_DB_CONN)
-
     def prepare(self):
         # get session_id from cookie 
         session_id = self.get_cookie(SESSION_COOKIE_NAME)
-        is_valid = self.session_model.validate_session(session_id)
+        is_valid = Global.session_model.validate_session(session_id)
         if not is_valid:
-            self.build_return(401, {"error": "Session is not valid or expired"})
+            self.build_return(401, {"error": "Unauthorized operation"})
         else:
-            self.user_id = self.session_model.get_user_id_by_session(session_id)
-            self.api_key = self.api_key_model.get_api_key_by_user(self.user_id)
+            self.user_id = Global.session_model.get_user_id_by_session(session_id)
+            self.api_key = Global.api_key_model.get_api_key_by_user(self.user_id)
 
 class ChatHandler(AuthHandler):
-
-    chat_history_model = ChatHistoryModel(APP_DATA_DB_CONN)
-    audit_model = AuditModel(APP_DATA_DB_CONN)
 
     def validate_conversation(self, conversation):
         role = ["system", "user", "assistant"]
@@ -149,12 +149,11 @@ class ChatHandler(AuthHandler):
         # create openai stream
         OPENAI_CLIENT = OpenAI(api_key=self.api_key)
         stream = OPENAI_CLIENT.chat.completions.create(
-            model=real_model, messages=conversation, stream=True
+            model=real_model, messages=conversation, stream=True, 
         )
 
         assistant_message = ""
         for chunk in stream:
-            print(chunk)
             content = chunk.choices[0].delta.content
             if content is not None:
                 assistant_message += content
@@ -163,19 +162,17 @@ class ChatHandler(AuthHandler):
 
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
-        self.chat_history_model.save_chat_history(self.user_id, thread_id, conversation) # need user_id
+        Global.chat_history_model.save_chat_history(self.user_id, thread_id, conversation) # need user_id
         del MESSAGE_STORAGE[thread_id]
         self.finish()
 
 
 class PromptHandler(AuthHandler):
 
-    prompt_model = PromptModel(APP_DATA_DB_CONN)
-
     def get(self):
         print("Receive get request for prompts")
         my_prompts = {}
-        for row in self.prompt_model.get_prompts_by_user_id(self.user_id):
+        for row in Global.prompt_model.get_prompts_by_user_id(self.user_id):
             prompt_name, prompt_content, prompt_note = row
             my_prompts[prompt_name] = {
                 "promptName": prompt_name,
@@ -196,15 +193,11 @@ class PromptHandler(AuthHandler):
                 400, {"error": "promptName or promptContent is empty or not provided"}
             )
         else:
-            self.prompt_model.save_prompt(self.user_id, promptName, promptContent, promptNote)
+            Global.prompt_model.save_prompt(self.user_id, promptName, promptContent, promptNote)
             print(f"Save prompt, name: {promptName}, content: {promptContent}")
             self.build_return(200)
 
 class SignUpHandler(BaseHandler):
-
-    user_model = UserModel(APP_DATA_DB_CONN)
-    user_key_model = UserKeyModel(KEY_DB_CONN)
-    api_key_model = ApiKeyModel(KEY_DB_CONN)
 
     def post(self):
         body = json.loads(self.request.body)
@@ -226,23 +219,20 @@ class SignUpHandler(BaseHandler):
                 400,
                 {"error": "Invitation code is not provided"},
             )
-        elif self.user_key_model.validate_username(username):
+        elif Global.user_key_model.validate_username(username):
             self.build_return(400, {"error": "Username already exists"})
-        elif not self.api_key_model.validate_invitation_code(invitation_code):
+        elif not Global.api_key_model.validate_invitation_code(invitation_code):
             self.build_return(
                 400, {"error": "Invitation code is not correct or expired"}
             )
         else:
-            user_id = self.user_model.create_user()
-            self.user_key_model.create_user(user_id, username, password_hash)
-            self.api_key_model.claim_invitation_code(user_id, invitation_code)
+            user_id = Global.user_model.create_user()
+            Global.user_key_model.create_user(user_id, username, password_hash)
+            Global.api_key_model.claim_invitation_code(user_id, invitation_code)
             self.build_return(200)
 
 
 class SignInHandler(BaseHandler):
-
-    user_key_model = UserKeyModel(KEY_DB_CONN)
-    session_model = SessionModel(APP_DATA_DB_CONN)
 
     def post(self):
         body = json.loads(self.request.body)
@@ -257,17 +247,15 @@ class SignInHandler(BaseHandler):
             self.build_return(
                 400, {"error": "Password is not provided"}
             )
-        elif not self.user_key_model.validate_user(username, password_hash):
+        elif not Global.user_key_model.validate_user(username, password_hash):
             self.build_return(400, {"error": "Username or password is not correct"})
         else:
-            user_id = self.user_key_model.get_user_id_by_username_password_hash(username, password_hash)
-            session_id = self.session_model.create_session(user_id)
+            user_id = Global.user_key_model.get_user_id_by_username_password_hash(username, password_hash)
+            session_id = Global.session_model.create_session(user_id)
             self.set_cookie(SESSION_COOKIE_NAME, session_id, expires_days=SESSION_COOKIE_EXPIRE_DAYS, path=SESSION_COOKIE_PATH)
             self.build_return(200)
 
 class InviteHandler(BaseHandler):
-
-    api_key_model = ApiKeyModel(KEY_DB_CONN)
 
     def post(self):
         body = json.loads(self.request.body)
@@ -284,7 +272,7 @@ class InviteHandler(BaseHandler):
                 {"error": "Invitation code is not provided"},
             )
         else:
-            self.api_key_model.insert_api_key_invitation_code(api_key, invitation_code)
+            Global.api_key_model.insert_api_key_invitation_code(api_key, invitation_code)
             self.build_return(200)
 
 
@@ -310,20 +298,20 @@ if __name__ == "__main__":
     KEY_DB_CONN = sqlite3.connect(key_db_name)
     print("Connected to database: [%s] [%s]" % (app_data_db_name, key_db_name))
 
-    model = ApiKeyModel(KEY_DB_CONN)
-    model.create_tables()
-    model = UserKeyModel(KEY_DB_CONN)
-    model.create_tables()
-    model = UserModel(APP_DATA_DB_CONN)
-    model.create_tables()
-    model = SessionModel(APP_DATA_DB_CONN)
-    model.create_tables()
-    model = ChatHistoryModel(APP_DATA_DB_CONN)
-    model.create_tables()
-    model = PromptModel(APP_DATA_DB_CONN)
-    model.create_tables()
-    model = AuditModel(APP_DATA_DB_CONN)
-    model.create_tables()
+    Global.api_key_model = ApiKeyModel(KEY_DB_CONN)
+    Global.api_key_model.create_tables()
+    Global.user_key_model = UserKeyModel(KEY_DB_CONN)
+    Global.user_key_model.create_tables()
+    Global.user_model = UserModel(APP_DATA_DB_CONN)
+    Global.user_model.create_tables()
+    Global.session_model = SessionModel(APP_DATA_DB_CONN)
+    Global.session_model.create_tables()
+    Global.chat_history_model = ChatHistoryModel(APP_DATA_DB_CONN)
+    Global.chat_history_model.create_tables()
+    Global.prompt_model = PromptModel(APP_DATA_DB_CONN)
+    Global.prompt_model.create_tables()
+    Global.audit_model = AuditModel(APP_DATA_DB_CONN)
+    Global.audit_model.create_tables()
 
     app = make_app()
     app.listen(5600)
