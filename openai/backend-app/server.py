@@ -6,6 +6,7 @@ import sqlite3
 import uuid
 
 from openai import OpenAI
+import yaml
 import tiktoken
 import tiktoken_ext.openai_public
 import tornado.ioloop
@@ -24,9 +25,11 @@ from models.user_key_model import UserKeyModel
 MESSAGE_STORAGE = {}
 ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 
-SESSION_COOKIE_NAME = "_chat_session"
-SESSION_COOKIE_EXPIRE_DAYS = 30 # 30 days
-SESSION_COOKIE_PATH = "/"
+def read_config(file_path):
+    with open(file_path, "r") as yamlfile:
+        data = yaml.load(yamlfile, Loader=yaml.FullLoader)
+        print("Read config successful")
+    return data
 
 class Global:
     api_key_model = None
@@ -37,6 +40,7 @@ class Global:
     prompt_model = None
     audit_model = None
     pricing_model = None
+    config = None
 
 class BaseHandler(tornado.web.RequestHandler):
 
@@ -66,7 +70,7 @@ class AuthHandler(BaseHandler):
 
     def prepare(self):
         # get session_id from cookie 
-        session_id = self.get_cookie(SESSION_COOKIE_NAME)
+        session_id = self.get_cookie(Global.config['session_cookie_name'], None)
         is_valid = Global.session_model.validate_session(session_id)
         if not is_valid:
             self.build_return(401, {"error": "Unauthorized operation"})
@@ -138,7 +142,7 @@ class ChatHandler(AuthHandler):
         if thread_id is None or model is None:
             self.build_return(400, {"error": "thread_id or model is missing"})
 
-        real_model = MODEL_MAPPING.get(model.lower(), None)
+        real_model = Global.config['model_mapping'].get(model.lower(), None)
         if real_model is None:
             self.build_return(400, {"error": "model is not supported"})
 
@@ -266,7 +270,7 @@ class SignInHandler(BaseHandler):
         else:
             user_id = Global.user_key_model.get_user_id_by_username_password_hash(username, password_hash)
             session_id = Global.session_model.create_session(user_id)
-            self.set_cookie(SESSION_COOKIE_NAME, session_id, expires_days=SESSION_COOKIE_EXPIRE_DAYS, path=SESSION_COOKIE_PATH)
+            self.set_cookie(Global.config['session_cookie_name'], session_id, expires_days=Global.config['session_cookie_expires_days'], path=Global.config['session_cookie_path'], domain=Global.config.get('session_cookie_domain'))
             self.build_return(200)
 
 class InviteHandler(BaseHandler):
@@ -314,15 +318,14 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
-    parser.add_argument("--app_data_db_name", type=str, dest="app_data_db_name", default="test-app-data.db")
-    parser.add_argument("--key_db_name", type=str, dest="key_db_name", default="test-key.db")
-    parser.add_argument("--use_ssl", dest="use_ssl", action="store_true")
-    parser.add_argument("--port", dest="port", type=int, default=5600)
+    parser.add_argument("--config", dest="config", default="backend-config.test.yaml")
     args = parser.parse_args()
 
-    APP_DATA_DB_CONN = sqlite3.connect(args.app_data_db_name)
-    KEY_DB_CONN = sqlite3.connect(args.key_db_name)
-    print("Connected to database: [%s] [%s]" % (args.app_data_db_name, args.key_db_name))
+    Global.config = read_config(args.config)
+
+    APP_DATA_DB_CONN = sqlite3.connect(Global.config['app_data_db_name'])
+    KEY_DB_CONN = sqlite3.connect(Global.config['key_db_name'])
+    print("Connected to database: [%s] [%s]" % (Global.config['app_data_db_name'], Global.config['key_db_name']))
 
     Global.api_key_model = ApiKeyModel(KEY_DB_CONN)
     Global.api_key_model.create_tables()
@@ -345,14 +348,14 @@ if __name__ == "__main__":
     # Global.pricing_model.create_pricing("gpt-4-1106-preview", 0.01/1000, 0.03/1000, 0)
 
     app = make_app()
-    if args.use_ssl:
+    if Global.config['enable_https']:
         app.listen(443, ssl_options={
-            "certfile": os.environ.get("CHATBACKEND_CERTFILE_PATH"),
-            "keyfile": os.environ.get("CHATBACKEND_KEYFILE_PATH"),
+            "certfile": Global.config['https_certfile_path'],
+            "keyfile": Global.config['https_keyfile_path'],
         })
         print("Starting Tornado server on https://localhost:443")
     else:
-        app.listen(args.port)
-        print(f"Starting Tornado server on http://localhost:{args.port}")
+        app.listen(Global.config['port'])
+        print(f"Starting Tornado server on http://localhost:{Global.config['port']}")
     
     tornado.ioloop.IOLoop.current().start()
