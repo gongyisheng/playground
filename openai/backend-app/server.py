@@ -22,22 +22,12 @@ from models.api_key_model import ApiKeyModel
 from models.user_key_model import UserKeyModel
 
 MESSAGE_STORAGE = {}
-
-MODEL_MAPPING = {
-    "gpt-3.5": "gpt-3.5-turbo-1106",
-    "gpt-4": "gpt-4-1106-preview",
-}
 ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 
 SESSION_COOKIE_NAME = "_chat_session"
 SESSION_COOKIE_EXPIRE_DAYS = 30 # 30 days
 SESSION_COOKIE_PATH = "/"
-# SESSION_COOKIE_DOMAIN = "yishenggong.com"
 
-# sqlite3 connection
-# dev: test.db
-# personal prompt engineering: prompt.db
-# yipit: yipit.db
 class Global:
     api_key_model = None
     user_key_model = None

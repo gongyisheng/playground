@@ -1,0 +1,22 @@
+environment: test
+
+# https related
+port: 5600
+enable_https: false
+https_certfile: "certs/localhost.crt"
+https_keyfile: "certs/localhost.key"
+
+# session cookie related
+session_cookie_name: "_chat_session"
+session_cookie_expire_days: 30
+session_cookie_path: "/"
+session_cookie_secure: false
+
+# model name related
+model_mapping:
+  gpt-3.5: "gpt-3.5-turbo-1106"
+  gpt-4: "gpt-4-1106-preview"
+
+# encryption related
+encryption_key: "12345678901234567890123456789012"
+encryption_salt: "12345678901234567890123456789012"
