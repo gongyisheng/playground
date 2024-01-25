@@ -61,7 +61,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def set_default_headers(self):
         # Allow all origins
-        self.set_header("Access-Control-Allow-Origin", "http://127.0.0.1:3000")
+        self.set_header("Access-Control-Allow-Origin", Global.config['access_control_allow_origin'])
 
         # Allow specific headers
         self.set_header("Access-Control-Allow-Headers", "Content-Type")

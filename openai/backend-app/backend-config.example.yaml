@@ -1,5 +1,8 @@
 environment: test
 
+# corp related
+access_control_allow_origin: http://127.0.0.1:3000
+
 # https related
 port: 5600
 enable_https: false
