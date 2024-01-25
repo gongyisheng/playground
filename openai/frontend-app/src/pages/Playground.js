@@ -23,8 +23,8 @@ function Playground() {
   const [SSEStatus, setSSEStatus] = useState(false);
   const [SSEData, setSSEData] = useState("");
   const [myPrompts, setMyPrompts] = useState({});
-  const [cost, setCost] = useState("$0.00");
-  const [limit, setLimit] = useState("$0.00");
+  const [cost, setCost] = useState(0.0);
+  const [limit, setLimit] = useState(0.0);
 
   useEffect(
     () => async () => {
@@ -219,8 +219,8 @@ function Playground() {
     });
     if (response.status === 200) {
       const data = await response.json();
-      setCost("$"+data.cost);
-      setLimit("$"+data.limit);
+      setCost(data.cost);
+      setLimit(data.limit);
     } else if (response.status === 401) {
       // redirect to signin page if not logged in
       navigate("/signin");

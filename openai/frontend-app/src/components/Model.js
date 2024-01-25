@@ -45,7 +45,7 @@ function Model({ onChange, cost, limit }) {
         {renderModelBlock("GPT-4", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
-        <span className="text-sm italic">Cost this month: {cost}/{limit}</span>
+        <span className="text-sm italic">Cost this month: ${cost}/${limit}</span>
       </div>
     </div>
   );
