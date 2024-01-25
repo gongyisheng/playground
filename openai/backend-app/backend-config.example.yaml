@@ -18,10 +18,10 @@ model_mapping:
   gpt-3.5: "gpt-3.5-turbo-1106"
   gpt-4: "gpt-4-1106-preview"
 
-# encryption related
-encryption_key: "12345678901234567890123456789012"
-encryption_salt: "12345678901234567890123456789012"
+# encrypt/decrypt related
+encrypt_key: "12345678901234567890123456789012"
+encrypt_salt: "1234123412341234" # must be 16 bytes
 
 # database file related
 app_data_db_name: "test-app-data.db"
-key_data_db_name: "test-key-data.db"
+key_db_name: "test-key-data.db"

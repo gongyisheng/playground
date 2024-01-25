@@ -22,8 +22,8 @@ class ApiKeyModel(BaseModel):
             CREATE TABLE IF NOT EXISTS api_key (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
-                api_key VARCHAR(255),
-                invitation_code VARCHAR(255),
+                api_key BLOB,
+                invitation_code BLOB,
                 invitation_code_status INTEGER,
                 update_time INTEGER,
 
@@ -48,7 +48,7 @@ class ApiKeyModel(BaseModel):
         )
         cursor.close()
 
-    def insert_api_key_invitation_code(self, api_key: str, invitation_code: str) -> None:
+    def insert_api_key_invitation_code(self, api_key: bytes, invitation_code: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
@@ -62,7 +62,7 @@ class ApiKeyModel(BaseModel):
         )
         cursor.close()
     
-    def validate_invitation_code(self, invitation_code: str) -> bool:
+    def validate_invitation_code(self, invitation_code: bytes) -> bool:
         res = self.fetchone(
             """
             SELECT invitation_code_status FROM api_key WHERE invitation_code = ?
@@ -72,7 +72,7 @@ class ApiKeyModel(BaseModel):
         )
         return res[0] == self.INVITATION_CODE_STATUS_ACTIVE if res else False
     
-    def claim_invitation_code(self, user_id: int, invitation_code: str) -> None:
+    def claim_invitation_code(self, user_id: int, invitation_code: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
@@ -85,7 +85,7 @@ class ApiKeyModel(BaseModel):
         )
         cursor.close()
     
-    def get_api_key_by_user(self, user_id) -> Optional[str]:
+    def get_api_key_by_user(self, user_id) -> Optional[bytes]:
         res = self.fetchone(
             """
             SELECT api_key FROM api_key WHERE user_id = ? AND invitation_code_status = ?;
@@ -103,15 +103,15 @@ if __name__ == "__main__":
     api_key_model.drop_tables()
     api_key_model.create_tables()
 
-    api_key_model.insert_api_key_invitation_code("api_key_1", "invitation_code_1")
-    api_key_model.insert_api_key_invitation_code("api_key_2", "invitation_code_2")
+    api_key_model.insert_api_key_invitation_code(b"api_key_1", b"invitation_code_1")
+    api_key_model.insert_api_key_invitation_code(b"api_key_2", b"invitation_code_2")
 
-    res = api_key_model.validate_invitation_code("invitation_code_1")
+    res = api_key_model.validate_invitation_code(b"invitation_code_1")
     print("validate code result:", res)
 
     user_id = 1
-    api_key_model.claim_invitation_code(user_id, "invitation_code_1")
-    res = api_key_model.validate_invitation_code("invitation_code_1")
+    api_key_model.claim_invitation_code(user_id, b"invitation_code_1")
+    res = api_key_model.validate_invitation_code(b"invitation_code_1")
     print("validate code result:", res)
     res = api_key_model.get_api_key_by_user(user_id)
     print("api_key:", res)

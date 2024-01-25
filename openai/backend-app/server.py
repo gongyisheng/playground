@@ -1,10 +1,10 @@
 # server for customized chatbot
 from datetime import datetime
 import json
-import os
 import sqlite3
 import uuid
 
+from Crypto.Cipher import AES
 from openai import OpenAI
 import yaml
 import tiktoken
@@ -28,7 +28,7 @@ ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 def read_config(file_path):
     with open(file_path, "r") as yamlfile:
         data = yaml.load(yamlfile, Loader=yaml.FullLoader)
-        print("Read config successful")
+        print("Read config successful. env: %s" % data["environment"])
     return data
 
 class Global:
@@ -42,7 +42,21 @@ class Global:
     pricing_model = None
     config = None
 
+def encrypt_data(plaintext: str, key: str, salt: str) -> bytes:
+    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
+    ciphertext = cipher.encrypt(plaintext.encode("ascii"))
+    return ciphertext
+
+def decrypt_data(ciphertext: bytes, key: str, salt: str) -> str:
+    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
+    plaintext = cipher.decrypt(ciphertext).decode("ascii")
+    return plaintext
+
 class BaseHandler(tornado.web.RequestHandler):
+
+    def prepare(self):
+        self.encrypt_key = Global.config['encrypt_key']
+        self.encrypt_salt = Global.config['encrypt_salt']
 
     def set_default_headers(self):
         # Allow all origins
@@ -69,14 +83,17 @@ class BaseHandler(tornado.web.RequestHandler):
 class AuthHandler(BaseHandler):
 
     def prepare(self):
+        super().prepare()
         # get session_id from cookie 
         session_id = self.get_cookie(Global.config['session_cookie_name'], None)
         is_valid = Global.session_model.validate_session(session_id)
         if not is_valid:
             self.build_return(401, {"error": "Unauthorized operation"})
+            return
         else:
             self.user_id = Global.session_model.get_user_id_by_session(session_id)
-            self.api_key = Global.api_key_model.get_api_key_by_user(self.user_id)
+            encrypted_api_key = Global.api_key_model.get_api_key_by_user(self.user_id)
+            self.api_key = decrypt_data(encrypted_api_key, self.encrypt_key, self.encrypt_salt)
 
 class ChatHandler(AuthHandler):
 
@@ -114,12 +131,14 @@ class ChatHandler(AuthHandler):
         passed, error = self.validate_conversation(conversation)
         if not passed:
             self.build_return(400, {"error": error})
-        MESSAGE_STORAGE[thread_id] = conversation
-
-        print(
-            f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
-        )
-        self.build_return(200, {"thread_id": thread_id})
+            return
+        else:
+            MESSAGE_STORAGE[thread_id] = conversation
+            print(
+                f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
+            )
+            self.build_return(200, {"thread_id": thread_id})
+            return
 
     def build_sse_message(self, data):
         body = json.dumps({"content": data})
@@ -141,14 +160,17 @@ class ChatHandler(AuthHandler):
         model = self.get_argument("model")
         if thread_id is None or model is None:
             self.build_return(400, {"error": "thread_id or model is missing"})
+            return
 
         real_model = Global.config['model_mapping'].get(model.lower(), None)
         if real_model is None:
             self.build_return(400, {"error": "model is not supported"})
+            return
 
         conversation = MESSAGE_STORAGE.get(thread_id)
         if conversation is None:
             self.build_return(400, {"error": "thread_id not found in message storage"})
+            return
         print(f"Receive get request, uuid: {thread_id}, model: {real_model}")
 
         # create openai stream
@@ -211,67 +233,84 @@ class PromptHandler(AuthHandler):
             self.build_return(
                 400, {"error": "promptName or promptContent is empty or not provided"}
             )
+            return
         else:
             Global.prompt_model.save_prompt(self.user_id, promptName, promptContent, promptNote)
             print(f"Save prompt, name: {promptName}, content: {promptContent}")
             self.build_return(200)
+            return
 
 class SignUpHandler(BaseHandler):
 
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
-        password_hash = body.get("password_hash")
+        password = body.get("password")
         invitation_code = body.get("invitation_code")
         if not username:
             self.build_return(
                 400,
                 {"error": "Username is not provided"},
             )
-        elif not password_hash:
+            return
+        elif not password:
             self.build_return(
                 400,
                 {"error": "Password is not provided"},
             )
+            return
         elif not invitation_code:
             self.build_return(
                 400,
                 {"error": "Invitation code is not provided"},
             )
+            return
         elif Global.user_key_model.validate_username(username):
             self.build_return(400, {"error": "Username already exists"})
-        elif not Global.api_key_model.validate_invitation_code(invitation_code):
+            return
+        
+        encrypted_invitation_code = encrypt_data(invitation_code, self.encrypt_key, self.encrypt_salt)
+        if not Global.api_key_model.validate_invitation_code(encrypted_invitation_code):
             self.build_return(
                 400, {"error": "Invitation code is not correct or expired"}
             )
+            return
         else:
             user_id = Global.user_model.create_user()
-            Global.user_key_model.create_user(user_id, username, password_hash)
-            Global.api_key_model.claim_invitation_code(user_id, invitation_code)
+            encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
+            Global.user_key_model.create_user(user_id, username, encrypted_pwd)
+            Global.api_key_model.claim_invitation_code(user_id, encrypted_invitation_code)
             self.build_return(200)
+            return
 
 class SignInHandler(BaseHandler):
 
     def post(self):
         body = json.loads(self.request.body)
         username = body.get("username")
-        password_hash = body.get("password_hash")
+        password = body.get("password")
         print(f"Receive post request, username: {username}")
         if not username:
             self.build_return(
                 400, {"error": "Username is not provided"}
             )
-        elif not password_hash:
+            return
+        elif not password:
             self.build_return(
                 400, {"error": "Password is not provided"}
             )
-        elif not Global.user_key_model.validate_user(username, password_hash):
+            return
+        
+        encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
+        if not Global.user_key_model.validate_user(username, encrypted_pwd):
             self.build_return(400, {"error": "Username or password is not correct"})
+            return
         else:
-            user_id = Global.user_key_model.get_user_id_by_username_password_hash(username, password_hash)
+            user_id = Global.user_key_model.get_user_id_by_username_password(username, encrypted_pwd)
             session_id = Global.session_model.create_session(user_id)
             self.set_cookie(Global.config['session_cookie_name'], session_id, expires_days=Global.config['session_cookie_expires_days'], path=Global.config['session_cookie_path'], domain=Global.config.get('session_cookie_domain'))
             self.build_return(200)
+            return
 
 class InviteHandler(BaseHandler):
 
@@ -284,14 +323,19 @@ class InviteHandler(BaseHandler):
                 400,
                 {"error": "API key is not provided"},
             )
+            return
         elif not invitation_code:
             self.build_return(
                 400,
                 {"error": "Invitation code is not provided"},
             )
+            return
         else:
-            Global.api_key_model.insert_api_key_invitation_code(api_key, invitation_code)
+            encrypted_api_key = encrypt_data(api_key, self.encrypt_key, self.encrypt_salt)
+            encrypted_invitation_code = encrypt_data(invitation_code, self.encrypt_key, self.encrypt_salt)
+            Global.api_key_model.insert_api_key_invitation_code(encrypted_api_key, encrypted_invitation_code)
             self.build_return(200)
+            return
 
 class AuditHandler(AuthHandler):
 
@@ -300,6 +344,7 @@ class AuditHandler(AuthHandler):
         billing_period = datetime.now().strftime("%Y-%m")
         cost = Global.audit_model.get_total_cost_by_user_id_billing_period(self.user_id, billing_period)
         self.build_return(200, {"cost": cost})
+        return
 
 def make_app():
     return tornado.web.Application(
@@ -344,8 +389,11 @@ if __name__ == "__main__":
     Global.pricing_model = PricingModel(APP_DATA_DB_CONN)
     Global.pricing_model.create_tables()
 
-    # Global.pricing_model.create_pricing("gpt-3.5-turbo-1106", 0.001/1000, 0.002/1000, 0)
-    # Global.pricing_model.create_pricing("gpt-4-1106-preview", 0.01/1000, 0.03/1000, 0)
+    # init price
+    if Global.pricing_model.get_current_pricing_by_model("gpt-3.5-turbo-1106") is None:
+        Global.pricing_model.create_pricing("gpt-3.5-turbo-1106", 0.001/1000, 0.002/1000, 0)
+    if Global.pricing_model.get_current_pricing_by_model("gpt-4-1106-preview") is None:
+        Global.pricing_model.create_pricing("gpt-4-1106-preview", 0.01/1000, 0.03/1000, 0)
 
     app = make_app()
     if Global.config['enable_https']:
