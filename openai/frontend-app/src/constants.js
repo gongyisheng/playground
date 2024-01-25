@@ -1,4 +1,4 @@
-const BASE_URL = "http://127.0.0.1:5600";
+const BASE_URL = "https://chatbackend.yishenggong.com";
 
 const ENDPOINT_SIGNIN = BASE_URL + "/signin";
 const ENDPOINT_SIGNUP = BASE_URL + "/signup";
