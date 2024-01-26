@@ -93,7 +93,7 @@ class ApiKeyModel(BaseModel):
             (user_id, self.INVITATION_CODE_STATUS_EXPIRED),
             on_raise=True,
         )
-        return res[0] if res else None
+        return res[0] if res[0] else None
 
 if __name__ == "__main__":
     # unittest

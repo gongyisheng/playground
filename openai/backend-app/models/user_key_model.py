@@ -80,7 +80,7 @@ class UserKeyModel(BaseModel):
             """,
             (username, password),
         )
-        return res[0] if res else None
+        return res[0] if res[0] else None
 
 if __name__ == "__main__":
     # unittest

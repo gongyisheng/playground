@@ -115,7 +115,7 @@ class SessionModel(BaseModel):
             (session_id,),
             on_raise=True,
         )
-        return res[0] if res else None
+        return res[0] if res[0] else None
 
 if __name__ == '__main__':
     conn = sqlite3.connect('unittest.db')
