@@ -173,9 +173,9 @@ function Playground() {
       setSSEStatus(false);
     };
 
-    return () => {
+    return async () => {
       sse.close();
-      refrestCostAndLimit();
+      await refrestCostAndLimit();
     }
   }, [SSEStatus]);
 
