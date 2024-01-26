@@ -1,6 +1,8 @@
 import sqlite3
 import sys
 
+# add path
+sys.path.append("../")
 from models.pricing_model import PricingModel
 db_file = sys.argv[1] if len(sys.argv) > 1 else "unittest.db"
 

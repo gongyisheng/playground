@@ -493,6 +493,6 @@ if __name__ == "__main__":
         )
     else:
         app.listen(Global.config["port"])
-    print(f"Starting Tornado server on localhost:{Global.config['port']}")
+    print(f"Starting Tornado server on 127.0.0.1:{Global.config['port']}")
 
     tornado.ioloop.IOLoop.current().start()
