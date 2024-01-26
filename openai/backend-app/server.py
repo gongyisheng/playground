@@ -417,7 +417,7 @@ if __name__ == "__main__":
 
     app = make_app()
     if Global.config['enable_https']:
-        app.listen(443, ssl_options={
+        app.listen(Global.config['port'], ssl_options={
             "certfile": Global.config['https_certfile_path'],
             "keyfile": Global.config['https_keyfile_path'],
         })
