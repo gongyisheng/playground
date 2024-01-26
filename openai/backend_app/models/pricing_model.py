@@ -1,7 +1,12 @@
 import sqlite3
+import sys
 from typing import Tuple
 
-from .base_model import BaseModel
+sys.path.append("../../")
+
+from backend_app.utils import setup_logger
+
+from backend_app.models.base_model import BaseModel
 
 class PricingModel(BaseModel):
 
@@ -100,6 +105,9 @@ class PricingModel(BaseModel):
         )
 
 if __name__ == '__main__':
+    import logging
+    setup_logger()
+
     conn = sqlite3.connect('unittest.db')
     pricing_model = PricingModel(conn)
 
@@ -114,7 +122,7 @@ if __name__ == '__main__':
 
     pricing_model.create_pricing(model, cost_per_input_token, cost_per_output_token, start_time, end_time)
     pricing = pricing_model.get_current_pricing_by_model(model)
-    print("current pricing: ", pricing)
+    logging.info("current pricing: ", pricing)
 
     model = 'davinci'
     cost_per_input_token = 1
@@ -122,7 +130,7 @@ if __name__ == '__main__':
     start_time = 1630000000
     pricing_model.update_pricing(model, cost_per_input_token, cost_per_output_token, start_time, end_time)
     pricing = pricing_model.get_current_pricing_by_model(model)
-    print("current pricing: ", pricing)
+    logging.info("current pricing: ", pricing)
 
     pricing = pricing_model.get_pricing_by_model(model)
-    print("all pricing: ", pricing)
+    logging.info("all pricing: ", pricing)

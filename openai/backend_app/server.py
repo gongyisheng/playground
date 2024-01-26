@@ -3,7 +3,10 @@ from datetime import datetime
 import json
 import logging
 import sqlite3
+import sys
 import uuid
+
+sys.path.append("../")
 
 from Crypto.Cipher import AES
 from openai import OpenAI

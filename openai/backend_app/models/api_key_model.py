@@ -1,8 +1,13 @@
 import sqlite3
 import time
+import sys
 from typing import Optional
 
-from .base_model import BaseModel
+sys.path.append("../../")
+
+from backend_app.utils import setup_logger
+
+from backend_app.models.base_model import BaseModel
 
 class ApiKeyModel(BaseModel):
     
@@ -96,6 +101,9 @@ class ApiKeyModel(BaseModel):
         return res[0] if res[0] else None
 
 if __name__ == "__main__":
+    import logging
+    setup_logger()
+
     # unittest
     conn = sqlite3.connect("unittest.db")
     api_key_model = ApiKeyModel(conn)
@@ -107,11 +115,11 @@ if __name__ == "__main__":
     api_key_model.insert_api_key_invitation_code(b"api_key_2", b"invitation_code_2")
 
     res = api_key_model.validate_invitation_code(b"invitation_code_1")
-    print("validate code result:", res)
+    logging.info("validate code result:", res)
 
     user_id = 1
     api_key_model.claim_invitation_code(user_id, b"invitation_code_1")
     res = api_key_model.validate_invitation_code(b"invitation_code_1")
-    print("validate code result:", res)
+    logging.info("validate code result:", res)
     res = api_key_model.get_api_key_by_user(user_id)
-    print("api_key:", res)
+    logging.info("api_key:", res)
