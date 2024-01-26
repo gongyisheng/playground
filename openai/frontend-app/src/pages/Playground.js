@@ -26,31 +26,6 @@ function Playground() {
   const [cost, setCost] = useState(0.0);
   const [limit, setLimit] = useState(0.0);
 
-  useEffect(
-    () => async () => {
-      try {
-        const response = await fetch(ENDPOINT_PROMPT, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include", // <-- includes cookies in the request
-          method: "GET",
-        });
-        if (response.status === 200) {
-          setMyPrompts(await response.json());
-        } else if (response.status === 401) {
-          // redirect to signin page if not logged in
-          navigate("/signin");
-          setMyPrompts({});
-        }
-      } catch (error) {
-        setMyPrompts({});
-      }
-      await refrestCostAndLimit();
-    },
-    [refreshFlag],
-  );
-
   const handleModelChange = (_model) => {
     model = _model;
   };
@@ -225,6 +200,40 @@ function Playground() {
       navigate("/signin");
     }
   }
+
+  const refreshPrompt = async () => {
+    try {
+      const response = await fetch(ENDPOINT_PROMPT, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // <-- includes cookies in the request
+        method: "GET",
+      });
+      if (response.status === 200) {
+        setMyPrompts(await response.json());
+      } else if (response.status === 401) {
+        // redirect to signin page if not logged in
+        navigate("/signin");
+        setMyPrompts({});
+      }
+    } catch (error) {
+      setMyPrompts({});
+    }
+  };
+
+  useEffect(
+    () => async () => {
+      await refrestCostAndLimit();
+      await refreshPrompt();
+    },
+    [refreshFlag],
+  );
+
+  useEffect(async () => {
+    await refrestCostAndLimit();
+    await refreshPrompt();
+  }, []);
 
   return (
     <div className="grid grid-cols-12 h-screen max-h-screen">
