@@ -240,17 +240,16 @@ function Playground() {
     }
   };
 
-  useEffect(
-    () => async () => {
-      await refrestCostAndLimit();
-      await refreshPrompt();
+  useEffect(() => {
+      refrestCostAndLimit();
+      refreshPrompt();
     },
     [refreshFlag],
   );
 
-  useEffect(async () => {
-    await refrestCostAndLimit();
-    await refreshPrompt();
+  useEffect(() => {
+    refrestCostAndLimit();
+    refreshPrompt();
   }, []);
 
   return (
