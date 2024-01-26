@@ -421,9 +421,8 @@ if __name__ == "__main__":
             "certfile": Global.config['https_certfile_path'],
             "keyfile": Global.config['https_keyfile_path'],
         })
-        print("Starting Tornado server on https://localhost:443")
     else:
         app.listen(Global.config['port'])
-        print(f"Starting Tornado server on http://localhost:{Global.config['port']}")
+    print(f"Starting Tornado server on localhost:{Global.config['port']}")
     
     tornado.ioloop.IOLoop.current().start()
