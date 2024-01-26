@@ -48,7 +48,6 @@ function Playground() {
       }
       await refrestCostAndLimit();
     },
-    
     [refreshFlag],
   );
 
