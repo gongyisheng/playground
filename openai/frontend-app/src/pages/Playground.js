@@ -46,7 +46,7 @@ function Playground() {
       } catch (error) {
         setMyPrompts({});
       }
-      refrestCostAndLimit();
+      await refrestCostAndLimit();
     },
     
     [refreshFlag],
