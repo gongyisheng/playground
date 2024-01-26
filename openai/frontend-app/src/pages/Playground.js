@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { eraseCookie } from "../utils/cookie";
 import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
 import Model from "../components/Model";
 import PromptConsole from "../components/PromptConsole";
-import { ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT } from "../constants";
+import { ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT, SESSION_COOKIE_NAME } from "../constants";
 
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 
@@ -76,6 +77,7 @@ function Playground() {
       if (response.status === 200) {
         alert("Save prompt success.");
       } else if (response.status === 401) {
+        eraseCookie(SESSION_COOKIE_NAME)
         // redirect to signin page if not logged in
         navigate("/signin");
       }
@@ -117,6 +119,7 @@ function Playground() {
         threadId = data.thread_id;
         setSSEStatus(true);
       } else if (response.status === 401) {
+        eraseCookie(SESSION_COOKIE_NAME)
         // redirect to signin page if not logged in
         navigate("/signin");
       } else {
@@ -205,6 +208,7 @@ function Playground() {
         setCost(data.cost);
         setLimit(data.limit);
       } else if (response.status === 401) {
+        eraseCookie(SESSION_COOKIE_NAME)
         // redirect to signin page if not logged in
         navigate("/signin");
       }
@@ -225,9 +229,11 @@ function Playground() {
       if (response.status === 200) {
         setMyPrompts(await response.json());
       } else if (response.status === 401) {
+        eraseCookie(SESSION_COOKIE_NAME)
+        setMyPrompts({});
         // redirect to signin page if not logged in
         navigate("/signin");
-        setMyPrompts({});
+        
       }
     } catch (error) {
       console.error("Failed to get prompt info:", error);
