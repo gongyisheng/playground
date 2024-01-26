@@ -46,9 +46,8 @@ function Playground() {
       } catch (error) {
         setMyPrompts({});
       }
-      refrestCostAndLimit();
+      await refrestCostAndLimit();
     },
-    
     [refreshFlag],
   );
 
@@ -173,9 +172,9 @@ function Playground() {
       setSSEStatus(false);
     };
 
-    return () => {
+    return async () => {
       sse.close();
-      refrestCostAndLimit();
+      await refrestCostAndLimit();
     }
   }, [SSEStatus]);
 

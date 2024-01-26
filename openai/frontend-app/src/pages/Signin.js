@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import md5 from "md5";
 
@@ -55,6 +55,18 @@ const SignIn = () => {
       setErrorMessage("Something went wrong. Please try again later.");
     }
   }
+
+  const redirect = () => {
+    let cookie = getCookie("session");
+    // if cookie exists
+    if (cookie !== "") {
+      navigate("/playground");
+    }
+  }
+
+  useEffect(() => {
+    redirect();
+  }, []);
 
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
