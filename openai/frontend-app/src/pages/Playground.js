@@ -60,26 +60,30 @@ function Playground() {
   };
 
   const handleSave = async () => {
-    const response = await fetch(ENDPOINT_PROMPT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // <-- includes cookies in the request
-      body: JSON.stringify({
-        promptName: promptName,
-        promptContent: promptContent,
-        promptNote: promptNote,
-      }),
-    });
-    if (response.status === 200) {
-      alert("Save prompt success.");
-    } else if (response.status === 401) {
-      // redirect to signin page if not logged in
-      navigate("/signin");
-    }
-    else {
-      alert("Save prompt failed.");
+    try {
+      const response = await fetch(ENDPOINT_PROMPT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // <-- includes cookies in the request
+        body: JSON.stringify({
+          promptName: promptName,
+          promptContent: promptContent,
+          promptNote: promptNote,
+        }),
+      });
+      if (response.status === 200) {
+        alert("Save prompt success.");
+      } else if (response.status === 401) {
+        // redirect to signin page if not logged in
+        navigate("/signin");
+      }
+      else {
+        alert("Save prompt failed.");
+      }
+    } catch (error) {
+      console.error("Failed to save prompt:", error);
     }
   };
 
@@ -95,33 +99,37 @@ function Playground() {
   };
 
   async function sendChatRequest() {
-    const response = await fetch(ENDPOINT_CHAT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // <-- includes cookies in the request
-      body: JSON.stringify({
-        conversation: conversation,
-        thread_id: threadId,
-      }),
-    });
+    try {
+      const response = await fetch(ENDPOINT_CHAT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // <-- includes cookies in the request
+        body: JSON.stringify({
+          conversation: conversation,
+          thread_id: threadId,
+        }),
+      });
     
-    if (response.status === 200) {
-      const data = await response.json();
-      threadId = data.thread_id;
-      setSSEStatus(true);
-    } else if (response.status === 401) {
-      // redirect to signin page if not logged in
-      navigate("/signin");
-    } else {
-      const data = await response.json();
-      console.error(
-        "error sending chat request:",
-        data,
-        "conversation:",
-        conversation,
-      );
+      if (response.status === 200) {
+        const data = await response.json();
+        threadId = data.thread_id;
+        setSSEStatus(true);
+      } else if (response.status === 401) {
+        // redirect to signin page if not logged in
+        navigate("/signin");
+      } else {
+        const data = await response.json();
+        console.error(
+          "error sending chat request:",
+          data,
+          "conversation:",
+          conversation,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to send chat request:", error);
     }
   }
 
@@ -184,20 +192,24 @@ function Playground() {
   };
 
   const refrestCostAndLimit = async () => {
-    const response = await fetch(ENDPOINT_AUDIT, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // <-- includes cookies in the request
-    });
-    if (response.status === 200) {
-      const data = await response.json();
-      setCost(data.cost);
-      setLimit(data.limit);
-    } else if (response.status === 401) {
-      // redirect to signin page if not logged in
-      navigate("/signin");
+    try {
+      const response = await fetch(ENDPOINT_AUDIT, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // <-- includes cookies in the request
+      });
+      if (response.status === 200) {
+        const data = await response.json();
+        setCost(data.cost);
+        setLimit(data.limit);
+      } else if (response.status === 401) {
+        // redirect to signin page if not logged in
+        navigate("/signin");
+      }
+    } catch (error) {
+      console.error("Failed to get audit info:", error);
     }
   }
 
@@ -218,7 +230,7 @@ function Playground() {
         setMyPrompts({});
       }
     } catch (error) {
-      setMyPrompts({});
+      console.error("Failed to get prompt info:", error);
     }
   };
 
