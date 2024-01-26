@@ -482,16 +482,6 @@ if __name__ == "__main__":
     Global.pricing_model = PricingModel(APP_DATA_DB_CONN)
     Global.pricing_model.create_tables()
 
-    # init price
-    if Global.pricing_model.get_current_pricing_by_model("gpt-3.5-turbo-1106") is None:
-        Global.pricing_model.create_pricing(
-            "gpt-3.5-turbo-1106", 0.001 / 1000, 0.002 / 1000, 0
-        )
-    if Global.pricing_model.get_current_pricing_by_model("gpt-4-1106-preview") is None:
-        Global.pricing_model.create_pricing(
-            "gpt-4-1106-preview", 0.01 / 1000, 0.03 / 1000, 0
-        )
-
     app = make_app()
     if Global.config["enable_https"]:
         app.listen(
