@@ -106,7 +106,7 @@ class AuditModel(BaseModel):
                 """,
                 (user_id, billing_period),
             )
-            return res[0] if res else 0.0
+            return res[0] if res[0] else 0.0
     
     def insert_budget_by_user_id(self, user_id: int, monthly_budget: float) -> None:
         cursor = self.conn.cursor()
@@ -129,7 +129,7 @@ class AuditModel(BaseModel):
             """,
             (user_id,),
         )
-        return res[0] if res else 0.0
+        return res[0] if res[0] else 0.0
 
 if __name__ == "__main__":
     # unittest
