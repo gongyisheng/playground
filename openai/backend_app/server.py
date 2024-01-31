@@ -1,8 +1,12 @@
 # server for customized chatbot
 from datetime import datetime
 import json
+import logging
 import sqlite3
+import sys
 import uuid
+
+sys.path.append("../")
 
 from Crypto.Cipher import AES
 from openai import OpenAI
@@ -22,6 +26,8 @@ from models.pricing_model import PricingModel
 from models.api_key_model import ApiKeyModel
 from models.user_key_model import UserKeyModel
 
+from utils import setup_logger
+
 MESSAGE_STORAGE = {}
 ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 
@@ -30,7 +36,7 @@ ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 def read_config(file_path):
     with open(file_path, "r") as yamlfile:
         data = yaml.load(yamlfile, Loader=yaml.FullLoader)
-        print("Read config successful. env: %s" % data["environment"])
+        logging.debug("Read config successful. env: %s" % data["environment"])
     return data
 
 
@@ -140,9 +146,6 @@ class ChatHandler(AuthHandler):
         if thread_id == "":
             thread_id = str(uuid.uuid4())
         conversation = body.get("conversation", [])
-        print(
-            f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
-        )
         if len(conversation) == 0:
             conversation.append(
                 {"role": "system", "content": "You are a helpful assistant"}
@@ -157,9 +160,6 @@ class ChatHandler(AuthHandler):
             return
         else:
             MESSAGE_STORAGE[thread_id] = conversation
-            print(
-                f"Receive post request, thread_id: {thread_id}, conversation: {conversation}"
-            )
             self.build_return(200, {"thread_id": thread_id})
             return
 
@@ -194,7 +194,6 @@ class ChatHandler(AuthHandler):
         if conversation is None:
             self.build_return(400, {"error": "thread_id not found in message storage"})
             return
-        print(f"Receive get request, uuid: {thread_id}, model: {real_model}")
 
         billing_period = datetime.now().strftime("%Y-%m")
         user_cost = Global.audit_model.get_total_cost_by_user_id_billing_period(
@@ -241,10 +240,10 @@ class ChatHandler(AuthHandler):
         for i in range(len(conversation) - 1):
             item = conversation[i]
             input_token += self.get_token_num(item["content"])
-        print(f"input_token: {input_token}")
+        logging.info(f"input_token: {input_token}")
 
         output_token = self.get_token_num(assistant_message)
-        print(f"output_token: {output_token}")
+        logging.info(f"output_token: {output_token}")
 
         billing_period = datetime.now().strftime("%Y-%m")
         Global.audit_model.insert_audit_log(
@@ -264,7 +263,6 @@ class ChatHandler(AuthHandler):
 # GET:  get prompt from database
 class PromptHandler(AuthHandler):
     def get(self):
-        print("Receive get request for prompts")
         my_prompts = {}
         for row in Global.prompt_model.get_prompts_by_user_id(self.user_id):
             prompt_name, prompt_content, prompt_note = row
@@ -291,7 +289,6 @@ class PromptHandler(AuthHandler):
             Global.prompt_model.save_prompt(
                 self.user_id, promptName, promptContent, promptNote
             )
-            print(f"Save prompt, name: {promptName}, content: {promptContent}")
             self.build_return(200)
             return
 
@@ -355,7 +352,6 @@ class SignInHandler(BaseHandler):
         body = json.loads(self.request.body)
         username = body.get("username")
         password = body.get("password")
-        print(f"Receive post request, username: {username}")
         if not username:
             self.build_return(400, {"error": "Username is not provided"})
             return
@@ -420,7 +416,6 @@ class InviteHandler(BaseHandler):
 # GET: get total cost and budget of current user from database
 class AuditHandler(AuthHandler):
     def get(self):
-        print("Receive get request for audit")
         billing_period = datetime.now().strftime("%Y-%m")
         cost = Global.audit_model.get_total_cost_by_user_id_billing_period(
             self.user_id, billing_period
@@ -452,6 +447,8 @@ def make_app():
 if __name__ == "__main__":
     from argparse import ArgumentParser
 
+    setup_logger()
+
     parser = ArgumentParser()
     parser.add_argument("--config", dest="config", default="backend-config.test.yaml")
     args = parser.parse_args()
@@ -460,7 +457,7 @@ if __name__ == "__main__":
 
     APP_DATA_DB_CONN = sqlite3.connect(Global.config["app_data_db_name"])
     KEY_DB_CONN = sqlite3.connect(Global.config["key_db_name"])
-    print(
+    logging.info(
         "Connected to database: [%s] [%s]"
         % (Global.config["app_data_db_name"], Global.config["key_db_name"])
     )
@@ -493,6 +490,6 @@ if __name__ == "__main__":
         )
     else:
         app.listen(Global.config["port"])
-    print(f"Starting Tornado server on 127.0.0.1:{Global.config['port']}")
+    logging.info(f"Starting Tornado server on 127.0.0.1:{Global.config['port']}")
 
     tornado.ioloop.IOLoop.current().start()

@@ -1,10 +1,15 @@
 import random
 import string
 import sqlite3
+import sys
 import time
 from typing import Optional
 
-from .base_model import BaseModel
+sys.path.append("../../")
+
+from backend_app.utils import setup_logger
+
+from backend_app.models.base_model import BaseModel
 
 class SessionModel(BaseModel):
 
@@ -118,6 +123,9 @@ class SessionModel(BaseModel):
         return res[0] if res[0] else None
 
 if __name__ == '__main__':
+    import logging
+    setup_logger()
+    
     conn = sqlite3.connect('unittest.db')
     session_model = SessionModel(conn)
 
@@ -126,16 +134,16 @@ if __name__ == '__main__':
 
     user_id = 1
     session_id = session_model.create_session(user_id)
-    print(session_id)
+    logging.info(session_id)
     res = session_model.validate_session(session_id)
-    print("validate session: ", res)
+    logging.info("validate session: ", res)
 
     session_model.expire_session(session_id)
     res = session_model.validate_session(session_id)
-    print("validate session: ", res)
+    logging.info("validate session: ", res)
 
     _user_id = session_model.get_user_id_by_session(session_id)
-    print("user_id: ", _user_id)
+    logging.info("user_id: ", _user_id)
 
     conn.close()
 

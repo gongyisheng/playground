@@ -1,6 +1,11 @@
 import sqlite3
+import sys
 
-from .base_model import BaseModel
+sys.path.append("../../")
+
+from backend_app.utils import setup_logger
+
+from backend_app.models.base_model import BaseModel
 
 class PromptModel(BaseModel):
 
@@ -72,6 +77,9 @@ class PromptModel(BaseModel):
         )
 
 if __name__ == "__main__":
+    import logging
+    setup_logger()
+
     conn = sqlite3.connect("unittest.db")
     prompt_model = PromptModel(conn)
 
@@ -81,14 +89,14 @@ if __name__ == "__main__":
     user_id = 1
     prompt_model.save_prompt(user_id, "test1", "test1", "test1")
     res = prompt_model.get_prompts_by_user_id(user_id)
-    print("user prompts:", res)
+    logging.info("user prompts:", res)
 
     prompt_model.save_prompt(user_id, "test2", "test2", "test2")
     res = prompt_model.get_prompts_by_user_id(user_id)
-    print("user prompts:", res)
+    logging.info("user prompts:", res)
 
     prompt_model.save_prompt(user_id, "test2", "test2-new", "test2-new")
     res = prompt_model.get_prompts_by_user_id(user_id)
-    print("user prompts:", res)
+    logging.info("user prompts:", res)
 
     conn.close()

@@ -1,9 +1,15 @@
 import dbm
 import sqlite3
+import sys
 import time
 
-from .base_model import BaseModel
-from .pricing_model import PricingModel
+sys.path.append("../../")
+
+from backend_app.utils import setup_logger
+
+from backend_app.models.base_model import BaseModel
+from backend_app.models.pricing_model import PricingModel
+
 
 class AuditModel(BaseModel):
 
@@ -60,6 +66,15 @@ class AuditModel(BaseModel):
             cursor,
             """
             DROP TABLE IF EXISTS audit_log;
+            """,
+            commit=True,
+            on_raise=True,
+        )
+
+        self._execute_sql(
+            cursor,
+            """
+            DROP TABLE IF EXISTS budget;
             """,
             commit=True,
             on_raise=True,
@@ -132,6 +147,9 @@ class AuditModel(BaseModel):
         return res[0] if res[0] else 0.0
 
 if __name__ == "__main__":
+    import logging
+    setup_logger()
+
     # unittest
     conn = sqlite3.connect("unittest.db")
     audit_model = AuditModel(conn)
@@ -146,18 +164,18 @@ if __name__ == "__main__":
     thread_id = "thread-1"
     audit_model.pricing_model.create_pricing(model, 0.01, 0.02, 0)
 
+    # test insert budget
+    audit_model.insert_budget_by_user_id(user_id, 100.0)
+    res = audit_model.get_budget_by_user_id(user_id)
+    logging.info(res)
+
     # test insert
     audit_model.insert_audit_log(user_id, billing_period, thread_id, model, 100, 100)
     res = audit_model.get_total_cost_by_user_id_billing_period(user_id, billing_period)
-    print(res)
+    logging.info(res)
 
     # test insert
     audit_model.insert_audit_log(user_id, billing_period, thread_id, model, 200, 200)
     res = audit_model.get_total_cost_by_user_id_billing_period(user_id, billing_period)
-    print(res)
-
-    # test insert budget
-    audit_model.insert_budget_by_user_id(user_id, 100.0)
-    res = audit_model.get_budget_by_user_id(user_id)
-    print(res)
+    logging.info(res)
         

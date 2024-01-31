@@ -1,8 +1,13 @@
 import sqlite3
+import sys
 import time
 from typing import Optional
 
-from .base_model import BaseModel
+sys.path.append("../../")
+
+from backend_app.utils import setup_logger
+
+from backend_app.models.base_model import BaseModel
 
 class UserKeyModel(BaseModel):
     def __init__(self, conn: sqlite3.Connection) -> None:
@@ -83,6 +88,9 @@ class UserKeyModel(BaseModel):
         return res[0] if res[0] else None
 
 if __name__ == "__main__":
+    import logging
+    setup_logger()
+
     # unittest
     conn = sqlite3.connect("unittest.db")
     user_key_model = UserKeyModel(conn)
@@ -95,17 +103,17 @@ if __name__ == "__main__":
     password = b"test1"
     user_key_model.create_user(user_id, username, password)
     res = user_key_model.get_user_id_by_username_password(username, password)
-    print("user_id:", res)
+    logging.info("user_id:", res)
 
     res = user_key_model.validate_username(username)
-    print("validate_username:", res)
+    logging.info("validate_username:", res)
 
     res = user_key_model.validate_user(username, password)
-    print("validate_user:", res)
+    logging.info("validate_user:", res)
 
     res = user_key_model.validate_username("test2")
-    print("validate_username:", res)
+    logging.info("validate_username:", res)
 
     res = user_key_model.validate_user(username, b"test2")
-    print("validate_user:", res)
+    logging.info("validate_user:", res)
     

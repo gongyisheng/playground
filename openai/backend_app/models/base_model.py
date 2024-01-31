@@ -1,3 +1,4 @@
+import logging
 import re
 import sqlite3
 from typing import Tuple
@@ -22,10 +23,10 @@ class BaseModel:
                 cursor.execute(sql)
             if commit:
                 self.conn.commit()
-            print("execute_sql succ. sql: [%s], params: [%s], commit: [%s]" % (self._format_sql(sql), params, commit))
+            logging.info("execute_sql succ. sql: [%s], params: [%s], commit: [%s]" % (self._format_sql(sql), params, commit))
             return True
         except Exception as e:
-            print("execute_sql fail. sql: [%s], params: [%s], commit: [%s]" % (self._format_sql(sql), params, commit))
+            logging.error("execute_sql fail. sql: [%s], params: [%s], commit: [%s]" % (self._format_sql(sql), params, commit))
             if on_raise:
                 raise e
             return False

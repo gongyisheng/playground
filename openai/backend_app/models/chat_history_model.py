@@ -1,9 +1,14 @@
 import json
 import sqlite3
+import sys
 import time
 from typing import Tuple
 
-from .base_model import BaseModel
+sys.path.append("../../")
+
+from backend_app.utils import setup_logger
+
+from backend_app.models.base_model import BaseModel
 
 class ChatHistoryModel(BaseModel):
 
@@ -88,6 +93,9 @@ class ChatHistoryModel(BaseModel):
         )
 
 if __name__ == "__main__":
+    import logging
+    setup_logger()
+
     conn = sqlite3.connect("unittest.db")
     chat_history_model = ChatHistoryModel(conn)
 
@@ -98,13 +106,13 @@ if __name__ == "__main__":
     thread_id = "test_thread_id"
     chat_history_model.save_chat_history(user_id, thread_id, [{"text": "test"}])
     res = chat_history_model.get_chat_history_by_thread_id(thread_id)
-    print("chat history:", res)
+    logging.info("chat history:", res)
 
     chat_history_model.save_chat_history(user_id, thread_id, [{"text": "test"}, {"text": "test2"}])
     res = chat_history_model.get_chat_history_by_thread_id(thread_id)
-    print("chat history:", res)
+    logging.info("chat history:", res)
 
     res = chat_history_model.get_chat_history_by_user_id(user_id)
-    print("full chat history of user:", res)
+    logging.info("full chat history of user:", res)
 
     conn.close()
