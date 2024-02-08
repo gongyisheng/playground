@@ -18,7 +18,7 @@ session_cookie_path: "/"
 
 # model name related
 model_mapping:
-  gpt-3.5: "gpt-3.5-turbo-1106"
+  gpt-3.5: "gpt-3.5-turbo-0125"
   gpt-4: "gpt-4-0125-preview"
 
 # encrypt/decrypt related
