@@ -1,9 +1,12 @@
 frontend
 - send info when error 429 happen
 - login cookie
+- logprobs display
+- support other params
 
 backend
-- N/A
+- logprobs
+- support other params
 
 other
 
