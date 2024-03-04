@@ -1,16 +1,9 @@
 frontend
-
-- login page
-- signup page
-- home page (with redirect)
-- catch error when fetch api failed
-- change input box focus effect to ring
+- send info when error 429 happen
+- login cookie
 
 backend
-
-- login cookie
-- billing, audit
-- improve log
+- N/A
 
 other
 
