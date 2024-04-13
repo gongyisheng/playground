@@ -1,4 +1,6 @@
+from Crypto.Cipher import AES
 import logging
+
 
 def get_log_formatter():
     formatter = logging.Formatter(
@@ -6,8 +8,8 @@ def get_log_formatter():
     )
     return formatter
 
-def setup_logger():
 
+def setup_logger():
     logger = logging.getLogger()
     formatter = get_log_formatter()
 
@@ -22,6 +24,20 @@ def setup_logger():
     logger.addHandler(sh)
 
     logger.setLevel(logging.DEBUG)
+
+
+# encrypt and decrypt utils functions
+def encrypt_data(plaintext: str, key: str, salt: str) -> bytes:
+    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
+    ciphertext = cipher.encrypt(plaintext.encode("ascii"))
+    return ciphertext
+
+
+def decrypt_data(ciphertext: bytes, key: str, salt: str) -> str:
+    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
+    plaintext = cipher.decrypt(ciphertext).decode("ascii")
+    return plaintext
+
 
 if __name__ == "__main__":
     setup_logger()

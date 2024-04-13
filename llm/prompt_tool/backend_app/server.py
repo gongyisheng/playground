@@ -8,7 +8,6 @@ import uuid
 
 sys.path.append("../")
 
-from Crypto.Cipher import AES
 from openai import OpenAI
 import yaml
 import tiktoken
@@ -26,7 +25,7 @@ from models.pricing_model import PricingModel
 from models.api_key_model import ApiKeyModel
 from models.user_key_model import UserKeyModel
 
-from utils import setup_logger
+from utils import setup_logger, encrypt_data, decrypt_data
 
 MESSAGE_STORAGE = {}
 ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
@@ -50,19 +49,6 @@ class Global:
     audit_model = None
     pricing_model = None
     config = None
-
-
-# encrypt and decrypt utils functions
-def encrypt_data(plaintext: str, key: str, salt: str) -> bytes:
-    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
-    ciphertext = cipher.encrypt(plaintext.encode("ascii"))
-    return ciphertext
-
-
-def decrypt_data(ciphertext: bytes, key: str, salt: str) -> str:
-    cipher = AES.new(key.encode("ascii"), AES.MODE_CFB, iv=salt.encode("ascii"))
-    plaintext = cipher.decrypt(ciphertext).decode("ascii")
-    return plaintext
 
 
 # base handler for all requests, cors configs
