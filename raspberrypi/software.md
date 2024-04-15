@@ -31,6 +31,7 @@ ref: https://ubuntu.com/server/docs/databases-mysql
 ref: https://www.digitalocean.com/community/tutorials/how-to-create-a-new-user-and-grant-permissions-in-mysql
 
 # setup redis
+[install from source]:  
 download:  
 `wget https://download.redis.io/redis-stable.tar.gz`
 compile:  
@@ -42,3 +43,11 @@ install:
 start:  
 `redis-server`  
 ref: https://redis.io/docs/install/install-redis/install-redis-from-source/
+
+[install from apt-get]:
+`sudo apt install lsb-release curl gpg`
+`curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg`
+`echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list`
+`sudo apt-get update`
+`sudo apt-get install redis`
+ref: https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-linux/
