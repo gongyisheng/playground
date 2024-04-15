@@ -20,3 +20,7 @@ edit `/etc/fstab` file, start swap after boot
 
 # disk info
 `df -h`
+
+# stress test
+`sudo apt-get install stress`
+`while true; do vcgencmd measure_clock arm; vcgencmd measure_temp; sleep 10; done& stress -c 4 -t 900s`
