@@ -3,7 +3,7 @@
 `sudo apt-get upgrade`  
 
 # install vim, tcpdump, perf, network tools
-`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools`  
+`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential`  
 
 # setup mariadb
 download and install:  
