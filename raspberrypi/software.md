@@ -106,4 +106,14 @@ docker run -d \
 --restart always \
 prom/prometheus
 ```
-**note**: net="host" means container to use host's network configuration.  
+**note**: net="host" means container to use host's network configuration. 
+
+# run cloudflare tunnel
+```
+docker run -d \
+--name cloudflared \
+--restart=always \
+--net="host" \
+--pid="host" \
+cloudflare/cloudflared:latest tunnel --no-autoupdate run --token
+```
