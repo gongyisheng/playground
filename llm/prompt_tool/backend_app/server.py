@@ -86,6 +86,13 @@ class BaseHandler(tornado.web.RequestHandler):
         return
 
 
+class PingHandler(BaseHandler):
+    def get(self):
+        self.write("pong")
+        self.set_status(200)
+        self.finish()
+
+
 # handler for all authenticated requests, session is get from cookie
 class AuthHandler(BaseHandler):
     def prepare(self):
@@ -420,6 +427,7 @@ class AuditHandler(AuthHandler):
 def make_app():
     return tornado.web.Application(
         [
+            (r"/ping", PingHandler),
             (r"/chat", ChatHandler),
             (r"/prompt", PromptHandler),
             (r"/signin", SignInHandler),
