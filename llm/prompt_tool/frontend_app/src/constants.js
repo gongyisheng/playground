@@ -1,4 +1,4 @@
-const BASE_URL = "https://chatbackend.yishenggong.com";
+const BASE_URL = "https://chatbackend.yellowday.day";
 
 const ENDPOINT_SIGNIN = BASE_URL + "/signin";
 const ENDPOINT_SIGNUP = BASE_URL + "/signup";
