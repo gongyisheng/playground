@@ -117,3 +117,8 @@ docker run -d \
 --pid="host" \
 cloudflare/cloudflared:latest tunnel --no-autoupdate run --token
 ```
+
+# run sqlite web
+```
+sudo nohup sqlite_web -p 6666 <YOUR DB FILE> -x -P -l <YOUR LOG FILE>
+```
