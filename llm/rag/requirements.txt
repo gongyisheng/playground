@@ -1,0 +1,6 @@
+langchain==0.1.6
+langchain-community==0.0.19
+langchainhub==0.1.14
+langchain-openai==0.0.5
+chromadb==0.4.22
+bs4==0.0.2
