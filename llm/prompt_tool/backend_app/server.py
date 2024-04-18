@@ -35,7 +35,7 @@ ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 def read_config(file_path):
     with open(file_path, "r") as yamlfile:
         data = yaml.load(yamlfile, Loader=yaml.FullLoader)
-        logging.debug("Read config successful. env: %s" % data["environment"])
+        logging.debug(f"Read config successful. env: {data['environment']}")
     return data
 
 
@@ -444,8 +444,7 @@ if __name__ == "__main__":
     APP_DATA_DB_CONN = sqlite3.connect(Global.config["app_data_db_name"])
     KEY_DB_CONN = sqlite3.connect(Global.config["key_db_name"])
     logging.info(
-        "Connected to database: [%s] [%s]"
-        % (Global.config["app_data_db_name"], Global.config["key_db_name"])
+        f"Connected to database: [{Global.config['app_data_db_name']}] [{Global.config['key_db_name']}]"
     )
 
     Global.api_key_model = ApiKeyModel(KEY_DB_CONN)

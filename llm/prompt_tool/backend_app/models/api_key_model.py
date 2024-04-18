@@ -9,12 +9,12 @@ from backend_app.utils import setup_logger
 
 from backend_app.models.base_model import BaseModel
 
+
 class ApiKeyModel(BaseModel):
-    
     # invitation code status
     INVITATION_CODE_STATUS_ACTIVE = 0
     INVITATION_CODE_STATUS_EXPIRED = 1
-    
+
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
 
@@ -40,7 +40,7 @@ class ApiKeyModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def drop_tables(self) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -53,7 +53,9 @@ class ApiKeyModel(BaseModel):
         )
         cursor.close()
 
-    def insert_api_key_invitation_code(self, api_key: bytes, invitation_code: bytes) -> None:
+    def insert_api_key_invitation_code(
+        self, api_key: bytes, invitation_code: bytes
+    ) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
@@ -61,12 +63,17 @@ class ApiKeyModel(BaseModel):
             INSERT INTO api_key (api_key, invitation_code, invitation_code_status, update_time)
             VALUES (?, ?, ?, ?);
             """,
-            (api_key, invitation_code, self.INVITATION_CODE_STATUS_ACTIVE, int(time.time())),
+            (
+                api_key,
+                invitation_code,
+                self.INVITATION_CODE_STATUS_ACTIVE,
+                int(time.time()),
+            ),
             commit=True,
             on_raise=True,
         )
         cursor.close()
-    
+
     def validate_invitation_code(self, invitation_code: bytes) -> bool:
         res = self.fetchone(
             """
@@ -76,7 +83,7 @@ class ApiKeyModel(BaseModel):
             on_raise=True,
         )
         return res[0] == self.INVITATION_CODE_STATUS_ACTIVE if res else False
-    
+
     def claim_invitation_code(self, user_id: int, invitation_code: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -84,12 +91,18 @@ class ApiKeyModel(BaseModel):
             """
             UPDATE api_key SET user_id = ?, invitation_code_status = ?, update_time = ? WHERE invitation_code = ? AND invitation_code_status = ?;
             """,
-            (user_id, self.INVITATION_CODE_STATUS_EXPIRED, int(time.time()), invitation_code, self.INVITATION_CODE_STATUS_ACTIVE),
+            (
+                user_id,
+                self.INVITATION_CODE_STATUS_EXPIRED,
+                int(time.time()),
+                invitation_code,
+                self.INVITATION_CODE_STATUS_ACTIVE,
+            ),
             commit=True,
             on_raise=True,
         )
         cursor.close()
-    
+
     def get_api_key_by_user(self, user_id) -> Optional[bytes]:
         res = self.fetchone(
             """
@@ -100,8 +113,10 @@ class ApiKeyModel(BaseModel):
         )
         return res[0] if res[0] else None
 
+
 if __name__ == "__main__":
     import logging
+
     setup_logger()
 
     # unittest

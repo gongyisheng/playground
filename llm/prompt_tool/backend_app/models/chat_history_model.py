@@ -10,8 +10,8 @@ from backend_app.utils import setup_logger
 
 from backend_app.models.base_model import BaseModel
 
-class ChatHistoryModel(BaseModel):
 
+class ChatHistoryModel(BaseModel):
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
 
@@ -30,10 +30,10 @@ class ChatHistoryModel(BaseModel):
 
                 UNIQUE(thread_id)
             );
-            """
+            """,
         )
         self.conn.commit()
-    
+
     def drop_tables(self) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -46,7 +46,9 @@ class ChatHistoryModel(BaseModel):
         )
         cursor.close()
 
-    def save_chat_history(self, user_id: int, thread_id: str, conversation: list) -> None:
+    def save_chat_history(
+        self, user_id: int, thread_id: str, conversation: list
+    ) -> None:
         # insert chat history
         cursor = self.conn.cursor()
         str_conversation = json.dumps(conversation)
@@ -58,7 +60,7 @@ class ChatHistoryModel(BaseModel):
             VALUES (?, ?, ?, ?) 
             ON CONFLICT (thread_id) DO UPDATE SET conversation = ?, update_time = ?;
             """,
-            (   
+            (
                 user_id,
                 thread_id,
                 str_conversation,
@@ -92,8 +94,10 @@ class ChatHistoryModel(BaseModel):
             on_raise=True,
         )
 
+
 if __name__ == "__main__":
     import logging
+
     setup_logger()
 
     conn = sqlite3.connect("unittest.db")
@@ -108,7 +112,9 @@ if __name__ == "__main__":
     res = chat_history_model.get_chat_history_by_thread_id(thread_id)
     logging.info("chat history:", res)
 
-    chat_history_model.save_chat_history(user_id, thread_id, [{"text": "test"}, {"text": "test2"}])
+    chat_history_model.save_chat_history(
+        user_id, thread_id, [{"text": "test"}, {"text": "test2"}]
+    )
     res = chat_history_model.get_chat_history_by_thread_id(thread_id)
     logging.info("chat history:", res)
 

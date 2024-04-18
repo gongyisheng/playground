@@ -7,8 +7,8 @@ from backend_app.utils import setup_logger
 
 from backend_app.models.base_model import BaseModel
 
-class PromptModel(BaseModel):
 
+class PromptModel(BaseModel):
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
 
@@ -44,8 +44,10 @@ class PromptModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
-    def save_prompt(self, user_id, prompt_name: str, prompt_content: str, prompt_note: str) -> None:
+
+    def save_prompt(
+        self, user_id, prompt_name: str, prompt_content: str, prompt_note: str
+    ) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
@@ -54,7 +56,7 @@ class PromptModel(BaseModel):
             VALUES (?, ?, ?, ?) 
             ON CONFLICT (user_id, prompt_name) DO UPDATE SET prompt_content = ?, prompt_note = ?;
             """,
-            (   
+            (
                 user_id,
                 prompt_name,
                 prompt_content,
@@ -66,18 +68,20 @@ class PromptModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def get_prompts_by_user_id(self, user_id: int) -> list:
         return self.fetchall(
             """
             SELECT prompt_name, prompt_content, prompt_note FROM saved_prompt WHERE user_id = ?;
             """,
             (user_id,),
-            on_raise=True
+            on_raise=True,
         )
+
 
 if __name__ == "__main__":
     import logging
+
     setup_logger()
 
     conn = sqlite3.connect("unittest.db")

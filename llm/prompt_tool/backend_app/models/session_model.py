@@ -11,14 +11,14 @@ from backend_app.utils import setup_logger
 
 from backend_app.models.base_model import BaseModel
 
-class SessionModel(BaseModel):
 
+class SessionModel(BaseModel):
     # session status
     SESSION_STATUS_ACTIVE = 0
     SESSION_STATUS_EXPIRED = 1
 
     # session settings
-    SESSION_EXPIRE_TIME = 60 * 60 * 24 * 30 # 30 days
+    SESSION_EXPIRE_TIME = 60 * 60 * 24 * 30  # 30 days
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
@@ -43,7 +43,7 @@ class SessionModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def drop_tables(self) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -55,11 +55,13 @@ class SessionModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def generate_session_id(self) -> str:
         # random 64 bit string
         random.seed(int(time.time()))
-        return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(64))
+        return "".join(
+            random.choice(string.ascii_letters + string.digits) for _ in range(64)
+        )
 
     def create_session(self, user_id: int) -> str:
         session_id = self.generate_session_id()
@@ -91,14 +93,14 @@ class SessionModel(BaseModel):
             status = res[0]
             last_active_time = res[1]
             if status == self.SESSION_STATUS_ACTIVE:
-                if int(time.time()) - last_active_time <= self.SESSION_EXPIRE_TIME:                    
+                if int(time.time()) - last_active_time <= self.SESSION_EXPIRE_TIME:
                     return True
                 else:
                     self.expire_session(user_id, session_id)
                     return False
             else:
                 return False
-    
+
     def expire_session(self, session_id: str) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -111,7 +113,7 @@ class SessionModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def get_user_id_by_session(self, session_id: str) -> Optional[int]:
         res = self.fetchone(
             """
@@ -122,11 +124,13 @@ class SessionModel(BaseModel):
         )
         return res[0] if res[0] else None
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import logging
+
     setup_logger()
-    
-    conn = sqlite3.connect('unittest.db')
+
+    conn = sqlite3.connect("unittest.db")
     session_model = SessionModel(conn)
 
     session_model.drop_tables()
@@ -146,6 +150,3 @@ if __name__ == '__main__':
     logging.info("user_id: ", _user_id)
 
     conn.close()
-
-
-        

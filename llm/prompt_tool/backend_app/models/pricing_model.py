@@ -8,8 +8,8 @@ from backend_app.utils import setup_logger
 
 from backend_app.models.base_model import BaseModel
 
-class PricingModel(BaseModel):
 
+class PricingModel(BaseModel):
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
 
@@ -44,8 +44,15 @@ class PricingModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
-    def create_pricing(self, model: str, cost_per_input_token: float, cost_per_output_token: float, start_time: int, end_time: int = -1) -> None:
+
+    def create_pricing(
+        self,
+        model: str,
+        cost_per_input_token: float,
+        cost_per_output_token: float,
+        start_time: int,
+        end_time: int = -1,
+    ) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
@@ -65,7 +72,14 @@ class PricingModel(BaseModel):
         )
         cursor.close()
 
-    def update_pricing(self, model: str, cost_per_input_token: float, cost_per_output_token: float, start_time: int, end_time: int = -1) -> None:
+    def update_pricing(
+        self,
+        model: str,
+        cost_per_input_token: float,
+        cost_per_output_token: float,
+        start_time: int,
+        end_time: int = -1,
+    ) -> None:
         # set current pricing end_time of the model to start_time of the new pricing
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -84,8 +98,10 @@ class PricingModel(BaseModel):
         cursor.close()
 
         # create new pricing
-        self.create_pricing(model, cost_per_input_token, cost_per_output_token, start_time, end_time)
-    
+        self.create_pricing(
+            model, cost_per_input_token, cost_per_output_token, start_time, end_time
+        )
+
     def get_pricing_by_model(self, model: str) -> list:
         return self.fetchall(
             """
@@ -94,7 +110,7 @@ class PricingModel(BaseModel):
             (model,),
             on_raise=True,
         )
-    
+
     def get_current_pricing_by_model(self, model: str) -> Tuple:
         return self.fetchone(
             """
@@ -104,31 +120,37 @@ class PricingModel(BaseModel):
             on_raise=True,
         )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import logging
+
     setup_logger()
 
-    conn = sqlite3.connect('unittest.db')
+    conn = sqlite3.connect("unittest.db")
     pricing_model = PricingModel(conn)
 
     pricing_model.drop_tables()
     pricing_model.create_tables()
 
-    model = 'davinci'
+    model = "davinci"
     cost_per_input_token = 0.0001
     cost_per_output_token = 0.0002
     start_time = 1620000000
     end_time = -1
 
-    pricing_model.create_pricing(model, cost_per_input_token, cost_per_output_token, start_time, end_time)
+    pricing_model.create_pricing(
+        model, cost_per_input_token, cost_per_output_token, start_time, end_time
+    )
     pricing = pricing_model.get_current_pricing_by_model(model)
     logging.info("current pricing: ", pricing)
 
-    model = 'davinci'
+    model = "davinci"
     cost_per_input_token = 1
     cost_per_output_token = 2
     start_time = 1630000000
-    pricing_model.update_pricing(model, cost_per_input_token, cost_per_output_token, start_time, end_time)
+    pricing_model.update_pricing(
+        model, cost_per_input_token, cost_per_output_token, start_time, end_time
+    )
     pricing = pricing_model.get_current_pricing_by_model(model)
     logging.info("current pricing: ", pricing)
 

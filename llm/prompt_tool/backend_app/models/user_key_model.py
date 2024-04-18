@@ -9,10 +9,11 @@ from backend_app.utils import setup_logger
 
 from backend_app.models.base_model import BaseModel
 
+
 class UserKeyModel(BaseModel):
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
-        
+
     def create_tables(self):
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -33,7 +34,7 @@ class UserKeyModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def drop_tables(self) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -45,7 +46,7 @@ class UserKeyModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def create_user(self, user_id: int, username: str, password: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -68,7 +69,7 @@ class UserKeyModel(BaseModel):
             (username,),
         )
         return res is not None
-    
+
     def validate_user(self, username: str, password: bytes) -> bool:
         res = self.fetchone(
             """
@@ -78,7 +79,9 @@ class UserKeyModel(BaseModel):
         )
         return (res is not None) and (res[0] == password)
 
-    def get_user_id_by_username_password(self, username: str, password: bytes) -> Optional[int]:
+    def get_user_id_by_username_password(
+        self, username: str, password: bytes
+    ) -> Optional[int]:
         res = self.fetchone(
             """
             SELECT user_id FROM user_key WHERE username = ? AND password = ?
@@ -87,8 +90,10 @@ class UserKeyModel(BaseModel):
         )
         return res[0] if res[0] else None
 
+
 if __name__ == "__main__":
     import logging
+
     setup_logger()
 
     # unittest
@@ -116,4 +121,3 @@ if __name__ == "__main__":
 
     res = user_key_model.validate_user(username, b"test2")
     logging.info("validate_user:", res)
-    

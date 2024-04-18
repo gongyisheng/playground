@@ -12,7 +12,6 @@ from backend_app.models.pricing_model import PricingModel
 
 
 class AuditModel(BaseModel):
-
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
         self.pricing_model = PricingModel(conn)
@@ -57,9 +56,9 @@ class AuditModel(BaseModel):
             commit=True,
             on_raise=True,
         )
-                
+
         cursor.close()
-    
+
     def drop_tables(self) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -83,16 +82,27 @@ class AuditModel(BaseModel):
 
         for key in self.status_cache.keys():
             del self.status_cache[key]
-    
+
     def build_audit_status_key(self, user_id: int, billing_period: str) -> str:
         return f"audit:{user_id}:{billing_period}"
 
-    def insert_audit_log(self, user_id: int, billing_period: str, thread_id: str, model: str, input_token: int, output_token: int) -> None:
+    def insert_audit_log(
+        self,
+        user_id: int,
+        billing_period: str,
+        thread_id: str,
+        model: str,
+        input_token: int,
+        output_token: int,
+    ) -> None:
         # get current pricing
-        cost_per_input_token, cost_per_output_token = self.pricing_model.get_current_pricing_by_model(model)
+        (
+            cost_per_input_token,
+            cost_per_output_token,
+        ) = self.pricing_model.get_current_pricing_by_model(model)
         cost = input_token * cost_per_input_token + output_token * cost_per_output_token
         now = int(time.time())
-        
+
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
@@ -100,17 +110,30 @@ class AuditModel(BaseModel):
             INSERT INTO audit_log (user_id, billing_period, thread_id, model, input_token, cost_per_input_token, output_token, cost_per_output_token, cost, insert_time)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """,
-            (user_id, billing_period, thread_id, model, input_token, cost_per_input_token, output_token, cost_per_output_token, cost, now),
+            (
+                user_id,
+                billing_period,
+                thread_id,
+                model,
+                input_token,
+                cost_per_input_token,
+                output_token,
+                cost_per_output_token,
+                cost,
+                now,
+            ),
             commit=True,
             on_raise=True,
         )
         cursor.close()
 
         key = self.build_audit_status_key(user_id, billing_period)
-        self.status_cache.setdefault(key, '0')
+        self.status_cache.setdefault(key, "0")
         self.status_cache[key] = str(float(self.status_cache[key]) + cost)
 
-    def get_total_cost_by_user_id_billing_period(self, user_id: int, billing_period: str) -> float:
+    def get_total_cost_by_user_id_billing_period(
+        self, user_id: int, billing_period: str
+    ) -> float:
         key = self.build_audit_status_key(user_id, billing_period)
         if key in self.status_cache:
             return float(self.status_cache[key])
@@ -122,7 +145,7 @@ class AuditModel(BaseModel):
                 (user_id, billing_period),
             )
             return res[0] if res[0] else 0.0
-    
+
     def insert_budget_by_user_id(self, user_id: int, monthly_budget: float) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -136,7 +159,7 @@ class AuditModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-    
+
     def get_budget_by_user_id(self, user_id: int) -> float:
         res = self.fetchone(
             """
@@ -146,8 +169,10 @@ class AuditModel(BaseModel):
         )
         return res[0] if res[0] else 0.0
 
+
 if __name__ == "__main__":
     import logging
+
     setup_logger()
 
     # unittest
@@ -178,4 +203,3 @@ if __name__ == "__main__":
     audit_model.insert_audit_log(user_id, billing_period, thread_id, model, 200, 200)
     res = audit_model.get_total_cost_by_user_id_billing_period(user_id, billing_period)
     logging.info(res)
-        

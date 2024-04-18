@@ -8,8 +8,8 @@ from backend_app.utils import setup_logger
 
 from backend_app.models.base_model import BaseModel
 
-class UserModel(BaseModel):
 
+class UserModel(BaseModel):
     # user status
     USER_STATUS_ACTIVE = 0
     USER_STATUS_INACTIVE = 1
@@ -32,9 +32,9 @@ class UserModel(BaseModel):
 
                 UNIQUE(user_id)
             );
-            """
+            """,
         )
-    
+
     def drop_tables(self) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
@@ -43,9 +43,9 @@ class UserModel(BaseModel):
             DROP TABLE IF EXISTS user;
             """,
             commit=True,
-            on_raise=True
+            on_raise=True,
         )
-    
+
     def create_user(self) -> int:
         # create a user with default monthly budget
         # return user_id
@@ -56,14 +56,14 @@ class UserModel(BaseModel):
             INSERT INTO user (status)
             VALUES (?);
             """,
-            (self.USER_STATUS_ACTIVE, ),
+            (self.USER_STATUS_ACTIVE,),
             commit=True,
             on_raise=True,
         )
         user_id = cursor.lastrowid
         cursor.close()
         return user_id
-    
+
     def _get_user(self, user_id: int) -> Tuple:
         # return user info
         return self.fetchone(
@@ -71,13 +71,13 @@ class UserModel(BaseModel):
             SELECT * FROM user WHERE user_id = ?;
             """,
             (user_id,),
-            on_raise=True
+            on_raise=True,
         )
-    
+
     def get_user_status(self, user_id: int) -> int:
         user_info = self._get_user(user_id)
         return user_info[1]
-    
+
     def update_user_status(self, user_id: int, status: int) -> None:
         # update user status
         cursor = self.conn.cursor()
@@ -88,12 +88,14 @@ class UserModel(BaseModel):
             """,
             (status, user_id),
             commit=True,
-            on_raise=True
+            on_raise=True,
         )
         cursor.close()
 
+
 if __name__ == "__main__":
     import logging
+
     setup_logger()
 
     conn = sqlite3.connect("unittest.db")
