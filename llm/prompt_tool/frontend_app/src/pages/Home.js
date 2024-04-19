@@ -9,8 +9,9 @@ const Home = () => {
 
   const redirect = () => {
     let cookie = getCookie(SESSION_COOKIE_NAME);
+    console.log("home page cookie: ", cookie);
     // if cookie exists
-    if (cookie !== "") {
+    if (cookie !== null) {
       navigate("/playground");
     }
     else {
