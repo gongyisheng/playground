@@ -45,6 +45,8 @@ const SignIn = () => {
       });
 
       if (response.status === 200) {
+        cookie = getCookie(SESSION_COOKIE_NAME);
+        console.log("signin cookie: ", cookie);
         navigate("/playground");
       } else {
         const data = await response.json();
