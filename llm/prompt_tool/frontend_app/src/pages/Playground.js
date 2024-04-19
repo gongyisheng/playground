@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { eraseCookie } from "../utils/cookie";
+import { getCookie, eraseCookie } from "../utils/cookie";
 import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
 import Model from "../components/Model";
@@ -26,6 +26,8 @@ function Playground() {
   const [myPrompts, setMyPrompts] = useState({});
   const [cost, setCost] = useState(0.0);
   const [limit, setLimit] = useState(0.0);
+  const [sessionState, setSessionState] = useState(0);
+  const [checkSessionStateEvent, setCheckSessionStateEvent] = useState(0);
 
   const handleModelChange = (_model) => {
     model = _model;
@@ -45,6 +47,11 @@ function Playground() {
 
   const handlePromptNoteChange = (note) => {
     setPromptNote(note);
+  };
+
+  const handleSessionStateChange = (state) => {
+    setSessionState(state);
+    setCheckSessionStateEvent(checkSessionStateEvent + 1);
   };
 
   const handleRestore = () => {
@@ -77,9 +84,7 @@ function Playground() {
       if (response.status === 200) {
         alert("Save prompt success.");
       } else if (response.status === 401) {
-        eraseCookie(SESSION_COOKIE_NAME)
-        // redirect to signin page if not logged in
-        navigate("/signin");
+        handleSessionStateChange(-1);
       }
       else {
         alert("Save prompt failed.");
@@ -119,9 +124,7 @@ function Playground() {
         threadId = data.thread_id;
         setSSEStatus(true);
       } else if (response.status === 401) {
-        eraseCookie(SESSION_COOKIE_NAME)
-        // redirect to signin page if not logged in
-        navigate("/signin");
+        handleSessionStateChange(-1);
       } else {
         const data = await response.json();
         console.error(
@@ -208,9 +211,7 @@ function Playground() {
         setCost(data.cost);
         setLimit(data.limit);
       } else if (response.status === 401) {
-        eraseCookie(SESSION_COOKIE_NAME)
-        // redirect to signin page if not logged in
-        navigate("/signin");
+        handleSessionStateChange(-1);
       }
     } catch (error) {
       console.error("Failed to get audit info:", error);
@@ -220,25 +221,43 @@ function Playground() {
   const refreshPrompt = async () => {
     try {
       const response = await fetch(ENDPOINT_PROMPT, {
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include", // <-- includes cookies in the request
-        method: "GET",
       });
       if (response.status === 200) {
         setMyPrompts(await response.json());
       } else if (response.status === 401) {
-        eraseCookie(SESSION_COOKIE_NAME)
         setMyPrompts({});
-        // redirect to signin page if not logged in
-        navigate("/signin");
-        
+        handleSessionStateChange(-1);
       }
     } catch (error) {
       console.error("Failed to get prompt info:", error);
     }
   };
+
+  const checkSessionState = async () => {
+    try {
+      const response = await fetch(ENDPOINT_AUDIT, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // <-- includes cookies in the request
+      });
+      if (response.status === 200) {
+        handleSessionStateChange(1);
+      } else if (response.status === 401) {
+        console.log("audit api return. session state is -1")
+        handleSessionStateChange(-1);
+        // redirect to signin page if not logged in
+      }
+    } catch (error) {
+      console.error("Failed to check session state:", error);
+    }
+  }
 
   useEffect(() => {
       refrestCostAndLimit();
@@ -248,8 +267,19 @@ function Playground() {
   );
 
   useEffect(() => {
-    refrestCostAndLimit();
-    refreshPrompt();
+    console.log("check session state done. sessionState: ", sessionState)
+    if (sessionState > 0) {
+      refrestCostAndLimit();
+      refreshPrompt();
+    } else if (sessionState < 0) {
+      eraseCookie(SESSION_COOKIE_NAME)
+      navigate("/signin");
+    }
+  }, [checkSessionStateEvent]);
+
+  useEffect(() => {
+    console.log("start checking session state")
+    checkSessionState();
   }, []);
 
   return (

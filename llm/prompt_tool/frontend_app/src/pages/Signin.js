@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import md5 from "md5";
 
-import { ENDPOINT_SIGNIN } from "../constants";
+import { ENDPOINT_SIGNIN, SESSION_COOKIE_NAME } from "../constants";
 import { getCookie } from "../utils/cookie";
 
 const logoSrc = "./logo.png";
@@ -57,9 +57,9 @@ const SignIn = () => {
   }
 
   const redirect = () => {
-    let cookie = getCookie("session");
+    let cookie = getCookie(SESSION_COOKIE_NAME);
     // if cookie exists
-    if (cookie !== "") {
+    if (cookie !== null) {
       navigate("/playground");
     }
   }
