@@ -247,7 +247,7 @@ function Playground() {
         },
         credentials: "include", // <-- includes cookies in the request
       });
-      cookie = getCookie(SESSION_COOKIE_NAME);
+      let cookie = getCookie(SESSION_COOKIE_NAME);
       console.log("check session state cookie: ", cookie);
       if (response.status === 200) {
         handleSessionStateChange(1);
