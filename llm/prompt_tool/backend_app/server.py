@@ -114,6 +114,9 @@ class AuthHandler(BaseHandler):
                 encrypted_api_key, self.encrypt_key, self.encrypt_salt
             )
 
+    def get(self):
+        self.build_return(200)
+
 
 # handler for chat request (POST and GET)
 # POST: save prompt and context to memory storage, validation
@@ -432,6 +435,7 @@ def make_app():
             (r"/prompt", PromptHandler),
             (r"/signin", SignInHandler),
             (r"/signup", SignUpHandler),
+            (r"/auth", AuthHandler),
             (r"/invite", InviteHandler),
             (r"/audit", AuditHandler),
         ]
@@ -448,6 +452,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     Global.config = read_config(args.config)
+    logging.info(f"Read config successful: {Global.config}")
 
     APP_DATA_DB_CONN = sqlite3.connect(Global.config["app_data_db_name"])
     KEY_DB_CONN = sqlite3.connect(Global.config["key_db_name"])
