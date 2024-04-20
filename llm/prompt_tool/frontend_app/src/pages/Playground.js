@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getCookie, eraseCookie } from "../utils/cookie";
 import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
 import Model from "../components/Model";
 import PromptConsole from "../components/PromptConsole";
-import { ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT, SESSION_COOKIE_NAME } from "../constants";
+import { ENDPOINT_AUTH, ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT } from "../constants";
 
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 
@@ -240,21 +239,17 @@ function Playground() {
 
   const checkSessionState = async () => {
     try {
-      const response = await fetch(ENDPOINT_AUDIT, {
+      const response = await fetch(ENDPOINT_AUTH, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include", // <-- includes cookies in the request
       });
-      let cookie = getCookie(SESSION_COOKIE_NAME);
-      console.log("check session state cookie: ", cookie);
       if (response.status === 200) {
         handleSessionStateChange(1);
       } else if (response.status === 401) {
-        console.log("audit api return. session state is -1")
         handleSessionStateChange(-1);
-        // redirect to signin page if not logged in
       }
     } catch (error) {
       console.error("Failed to check session state:", error);
@@ -269,18 +264,15 @@ function Playground() {
   );
 
   useEffect(() => {
-    console.log("check session state done. sessionState: ", sessionState)
     if (sessionState > 0) {
       refrestCostAndLimit();
       refreshPrompt();
     } else if (sessionState < 0) {
-      eraseCookie(SESSION_COOKIE_NAME)
       navigate("/signin");
     }
   }, [checkSessionStateEvent]);
 
   useEffect(() => {
-    console.log("start checking session state")
     checkSessionState();
   }, []);
 

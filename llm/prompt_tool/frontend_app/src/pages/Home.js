@@ -1,26 +1,47 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { SESSION_COOKIE_NAME } from "../constants";
-import { getCookie } from "../utils/cookie";
+import { ENDPOINT_AUTH } from "../constants";
 
 const Home = () => {
   const navigate = useNavigate();
+  const [sessionState, setSessionState] = useState(0);
+  const [checkSessionStateEvent, setCheckSessionStateEvent] = useState(0);
 
-  const redirect = () => {
-    let cookie = getCookie(SESSION_COOKIE_NAME);
-    console.log("home page cookie: ", cookie);
-    // if cookie exists
-    if (cookie !== null) {
-      navigate("/playground");
-    }
-    else {
-      navigate("/signin");
+  const handleSessionStateChange = (state) => {
+    setSessionState(state);
+    setCheckSessionStateEvent(checkSessionStateEvent + 1);
+  };
+
+  const checkSessionState = async () => {
+    try {
+      const response = await fetch(ENDPOINT_AUTH, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // <-- includes cookies in the request
+      });
+      if (response.status === 200) {
+        handleSessionStateChange(1);
+      } else if (response.status === 401) {
+        handleSessionStateChange(-1);
+      }
+    } catch (error) {
+      console.error("Failed to check session state:", error);
     }
   }
 
   useEffect(() => {
-    redirect();
+    if (sessionState > 0) {
+      navigate("/playground");
+    } else if (sessionState < 0) {
+      navigate("/signin");
+    }
+  }, [checkSessionStateEvent]);
+
+  useEffect(() => {
+    checkSessionState();
   }, []);
 
   return (
