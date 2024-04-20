@@ -43,10 +43,8 @@ const SignIn = () => {
           password: md5(password),
         }),
       });
-
+      console.log("signin response: ", response)
       if (response.status === 200) {
-        let cookie = getCookie(SESSION_COOKIE_NAME);
-        console.log("signin cookie: ", cookie);
         navigate("/playground");
       } else {
         const data = await response.json();
