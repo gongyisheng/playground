@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import md5 from "md5";
 
-import { ENDPOINT_SIGNIN, SESSION_COOKIE_NAME } from "../constants";
-import { getCookie } from "../utils/cookie";
+import { ENDPOINT_SIGNIN, ENDPOINT_AUTH } from "../constants";
 
 const logoSrc = "./logo.png";
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const [sessionState, setSessionState] = useState(0);
+  const [checkSessionStateEvent, setCheckSessionStateEvent] = useState(0);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -43,7 +44,6 @@ const SignIn = () => {
           password: md5(password),
         }),
       });
-      console.log("signin response: ", response)
       if (response.status === 200) {
         navigate("/playground");
       } else {
@@ -56,16 +56,40 @@ const SignIn = () => {
     }
   }
 
-  const redirect = () => {
-    let cookie = getCookie(SESSION_COOKIE_NAME);
-    // if cookie exists
-    if (cookie !== null) {
-      navigate("/playground");
+  const handleSessionStateChange = (state) => {
+    setSessionState(state);
+    setCheckSessionStateEvent(checkSessionStateEvent + 1);
+  };
+
+  const checkSessionState = async () => {
+    try {
+      const response = await fetch(ENDPOINT_AUTH, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // <-- includes cookies in the request
+      });
+      if (response.status === 200) {
+        handleSessionStateChange(1);
+      } else if (response.status === 401) {
+        handleSessionStateChange(-1);
+      }
+    } catch (error) {
+      console.error("Failed to check session state:", error);
     }
   }
 
   useEffect(() => {
-    redirect();
+    if (sessionState > 0) {
+      navigate("/playground");
+    } else if (sessionState < 0) {
+      navigate("/signin");
+    }
+  }, [checkSessionStateEvent]);
+
+  useEffect(() => {
+    checkSessionState();
   }, []);
 
   return (
