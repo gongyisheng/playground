@@ -1,0 +1,2 @@
+llama_cpp_python==0.2.63
+tornado==6.2.0
