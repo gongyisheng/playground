@@ -9,34 +9,21 @@ from llama_cpp import Llama
 MODEL_PATH = '/Users/temp/Downloads/llama-2-7b-chat.Q2_K.gguf'
 MODEL = Llama(model_path=MODEL_PATH)
 
-def make_prompt(system_message, user_message):
-    prompt = f"""<s>[INST] <<SYS>>
-    {system_message}
-    <</SYS>>
-    {user_message} [/INST]"""
-    return prompt
-
 class ChatHandler(tornado.web.RequestHandler):
+
     def post(self):
-        body = json.loads(self.request.body)
+        messages = json.loads(self.request.body)
         try:
-            system_message = body.get('system_message')
-            user_message = body.get('user_message')
-            max_tokens = int(body.get('max_tokens', 4096))
+            stream = MODEL.create_chat_completion_openai_v1(
+                messages = messages,
+                stream = True
+            )
 
-            if system_message is None or user_message is None:
-                self.set_status(400)
-                self.write({"error": "Missing required parameters"})
-                return
-            else:
-                # Prompt creation
-                prompt = make_prompt(system_message, user_message)
-                # Run the model
-                output = MODEL(prompt, max_tokens=max_tokens, echo=True)
+            for chunk in stream:
+                print(chunk.choices[0].delta.content)
 
-                self.set_status(200)
-                self.write(output)
-                return
+            self.set_status(200)
+            return
 
         except Exception as e:
             self.set_status(500)
