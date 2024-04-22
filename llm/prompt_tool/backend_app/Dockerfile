@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 5600
 
 # Run the application
-CMD ["python", "server.py", "--config", "/etc/prompt_tool/backend-config.yaml"]
+CMD ["python3", "server.py", "--config", "/etc/prompt_tool/backend-config.yaml"]
