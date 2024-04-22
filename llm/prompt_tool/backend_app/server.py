@@ -8,7 +8,7 @@ import uuid
 
 sys.path.append("../")
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 import yaml
 import tiktoken
 import tiktoken_ext.openai_public
@@ -167,7 +167,7 @@ class ChatHandler(AuthHandler):
         num_tokens = len(ENC.encode(message))
         return num_tokens
 
-    def get(self):
+    async def get(self):
         global MESSAGE_STORAGE
         # set headers for SSE to work
         self.set_header("Content-Type", "text/event-stream")
@@ -208,15 +208,26 @@ class ChatHandler(AuthHandler):
             return
 
         # create openai stream
-        OPENAI_CLIENT = OpenAI(api_key=self.api_key)
-        stream = OPENAI_CLIENT.chat.completions.create(
-            model=real_model,
-            messages=conversation,
-            stream=True,
-        )
+        if model.lower().startswith("gpt"):
+            OPENAI_CLIENT = AsyncOpenAI(api_key=self.api_key)
+            stream = await OPENAI_CLIENT.chat.completions.create(
+                model=real_model,
+                messages=conversation,
+                stream=True,
+            )
+        elif model.lower().startswith("llama"):
+            OPENAI_CLIENT = AsyncOpenAI(api_key=self.api_key, base_url=Global.config["llama_base_url"])
+            stream = await OPENAI_CLIENT.chat.completions.create(
+                model=real_model,
+                messages=conversation,
+                stream=True,
+            )
+        else:
+            self.build_return(400, {"error": "model is not supported"})
+            return
 
         assistant_message = ""
-        for chunk in stream:
+        async for chunk in stream:
             content = chunk.choices[0].delta.content
             if content is not None:
                 assistant_message += content

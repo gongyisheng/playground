@@ -20,6 +20,10 @@ session_cookie_domain: "localhost"
 model_mapping:
   gpt-3.5: "gpt-3.5-turbo-0125"
   gpt-4: "gpt-4-0125-preview"
+  llama2: "llama2-7b"
+
+# locally run model related
+llama_base_url: "http://localhost:5000"
 
 # encrypt/decrypt related
 encrypt_key: "12345678901234567890123456789012"
