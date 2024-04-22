@@ -1,6 +1,6 @@
-/Users/temp/Documents/playground/llm/prompt_tool/backend_app/backend-config.example.yaml ---> /etc/prompt_tool/
 # docker build
 ```
+docker build -t chatbackend .
 docker build -t chatbackend-test .
 ```
 
@@ -19,9 +19,9 @@ chatbackend-test:latest
 # on raspberrypi
 ```
 docker run -d \
---name chatbackend-test \
+--name chatbackend \
 -p 5600:5600 \
--v "/etc/backend-config.example.yaml:/etc/prompt_tool/backend-config.yaml" \
+-v "~/user-key/prompt_tool/backend-app.prod.yaml:/etc/prompt_tool/backend-config.yaml" \
 -v "/var/data/app-data.db:/var/data/app-data.db" \
 -v "/var/data/key-data.db:/var/data/key-data.db" \
 -v "~/log/chatbackend.log:/var/log/prompt_tool/backend-app.log" \
