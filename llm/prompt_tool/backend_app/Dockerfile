@@ -1,6 +1,5 @@
 # Description: Dockerfile for the prompt tool backend app
 FROM python:3.8.10
-ENV HOST 0.0.0.0
 
 # Copy the current directory contents into the container
 COPY . /opt/prompt_tool/backend_app
@@ -9,7 +8,7 @@ COPY . /opt/prompt_tool/backend_app
 WORKDIR /opt/prompt_tool/backend_app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir pycryptodome==3.11.0 
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
 EXPOSE 5601
