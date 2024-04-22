@@ -146,7 +146,10 @@ function Playground() {
     
     const sse = new EventSource(
       `${ENDPOINT_CHAT}?thread_id=${threadId}&model=${model}`,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+        heartbeatTimeout: 120000
+      }
     );
 
     // Event listener for SSE messages
