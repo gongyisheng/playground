@@ -445,13 +445,15 @@ def make_app():
 if __name__ == "__main__":
     from argparse import ArgumentParser
 
-    setup_logger()
+    
 
     parser = ArgumentParser()
     parser.add_argument("--config", dest="config", default="backend-config.test.yaml")
     args = parser.parse_args()
 
     Global.config = read_config(args.config)
+    log_file_path = Global.config["log_file_path"]
+    setup_logger(log_file_path)
     logging.info(f"Read config successful: {Global.config}")
 
     APP_DATA_DB_CONN = sqlite3.connect(Global.config["app_data_db_name"])

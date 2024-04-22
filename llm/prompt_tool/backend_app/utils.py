@@ -9,11 +9,11 @@ def get_log_formatter():
     return formatter
 
 
-def setup_logger():
+def setup_logger(file_path: str = "backend-app.log"):
     logger = logging.getLogger()
     formatter = get_log_formatter()
 
-    fh = logging.FileHandler("backend-app.log")
+    fh = logging.FileHandler(file_path)
     fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)

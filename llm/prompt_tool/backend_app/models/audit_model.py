@@ -1,4 +1,3 @@
-import dbm
 import sqlite3
 import sys
 import time
@@ -15,7 +14,6 @@ class AuditModel(BaseModel):
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
         self.pricing_model = PricingModel(conn)
-        self.status_cache = dbm.open("audit-status", "c")
 
     def create_tables(self) -> None:
         # audit log table
@@ -80,11 +78,6 @@ class AuditModel(BaseModel):
         )
         cursor.close()
 
-        for key in self.status_cache.keys():
-            del self.status_cache[key]
-
-    def build_audit_status_key(self, user_id: int, billing_period: str) -> str:
-        return f"audit:{user_id}:{billing_period}"
 
     def insert_audit_log(
         self,
@@ -127,24 +120,17 @@ class AuditModel(BaseModel):
         )
         cursor.close()
 
-        key = self.build_audit_status_key(user_id, billing_period)
-        self.status_cache.setdefault(key, "0")
-        self.status_cache[key] = str(float(self.status_cache[key]) + cost)
 
     def get_total_cost_by_user_id_billing_period(
         self, user_id: int, billing_period: str
     ) -> float:
-        key = self.build_audit_status_key(user_id, billing_period)
-        if key in self.status_cache:
-            return float(self.status_cache[key])
-        else:
-            res = self.fetchone(
-                """
-                SELECT SUM(cost) FROM audit_log WHERE user_id = ? AND billing_period = ?;
-                """,
-                (user_id, billing_period),
-            )
-            return res[0] if res[0] else 0.0
+        res = self.fetchone(
+            """
+            SELECT SUM(cost) FROM audit_log WHERE user_id = ? AND billing_period = ?;
+            """,
+            (user_id, billing_period),
+        )
+        return res[0] if res[0] else 0.0
 
     def insert_budget_by_user_id(self, user_id: int, monthly_budget: float) -> None:
         cursor = self.conn.cursor()
@@ -187,6 +173,8 @@ if __name__ == "__main__":
     billing_period = "2021-01"
     model = "gpt2"
     thread_id = "thread-1"
+    audit_model.pricing_model.drop_tables()
+    audit_model.pricing_model.create_tables()
     audit_model.pricing_model.create_pricing(model, 0.01, 0.02, 0)
 
     # test insert budget

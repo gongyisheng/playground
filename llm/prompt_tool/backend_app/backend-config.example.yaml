@@ -6,8 +6,8 @@ access_control_allow_origin: http://localhost:3000
 # https related
 port: 5600
 enable_https: false
-https_certfile_path: "certs/localhost.crt"
-https_keyfile_path: "certs/localhost.key"
+# https_certfile_path: "certs/localhost.crt"
+# https_keyfile_path: "certs/localhost.key"
 
 # session cookie related
 session_cookie_name: "_chat_session"
@@ -26,8 +26,11 @@ encrypt_key: "12345678901234567890123456789012"
 encrypt_salt: "1234123412341234" # must be 16 bytes
 
 # database file related
-app_data_db_name: "test-app-data.db"
-key_db_name: "test-key-data.db"
+app_data_db_name: "/var/data/app-data.db"
+key_db_name: "/var/data/key-data.db"
+
+# log file related
+log_file_path: "/var/log/prompt_tool/backend-app.log"
 
 # user budget
 default_monthly_budget: 5
