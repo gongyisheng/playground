@@ -11,7 +11,7 @@ WORKDIR /opt/prompt_tool/backend_app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
-EXPOSE 5601
+EXPOSE 5600
 
 # Run the application
 CMD ["python", "server.py", "--config", "/etc/prompt_tool/backend-config.yaml"]
