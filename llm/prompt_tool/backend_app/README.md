@@ -5,23 +5,25 @@ docker build -t chatbackend-test .
 ```
 
 # docker run
-# locally
+# local test
 ```
 docker run -d \
---name chatbackend-test-v3 \
+--name chatbackend-test \
 -p 5600:5600 \
 -v "/Users/temp/Documents/playground/llm/prompt_tool/backend_app/backend-config.example.yaml:/etc/prompt_tool/backend-config.yaml" \
 -v "/Users/temp/Documents/playground/llm/prompt_tool/backend_app/test-app-data.db:/var/data/app-data.db" \
 -v "/Users/temp/Documents/playground/llm/prompt_tool/backend_app/test-key-data.db:/var/data/key-data.db" \
+-v "/Users/temp/Documents/playground/llm/prompt_tool/backend_app/backend-app.log:/var/log/prompt_tool/backend-app.log" \
 chatbackend-test:latest
 ```
 # on raspberrypi
 ```
 docker run -d \
---name chatbackend-test-v3 \
+--name chatbackend-test \
 -p 5600:5600 \
--v "/Users/temp/Documents/playground/llm/prompt_tool/backend_app/backend-config.example.yaml:/etc/prompt_tool/backend-config.yaml" \
--v "/Users/temp/Documents/playground/llm/prompt_tool/backend_app/test-app-data.db:/var/data/app-data.db" \
--v "/Users/temp/Documents/playground/llm/prompt_tool/backend_app/test-key-data.db:/var/data/key-data.db" \
-chatbackend-test:latest
+-v "/etc/backend-config.example.yaml:/etc/prompt_tool/backend-config.yaml" \
+-v "/var/data/app-data.db:/var/data/app-data.db" \
+-v "/var/data/key-data.db:/var/data/key-data.db" \
+-v "~/log/chatbackend.log:/var/log/prompt_tool/backend-app.log" \
+chatbackend:latest
 ```

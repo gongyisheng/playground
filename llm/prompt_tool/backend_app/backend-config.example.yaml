@@ -29,5 +29,8 @@ encrypt_salt: "1234123412341234" # must be 16 bytes
 app_data_db_name: "/var/data/app-data.db"
 key_db_name: "/var/data/key-data.db"
 
+# log file related
+log_file_path: "/var/log/prompt_tool/backend-app.log"
+
 # user budget
 default_monthly_budget: 5
