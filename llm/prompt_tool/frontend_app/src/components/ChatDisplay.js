@@ -11,7 +11,7 @@ const iconSrc = {
 const displayedRole = {
   system: "System",
   user: "You",
-  assistant: "ChatGPT",
+  assistant: "ChatBot"
 };
 
 function ChatDisplay({ conversation, SSEData }) {

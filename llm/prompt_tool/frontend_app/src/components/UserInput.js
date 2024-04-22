@@ -34,7 +34,7 @@ function UserInput({ onContextChange, onSubmit }) {
           type="text"
           value={input}
           onChange={handleChange}
-          placeholder="Message ChatGPT..."
+          placeholder="Message ChatBot..."
           className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full size-fit resize-none"
           rows="1"
           onKeyDown={handleKeyDown}
