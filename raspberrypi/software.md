@@ -122,3 +122,14 @@ cloudflare/cloudflared:latest tunnel --no-autoupdate run --token
 ```
 sudo nohup sqlite_web -p 6666 <YOUR DB FILE> -x -P -l <YOUR LOG FILE>
 ```
+
+# run sqlite web in docker
+```
+docker run -d \
+--name sqlite-web \
+-p 6666:8080 \
+-v /path/to/your-data:/data \
+-e SQLITE_DATABASE=db_filename.db \
+-e SQLITE_WEB_PASSWORD=<YOUR PASSWORD> \
+coleifer/sqlite-web
+```
