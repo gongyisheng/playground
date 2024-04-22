@@ -216,7 +216,9 @@ class ChatHandler(AuthHandler):
                 stream=True,
             )
         elif model.lower().startswith("llama"):
-            OPENAI_CLIENT = AsyncOpenAI(api_key=self.api_key, base_url=Global.config["llama_base_url"])
+            OPENAI_CLIENT = AsyncOpenAI(
+                api_key=self.api_key, base_url=Global.config["llama_base_url"]
+            )
             stream = await OPENAI_CLIENT.chat.completions.create(
                 model=real_model,
                 messages=conversation,
@@ -455,8 +457,6 @@ def make_app():
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-
-    
 
     parser = ArgumentParser()
     parser.add_argument("--config", dest="config", default="backend-config.test.yaml")
