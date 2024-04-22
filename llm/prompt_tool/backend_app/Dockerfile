@@ -9,7 +9,7 @@ COPY . /opt/prompt_tool/backend_app
 WORKDIR /opt/prompt_tool/backend_app
 
 # Install any needed packages specified in requirements.txt
-RUN pip install -r /opt/prompt_tool/backend_app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
 EXPOSE 5601
