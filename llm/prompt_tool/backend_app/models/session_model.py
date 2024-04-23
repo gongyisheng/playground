@@ -98,7 +98,24 @@ class SessionModel(BaseModel):
             return False
         else:
             status = res[0]
-            return status == self.SESSION_STATUS_ACTIVE
+            if status == self.SESSION_STATUS_ACTIVE:
+                self.update_active_time(session_id)
+                return True
+            else:
+                return False
+
+    def update_active_time(self, session_id: str) -> None:
+        cursor = self.conn.cursor()
+        self._execute_sql(
+            cursor,
+            """
+            UPDATE session SET last_active_time = ? WHERE session_id = ?
+            """,
+            (int(time.time()), session_id),
+            commit=True,
+            on_raise=True,
+        )
+        cursor.close()
 
     def expire_session(self, session_id: str) -> None:
         cursor = self.conn.cursor()
