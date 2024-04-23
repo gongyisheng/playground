@@ -22,8 +22,10 @@ from models.prompt_model import PromptModel
 from models.audit_model import AuditModel
 from models.pricing_model import PricingModel
 
-from models.api_key_model import ApiKeyModel
+from models.invitation_code_model import InvitationCodeModel
 from models.user_key_model import UserKeyModel
+
+from one_time.init_price import init_price
 
 from utils import setup_logger, encrypt_data, decrypt_data
 
@@ -40,8 +42,8 @@ def read_config(file_path):
 
 
 class Global:
-    api_key_model = None
     user_key_model = None
+    invitation_code_model = None
     user_model = None
     session_model = None
     chat_history_model = None
@@ -332,7 +334,7 @@ class SignUpHandler(BaseHandler):
         encrypted_invitation_code = encrypt_data(
             invitation_code, self.encrypt_key, self.encrypt_salt
         )
-        if not Global.api_key_model.validate_invitation_code(encrypted_invitation_code):
+        if not Global.invitation_code_model.validate_invitation_code(encrypted_invitation_code):
             self.build_return(
                 400, {"error": "Invitation code is not correct or expired"}
             )
@@ -341,9 +343,7 @@ class SignUpHandler(BaseHandler):
             user_id = Global.user_model.create_user()
             encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
             Global.user_key_model.create_user(user_id, username, encrypted_pwd)
-            Global.api_key_model.claim_invitation_code(
-                user_id, encrypted_invitation_code
-            )
+            Global.invitation_code_model.claim_invitation_code(encrypted_invitation_code)
             Global.audit_model.insert_budget_by_user_id(
                 user_id, Global.config["default_monthly_budget"]
             )
@@ -386,34 +386,21 @@ class SignInHandler(BaseHandler):
 
 
 # handler for invite request (POST)
-# POST: insert api key and invitation code to database, validation, encrypt api key and invitation code before insert
+# POST: insert invitation code to database
 class InviteHandler(BaseHandler):
     def post(self):
-        body = json.loads(self.request.body)
-        api_key = body.get("api_key")
-        invitation_code = body.get("invitation_code")
-        if not api_key:
-            self.build_return(
-                400,
-                {"error": "API key is not provided"},
-            )
-            return
-        elif not invitation_code:
+        invitation_code = self.get_argument("invitation_code")
+        if not invitation_code:
             self.build_return(
                 400,
                 {"error": "Invitation code is not provided"},
             )
             return
         else:
-            encrypted_api_key = encrypt_data(
-                api_key, self.encrypt_key, self.encrypt_salt
-            )
             encrypted_invitation_code = encrypt_data(
                 invitation_code, self.encrypt_key, self.encrypt_salt
             )
-            Global.api_key_model.insert_api_key_invitation_code(
-                encrypted_api_key, encrypted_invitation_code
-            )
+            Global.invitation_code_model.insert_invitation_code(encrypted_invitation_code)
             self.build_return(200)
             return
 
@@ -470,10 +457,10 @@ if __name__ == "__main__":
         f"Connected to database: [{Global.config['app_data_db_name']}] [{Global.config['key_db_name']}]"
     )
 
-    Global.api_key_model = ApiKeyModel(KEY_DB_CONN)
-    Global.api_key_model.create_tables()
     Global.user_key_model = UserKeyModel(KEY_DB_CONN)
     Global.user_key_model.create_tables()
+    Global.invitation_code_model = InvitationCodeModel(KEY_DB_CONN)
+    Global.invitation_code_model.create_tables()
     Global.user_model = UserModel(APP_DATA_DB_CONN)
     Global.user_model.create_tables()
     Global.session_model = SessionModel(APP_DATA_DB_CONN)
@@ -486,6 +473,8 @@ if __name__ == "__main__":
     Global.audit_model.create_tables()
     Global.pricing_model = PricingModel(APP_DATA_DB_CONN)
     Global.pricing_model.create_tables()
+
+    init_price(APP_DATA_DB_CONN)
 
     app = make_app()
     if Global.config["enable_https"]:

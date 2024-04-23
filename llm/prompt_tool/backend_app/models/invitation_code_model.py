@@ -10,7 +10,7 @@ from backend_app.utils import setup_logger
 from backend_app.models.base_model import BaseModel
 
 
-class ApiKeyModel(BaseModel):
+class InvitationCodeModel(BaseModel):
     # invitation code status
     INVITATION_CODE_STATUS_ACTIVE = 0
     INVITATION_CODE_STATUS_EXPIRED = 1
@@ -24,15 +24,12 @@ class ApiKeyModel(BaseModel):
         self._execute_sql(
             cursor,
             """
-            CREATE TABLE IF NOT EXISTS api_key (
+            CREATE TABLE IF NOT EXISTS invitation_code (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                api_key BLOB,
                 invitation_code BLOB,
                 invitation_code_status INTEGER,
                 update_time INTEGER,
 
-                UNIQUE(api_key)
                 UNIQUE(invitation_code)
             );
             """,
@@ -46,25 +43,22 @@ class ApiKeyModel(BaseModel):
         self._execute_sql(
             cursor,
             """
-            DROP TABLE IF EXISTS api_key;
+            DROP TABLE IF EXISTS invitation_code;
             """,
             commit=True,
             on_raise=True,
         )
         cursor.close()
 
-    def insert_api_key_invitation_code(
-        self, api_key: bytes, invitation_code: bytes
-    ) -> None:
+    def insert_invitation_code(self, invitation_code: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
             """
-            INSERT INTO api_key (api_key, invitation_code, invitation_code_status, update_time)
-            VALUES (?, ?, ?, ?);
+            INSERT INTO invitation_code (invitation_code, invitation_code_status, update_time)
+            VALUES (?, ?, ?);
             """,
             (
-                api_key,
                 invitation_code,
                 self.INVITATION_CODE_STATUS_ACTIVE,
                 int(time.time()),
@@ -77,22 +71,21 @@ class ApiKeyModel(BaseModel):
     def validate_invitation_code(self, invitation_code: bytes) -> bool:
         res = self.fetchone(
             """
-            SELECT invitation_code_status FROM api_key WHERE invitation_code = ?
+            SELECT invitation_code_status FROM invitation_code WHERE invitation_code = ?
             """,
             (invitation_code,),
             on_raise=True,
         )
         return res[0] == self.INVITATION_CODE_STATUS_ACTIVE if res else False
 
-    def claim_invitation_code(self, user_id: int, invitation_code: bytes) -> None:
+    def claim_invitation_code(self, invitation_code: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
             """
-            UPDATE api_key SET user_id = ?, invitation_code_status = ?, update_time = ? WHERE invitation_code = ? AND invitation_code_status = ?;
+            UPDATE invitation_code SET invitation_code_status = ?, update_time = ? WHERE invitation_code = ? AND invitation_code_status = ?;
             """,
             (
-                user_id,
                 self.INVITATION_CODE_STATUS_EXPIRED,
                 int(time.time()),
                 invitation_code,
@@ -103,16 +96,6 @@ class ApiKeyModel(BaseModel):
         )
         cursor.close()
 
-    def get_api_key_by_user(self, user_id) -> Optional[bytes]:
-        res = self.fetchone(
-            """
-            SELECT api_key FROM api_key WHERE user_id = ? AND invitation_code_status = ?;
-            """,
-            (user_id, self.INVITATION_CODE_STATUS_EXPIRED),
-            on_raise=True,
-        )
-        return res[0] if res[0] else None
-
 
 if __name__ == "__main__":
     import logging
@@ -121,20 +104,17 @@ if __name__ == "__main__":
 
     # unittest
     conn = sqlite3.connect("unittest.db")
-    api_key_model = ApiKeyModel(conn)
+    invitation_code_model = InvitationCodeModel(conn)
 
-    api_key_model.drop_tables()
-    api_key_model.create_tables()
+    invitation_code_model.drop_tables()
+    invitation_code_model.create_tables()
 
-    api_key_model.insert_api_key_invitation_code(b"api_key_1", b"invitation_code_1")
-    api_key_model.insert_api_key_invitation_code(b"api_key_2", b"invitation_code_2")
+    invitation_code_model.insert_invitation_code(b"invitation_code_1")
+    invitation_code_model.insert_invitation_code(b"invitation_code_2")
 
-    res = api_key_model.validate_invitation_code(b"invitation_code_1")
-    logging.info("validate code result:", res)
+    res = invitation_code_model.validate_invitation_code(b"invitation_code_1")
+    logging.info("validate code result: %s", res)
 
-    user_id = 1
-    api_key_model.claim_invitation_code(user_id, b"invitation_code_1")
-    res = api_key_model.validate_invitation_code(b"invitation_code_1")
-    logging.info("validate code result:", res)
-    res = api_key_model.get_api_key_by_user(user_id)
-    logging.info("api_key:", res)
+    invitation_code_model.claim_invitation_code(b"invitation_code_1")
+    res = invitation_code_model.validate_invitation_code(b"invitation_code_1")
+    logging.info("validate code result: %s", res)
