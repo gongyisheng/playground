@@ -105,11 +105,11 @@ if __name__ == "__main__":
     user_model.create_tables()
 
     user_id = user_model.create_user()
-    logging.info("user_id: ", user_id)
+    logging.info("user_id: %s", user_id)
 
     user_info = user_model._get_user(user_id)
-    logging.info("user_info:", user_info)
+    logging.info("user_info: %s", user_info)
 
     user_model.update_user_status(user_id, UserModel.USER_STATUS_INACTIVE)
     user_status = user_model.get_user_status(user_id)
-    logging.info("user_status:", user_status)
+    logging.info("user_status: %s", user_status)

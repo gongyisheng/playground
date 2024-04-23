@@ -108,16 +108,16 @@ if __name__ == "__main__":
     password = b"test1"
     user_key_model.create_user(user_id, username, password)
     res = user_key_model.get_user_id_by_username_password(username, password)
-    logging.info("user_id:", res)
+    logging.info("user_id: %s", res)
 
     res = user_key_model.validate_username(username)
-    logging.info("validate_username:", res)
+    logging.info("validate_username: %s", res)
 
     res = user_key_model.validate_user(username, password)
-    logging.info("validate_user:", res)
+    logging.info("validate_user: %s", res)
 
     res = user_key_model.validate_username("test2")
-    logging.info("validate_username:", res)
+    logging.info("validate_username: %s", res)
 
     res = user_key_model.validate_user(username, b"test2")
-    logging.info("validate_user:", res)
+    logging.info("validate_user: %s", res)

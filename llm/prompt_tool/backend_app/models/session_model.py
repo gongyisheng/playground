@@ -17,9 +17,6 @@ class SessionModel(BaseModel):
     SESSION_STATUS_ACTIVE = 0
     SESSION_STATUS_EXPIRED = 1
 
-    # session settings
-    SESSION_EXPIRE_TIME = 60 * 60 * 24 * 30  # 30 days
-
     def __init__(self, conn: sqlite3.Connection) -> None:
         super().__init__(conn)
 
@@ -36,6 +33,7 @@ class SessionModel(BaseModel):
                 status INTEGER,
                 last_active_time INTEGER,
 
+                UNIQUE(user_id),
                 UNIQUE(session_id)
             );
             """,
@@ -70,9 +68,18 @@ class SessionModel(BaseModel):
             cursor,
             """
             INSERT INTO session (user_id, session_id, status, last_active_time)
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?) 
+            ON CONFLICT(user_id) DO UPDATE SET session_id = ?, status = ?, last_active_time = ?;
             """,
-            (user_id, session_id, self.SESSION_STATUS_ACTIVE, int(time.time())),
+            (
+                user_id,
+                session_id,
+                self.SESSION_STATUS_ACTIVE,
+                int(time.time()),
+                session_id,
+                self.SESSION_STATUS_ACTIVE,
+                int(time.time()),
+            ),
             commit=True,
             on_raise=True,
         )
@@ -91,15 +98,24 @@ class SessionModel(BaseModel):
             return False
         else:
             status = res[0]
-            last_active_time = res[1]
             if status == self.SESSION_STATUS_ACTIVE:
-                if int(time.time()) - last_active_time <= self.SESSION_EXPIRE_TIME:
-                    return True
-                else:
-                    self.expire_session(user_id, session_id)
-                    return False
+                self.update_active_time(session_id)
+                return True
             else:
                 return False
+
+    def update_active_time(self, session_id: str) -> None:
+        cursor = self.conn.cursor()
+        self._execute_sql(
+            cursor,
+            """
+            UPDATE session SET last_active_time = ? WHERE session_id = ?
+            """,
+            (int(time.time()), session_id),
+            commit=True,
+            on_raise=True,
+        )
+        cursor.close()
 
     def expire_session(self, session_id: str) -> None:
         cursor = self.conn.cursor()
@@ -140,13 +156,13 @@ if __name__ == "__main__":
     session_id = session_model.create_session(user_id)
     logging.info(session_id)
     res = session_model.validate_session(session_id)
-    logging.info("validate session: ", res)
+    logging.info("validate session: %s", res)
 
     session_model.expire_session(session_id)
     res = session_model.validate_session(session_id)
-    logging.info("validate session: ", res)
+    logging.info("validate session: %s", res)
 
     _user_id = session_model.get_user_id_by_session(session_id)
-    logging.info("user_id: ", _user_id)
+    logging.info("user_id: %s", _user_id)
 
     conn.close()

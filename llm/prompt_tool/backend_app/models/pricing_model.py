@@ -142,7 +142,7 @@ if __name__ == "__main__":
         model, cost_per_input_token, cost_per_output_token, start_time, end_time
     )
     pricing = pricing_model.get_current_pricing_by_model(model)
-    logging.info("current pricing: ", pricing)
+    logging.info("current pricing: %s", pricing)
 
     model = "davinci"
     cost_per_input_token = 1
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         model, cost_per_input_token, cost_per_output_token, start_time, end_time
     )
     pricing = pricing_model.get_current_pricing_by_model(model)
-    logging.info("current pricing: ", pricing)
+    logging.info("current pricing: %s", pricing)
 
     pricing = pricing_model.get_pricing_by_model(model)
-    logging.info("all pricing: ", pricing)
+    logging.info("all pricing: %s", pricing)
