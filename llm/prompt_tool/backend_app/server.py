@@ -199,7 +199,7 @@ class ChatHandler(AuthHandler):
             del MESSAGE_STORAGE[thread_id]
             self.write(
                 self.build_sse_message(
-                    "You have exceeded your monthly budget. Please contact to author.\nhttps://yishenggong.com/about-me"
+                    "You have exceeded your monthly budget.\nPlease contact to author.\nhttps://yishenggong.com/about-me"
                 )
             )
             self.flush()
@@ -231,7 +231,7 @@ class ChatHandler(AuthHandler):
             logging.error(f"OPENAI API error: {e}")
             self.write(
                 self.build_sse_message(
-                    "Sorry, I'm unable to get back to you this time due to service outage. Please contact to the author.\nhttps://yishenggong.com/about-me"
+                    "Sorry, I'm unable to get back to you this time due to service outage.\nCould you kindly contact to my author?\nhttps://yishenggong.com/about-me"
                 )
             )
             self.flush()
