@@ -194,7 +194,9 @@ function Playground() {
       }
     }
     // append user message to chat display
-    appendToConversation("user", userMessage);
+    if (SSEStatus === false) {
+      appendToConversation("user", userMessage);
+    }
     // send chat request to backend
     sendChatRequest();
   };
