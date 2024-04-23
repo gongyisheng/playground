@@ -206,25 +206,35 @@ class ChatHandler(AuthHandler):
             return
 
         # create openai stream
-        if model.lower().startswith("gpt"):
-            OPENAI_CLIENT = AsyncOpenAI(api_key=Global.config["openai_api_key"])
-            stream = await OPENAI_CLIENT.chat.completions.create(
-                model=real_model,
-                messages=conversation,
-                stream=True,
+        try:
+            if model.lower().startswith("gpt"):
+                OPENAI_CLIENT = AsyncOpenAI(api_key=Global.config["openai_api_key"])
+                stream = await OPENAI_CLIENT.chat.completions.create(
+                    model=real_model,
+                    messages=conversation,
+                    stream=True,
+                )
+            elif model.lower().startswith("llama"):
+                OPENAI_CLIENT = AsyncOpenAI(
+                    api_key=Global.config["llama_api_key"], 
+                    base_url=Global.config["llama_base_url"]
+                )
+                stream = await OPENAI_CLIENT.chat.completions.create(
+                    model=real_model,
+                    messages=conversation,
+                    stream=True,
+                )
+            else:
+                self.build_return(400, {"error": "model is not supported"})
+                return
+        except Exception as e:
+            logging.error(f"OPENAI API error: {e}")
+            self.write(
+                self.build_sse_message(
+                    "Sorry, I'm unable to get back to you this time due to service outage. Please contact to the author.\nhttps://yishenggong.com/about-me"
+                )
             )
-        elif model.lower().startswith("llama"):
-            OPENAI_CLIENT = AsyncOpenAI(
-                api_key=Global.config["llama_api_key"], 
-                base_url=Global.config["llama_base_url"]
-            )
-            stream = await OPENAI_CLIENT.chat.completions.create(
-                model=real_model,
-                messages=conversation,
-                stream=True,
-            )
-        else:
-            self.build_return(400, {"error": "model is not supported"})
+            self.flush()
             return
 
         assistant_message = ""
