@@ -110,15 +110,15 @@ if __name__ == "__main__":
     thread_id = "test_thread_id"
     chat_history_model.save_chat_history(user_id, thread_id, [{"text": "test"}])
     res = chat_history_model.get_chat_history_by_thread_id(thread_id)
-    logging.info("chat history:", res)
+    logging.info("chat history: %s", res)
 
     chat_history_model.save_chat_history(
         user_id, thread_id, [{"text": "test"}, {"text": "test2"}]
     )
     res = chat_history_model.get_chat_history_by_thread_id(thread_id)
-    logging.info("chat history:", res)
+    logging.info("chat history: %s", res)
 
     res = chat_history_model.get_chat_history_by_user_id(user_id)
-    logging.info("full chat history of user:", res)
+    logging.info("full chat history of user: %s", res)
 
     conn.close()
