@@ -109,10 +109,6 @@ class AuthHandler(BaseHandler):
             return
         else:
             self.user_id = Global.session_model.get_user_id_by_session(session_id)
-            encrypted_api_key = Global.api_key_model.get_api_key_by_user(self.user_id)
-            self.api_key = decrypt_data(
-                encrypted_api_key, self.encrypt_key, self.encrypt_salt
-            )
 
     def get(self):
         self.build_return(200)
@@ -209,7 +205,7 @@ class ChatHandler(AuthHandler):
 
         # create openai stream
         if model.lower().startswith("gpt"):
-            OPENAI_CLIENT = AsyncOpenAI(api_key=self.api_key)
+            OPENAI_CLIENT = AsyncOpenAI(api_key=Global.config["openai_api_key"])
             stream = await OPENAI_CLIENT.chat.completions.create(
                 model=real_model,
                 messages=conversation,
@@ -217,7 +213,8 @@ class ChatHandler(AuthHandler):
             )
         elif model.lower().startswith("llama"):
             OPENAI_CLIENT = AsyncOpenAI(
-                api_key=self.api_key, base_url=Global.config["llama_base_url"]
+                api_key=Global.config["llama_api_key"], 
+                base_url=Global.config["llama_base_url"]
             )
             stream = await OPENAI_CLIENT.chat.completions.create(
                 model=real_model,
