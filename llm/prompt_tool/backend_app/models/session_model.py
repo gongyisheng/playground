@@ -68,9 +68,18 @@ class SessionModel(BaseModel):
             cursor,
             """
             INSERT INTO session (user_id, session_id, status, last_active_time)
-            VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET session_id = ?;
+            VALUES (?, ?, ?, ?) 
+            ON CONFLICT(user_id) DO UPDATE SET session_id = ?, status = ?, last_active_time = ?;
             """,
-            (user_id, session_id, self.SESSION_STATUS_ACTIVE, int(time.time()), session_id),
+            (
+                user_id,
+                session_id,
+                self.SESSION_STATUS_ACTIVE,
+                int(time.time()),
+                session_id,
+                self.SESSION_STATUS_ACTIVE,
+                int(time.time()),
+            ),
             commit=True,
             on_raise=True,
         )
