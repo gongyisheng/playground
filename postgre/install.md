@@ -29,3 +29,6 @@ port can be 5432, which is the default port
 ### connect using cloudflare tunnel (only for test usage)
 `cloudflared access tcp --hostname <your host> --url localhost:5432`
 `psql --user yisheng --host localhost --password --dbname test`
+
+## ref
+- https://ubuntu.com/server/docs/install-and-configure-postgresql
