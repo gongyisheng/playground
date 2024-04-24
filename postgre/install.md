@@ -21,8 +21,11 @@ port can be 5432, which is the default port
 
 ## connect to database
 ### as normal user
-`psql -U <username> -d <dbname> -h localhost`
+`psql --user <username> --dbname <dbname> --host localhost`
 ### as admin user
 `sudo -u postgres psql template1`
 ### drop user
 `DROP USER <username>;`
+### connect using cloudflare tunnel (only for test usage)
+`cloudflared access tcp --hostname <your host> --url localhost:5432`
+`psql --user yisheng --host localhost --password --dbname test`
