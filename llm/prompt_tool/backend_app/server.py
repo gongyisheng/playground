@@ -9,6 +9,7 @@ import uuid
 sys.path.append("../")
 
 from openai import AsyncOpenAI
+import anthropic
 import yaml
 import tiktoken
 import tiktoken_ext.openai_public
@@ -164,6 +165,41 @@ class ChatHandler(AuthHandler):
     def get_token_num(self, message):
         num_tokens = len(ENC.encode(message))
         return num_tokens
+    
+    async def openai_text_stream(self, real_model, conversation):
+        client = AsyncOpenAI(api_key=Global.config["openai_api_key"])
+        stream = await client.chat.completions.create(
+            model=real_model,
+            messages=conversation,
+            stream=True,
+        )
+        async for chunk in stream:
+            content = chunk.choices[0].delta.content
+            yield content
+    
+    async def llama_text_stream(self, real_model, conversation):
+        client = AsyncOpenAI(api_key=Global.config["llama_api_key"], base_url=Global.config["llama_base_url"])
+        stream = await client.chat.completions.create(
+            model=real_model,
+            messages=conversation,
+            stream=True,
+        )
+        async for chunk in stream:
+            content = chunk.choices[0].delta.content
+            yield content
+
+    async def claude_text_stream(self, real_model, conversation):
+        system_message = conversation[0]["content"]
+        conversation = conversation[1:]
+        client = anthropic.AsyncAnthropic(api_key=Global.config["claude_api_key"])
+        async with client.messages.stream(
+            max_tokens=1024,
+            messages=conversation,
+            model=real_model,
+            system=system_message,
+        ) as stream:
+            async for text in stream.text_stream:
+                yield text
 
     async def get(self):
         global MESSAGE_STORAGE
@@ -188,6 +224,8 @@ class ChatHandler(AuthHandler):
         if conversation is None:
             self.build_return(400, {"error": "thread_id not found in message storage"})
             return
+        else:
+            del MESSAGE_STORAGE[thread_id]
 
         billing_period = datetime.now().strftime("%Y-%m")
         user_cost = Global.audit_model.get_total_cost_by_user_id_billing_period(
@@ -208,22 +246,11 @@ class ChatHandler(AuthHandler):
         # create openai stream
         try:
             if model.lower().startswith("gpt"):
-                OPENAI_CLIENT = AsyncOpenAI(api_key=Global.config["openai_api_key"])
-                stream = await OPENAI_CLIENT.chat.completions.create(
-                    model=real_model,
-                    messages=conversation,
-                    stream=True,
-                )
+                stream = self.openai_text_stream(real_model, conversation)
             elif model.lower().startswith("llama"):
-                OPENAI_CLIENT = AsyncOpenAI(
-                    api_key=Global.config["llama_api_key"], 
-                    base_url=Global.config["llama_base_url"]
-                )
-                stream = await OPENAI_CLIENT.chat.completions.create(
-                    model=real_model,
-                    messages=conversation,
-                    stream=True,
-                )
+                stream = self.llama_text_stream(real_model, conversation)
+            elif model.lower().startswith("claude"):
+                stream = self.claude_text_stream(real_model, conversation)
             else:
                 self.build_return(400, {"error": "model is not supported"})
                 return
@@ -238,14 +265,11 @@ class ChatHandler(AuthHandler):
             return
 
         assistant_message = ""
-        async for chunk in stream:
-            content = chunk.choices[0].delta.content
-            if content is not None:
-                assistant_message += content
-                self.write(self.build_sse_message(content))
+        async for text in stream:
+            if text is not None:
+                assistant_message += text
+                self.write(self.build_sse_message(text))
                 self.flush()
-
-        del MESSAGE_STORAGE[thread_id]
 
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
