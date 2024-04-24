@@ -3,7 +3,7 @@ import React, { useState } from "react";
 const modelIcons = {
   "GPT-3.5": "./static/gpt3.5.png",
   "GPT-4": "./static/gpt4.png",
-  "Llama2": "./static/llama2.png",
+  "Llama3": "./static/llama3.png",
 };
 
 const extraText = {}
