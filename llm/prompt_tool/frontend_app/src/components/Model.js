@@ -6,6 +6,8 @@ const modelIcons = {
   "Llama2": "./static/llama2.png",
 };
 
+const extraText = {}
+
 function Model({ onChange, cost, limit }) {
   const [chosenModel, setChosenModel] = useState("GPT-3.5");
 
@@ -22,11 +24,11 @@ function Model({ onChange, cost, limit }) {
   }
 
   function renderModelText(model) {
-    if (model === "Llama2") {
+    if (model in extraText) { 
       return (
         <div className="text-base w-full justify-center">
           <div>{model}</div>
-          <div className="text-xs">slow to respond...</div>
+          <div className="text-xs">{extraText[model]}</div>
         </div>
       );
     } else {
