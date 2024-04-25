@@ -440,6 +440,45 @@ class InviteHandler(AuthHandler):
             self.build_return(200)
             return
 
+# handler for forget password request (POST)
+# POST: reset password using invitation code
+class ForgetPasswordHandler(BaseHandler):
+    def post(self):
+        body = json.loads(self.request.body)
+        username = body.get("username")
+        password = body.get("password")
+        invitation_code = body.get("invitation_code")
+        if not username:
+            self.build_return(400, {"error": "Username is not provided"})
+            return
+        elif not password:
+            self.build_return(400, {"error": "Password is not provided"})
+            return
+        elif not invitation_code:
+            self.build_return(400, {"error": "Invitation code is not provided"})
+            return
+
+        user_id = Global.user_key_model.get_user_id_by_username(username)
+        if user_id is None:
+            self.build_return(400, {"error": "Username is not found"})
+            return
+
+        # reset password
+        encrypted_invitation_code = encrypt_data(
+            invitation_code, self.encrypt_key, self.encrypt_salt
+        )
+        if not Global.invitation_code_model.validate_invitation_code(encrypted_invitation_code):
+            self.build_return(
+                400, {"error": "Invitation code is not correct or expired"}
+            )
+            return
+        
+        Global.invitation_code_model.claim_invitation_code(encrypted_invitation_code)
+        encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
+        Global.user_key_model.update_password_by_user_id(user_id, encrypted_pwd)
+        self.build_return(200)
+        return
+
 
 # handler for audit request (GET)
 # GET: get total cost and budget of current user from database
