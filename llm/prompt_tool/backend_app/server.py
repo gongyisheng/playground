@@ -471,8 +471,8 @@ class ForgetPasswordHandler(BaseHandler):
             self.build_return(400, {"error": "Invitation code is not provided"})
             return
 
-        user_id = Global.user_key_model.get_user_id_by_username(username)
-        if user_id is None:
+        res = Global.user_key_model.validate_username(username)
+        if not res:
             self.build_return(400, {"error": "Username is not found"})
             return
 
@@ -490,7 +490,7 @@ class ForgetPasswordHandler(BaseHandler):
 
         Global.invitation_code_model.claim_invitation_code(encrypted_invitation_code)
         encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
-        Global.user_key_model.update_password_by_user_id(user_id, encrypted_pwd)
+        Global.user_key_model.update_password_by_username(username, encrypted_pwd)
         self.build_return(200)
         return
 

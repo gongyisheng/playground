@@ -90,15 +90,15 @@ class UserKeyModel(BaseModel):
         )
         return res[0] if res[0] else None
 
-    def update_password_by_user_id(self, user_id: int, password: bytes) -> None:
+    def update_password_by_username(self, username: str, password: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(
             cursor,
             """
             UPDATE user_key SET password = ?, update_time = ?
-            WHERE user_id = ?
+            WHERE username = ?
             """,
-            (password, int(time.time()), user_id),
+            (password, int(time.time()), username),
             commit=True,
             on_raise=True,
         )
@@ -136,6 +136,6 @@ if __name__ == "__main__":
     res = user_key_model.validate_user(username, b"test2")
     logging.info("validate_user: %s", res)
 
-    user_key_model.update_password_by_user_id(user_id, b"test3")
+    user_key_model.update_password_by_username(username, b"test3")
     res = user_key_model.validate_user(username, b"test3")
     logging.info("validate_user: %s", res)
