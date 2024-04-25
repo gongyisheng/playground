@@ -433,7 +433,7 @@ class SignInHandler(BaseHandler):
 
 # handler for invite request (POST)
 # POST: insert invitation code to database
-class InviteHandler(AuthHandler):
+class InviteHandler(BaseHandler):
     def post(self):
         invitation_code = self.get_argument("invitation_code")
         if not invitation_code:
