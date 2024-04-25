@@ -2,7 +2,9 @@
 from datetime import datetime
 import json
 import logging
+import random
 import sqlite3
+import string
 import sys
 import uuid
 
@@ -512,6 +514,15 @@ class AuditHandler(AuthHandler):
         return
 
 
+# handler for random string request (GET)
+# GET: generate random string
+class RandomStringHandler(BaseHandler):
+    def get(self):
+        rand_string = "".join(random.choices(string.ascii_letters, k=32))
+        self.build_return(200, rand_string)
+        return
+
+
 def make_app():
     return tornado.web.Application(
         [
@@ -524,6 +535,7 @@ def make_app():
             (r"/invite", InviteHandler),
             (r"/forget_password", ForgetPasswordHandler),
             (r"/audit", AuditHandler),
+            (r"/random", RandomStringHandler),
         ]
     )
 
