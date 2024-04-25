@@ -78,7 +78,6 @@ class AuditModel(BaseModel):
         )
         cursor.close()
 
-
     def insert_audit_log(
         self,
         user_id: int,
@@ -119,7 +118,6 @@ class AuditModel(BaseModel):
             on_raise=True,
         )
         cursor.close()
-
 
     def get_total_cost_by_user_id_billing_period(
         self, user_id: int, billing_period: str

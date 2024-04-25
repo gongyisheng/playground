@@ -89,7 +89,7 @@ class UserKeyModel(BaseModel):
             (username, password),
         )
         return res[0] if res[0] else None
-    
+
     def update_password_by_user_id(self, user_id: int, password: bytes) -> None:
         cursor = self.conn.cursor()
         self._execute_sql(

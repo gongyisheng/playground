@@ -27,6 +27,7 @@ from models.invitation_code_model import InvitationCodeModel
 from models.user_key_model import UserKeyModel
 
 from one_time.init_price import init_price
+
 # from one_time.init_prompt import init_default_prompt
 
 from utils import setup_logger, encrypt_data, decrypt_data
@@ -166,7 +167,7 @@ class ChatHandler(AuthHandler):
     def get_token_num(self, message):
         num_tokens = len(ENC.encode(message))
         return num_tokens
-    
+
     async def openai_text_stream(self, real_model, conversation):
         client = AsyncOpenAI(api_key=Global.config["openai_api_key"])
         stream = await client.chat.completions.create(
@@ -177,9 +178,12 @@ class ChatHandler(AuthHandler):
         async for chunk in stream:
             content = chunk.choices[0].delta.content
             yield content
-    
+
     async def llama_text_stream(self, real_model, conversation):
-        client = AsyncOpenAI(api_key=Global.config["llama_api_key"], base_url=Global.config["llama_base_url"])
+        client = AsyncOpenAI(
+            api_key=Global.config["llama_api_key"],
+            base_url=Global.config["llama_base_url"],
+        )
         stream = await client.chat.completions.create(
             model=real_model,
             messages=conversation,
@@ -369,7 +373,9 @@ class SignUpHandler(BaseHandler):
         encrypted_invitation_code = encrypt_data(
             invitation_code, self.encrypt_key, self.encrypt_salt
         )
-        if not Global.invitation_code_model.validate_invitation_code(encrypted_invitation_code):
+        if not Global.invitation_code_model.validate_invitation_code(
+            encrypted_invitation_code
+        ):
             self.build_return(
                 400, {"error": "Invitation code is not correct or expired"}
             )
@@ -378,7 +384,9 @@ class SignUpHandler(BaseHandler):
             user_id = Global.user_model.create_user()
             encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
             Global.user_key_model.create_user(user_id, username, encrypted_pwd)
-            Global.invitation_code_model.claim_invitation_code(encrypted_invitation_code)
+            Global.invitation_code_model.claim_invitation_code(
+                encrypted_invitation_code
+            )
             Global.audit_model.insert_budget_by_user_id(
                 user_id, Global.config["default_monthly_budget"]
             )
@@ -436,9 +444,12 @@ class InviteHandler(AuthHandler):
             encrypted_invitation_code = encrypt_data(
                 invitation_code, self.encrypt_key, self.encrypt_salt
             )
-            Global.invitation_code_model.insert_invitation_code(encrypted_invitation_code)
+            Global.invitation_code_model.insert_invitation_code(
+                encrypted_invitation_code
+            )
             self.build_return(200)
             return
+
 
 # handler for forget password request (POST)
 # POST: reset password using invitation code
@@ -467,12 +478,14 @@ class ForgetPasswordHandler(BaseHandler):
         encrypted_invitation_code = encrypt_data(
             invitation_code, self.encrypt_key, self.encrypt_salt
         )
-        if not Global.invitation_code_model.validate_invitation_code(encrypted_invitation_code):
+        if not Global.invitation_code_model.validate_invitation_code(
+            encrypted_invitation_code
+        ):
             self.build_return(
                 400, {"error": "Invitation code is not correct or expired"}
             )
             return
-        
+
         Global.invitation_code_model.claim_invitation_code(encrypted_invitation_code)
         encrypted_pwd = encrypt_data(password, self.encrypt_key, self.encrypt_salt)
         Global.user_key_model.update_password_by_user_id(user_id, encrypted_pwd)
@@ -503,12 +516,13 @@ def make_app():
     return tornado.web.Application(
         [
             (r"/ping", PingHandler),
+            (r"/auth", AuthHandler),
             (r"/chat", ChatHandler),
             (r"/prompt", PromptHandler),
             (r"/signin", SignInHandler),
             (r"/signup", SignUpHandler),
-            (r"/auth", AuthHandler),
             (r"/invite", InviteHandler),
+            (r"/forget_password", ForgetPasswordHandler),
             (r"/audit", AuditHandler),
         ]
     )
