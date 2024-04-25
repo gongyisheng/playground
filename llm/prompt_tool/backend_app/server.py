@@ -27,7 +27,7 @@ from models.invitation_code_model import InvitationCodeModel
 from models.user_key_model import UserKeyModel
 
 from one_time.init_price import init_price
-from one_time.init_prompt import init_default_prompt
+# from one_time.init_prompt import init_default_prompt
 
 from utils import setup_logger, encrypt_data, decrypt_data
 
@@ -382,7 +382,7 @@ class SignUpHandler(BaseHandler):
             Global.audit_model.insert_budget_by_user_id(
                 user_id, Global.config["default_monthly_budget"]
             )
-            init_default_prompt(user_id, Global.prompt_model)
+            # init_default_prompt(user_id, Global.prompt_model)
             self.build_return(200)
             return
 
