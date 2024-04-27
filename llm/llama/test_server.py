@@ -1,5 +1,5 @@
 from openai import OpenAI
-host = "https://llama2-7b.yellowday.day/v1"
+host = "https://ai.freedl.cc/api"
 
 conversation = [
     {"role": "system", "content": "You are a helpful assistant."},
@@ -8,7 +8,7 @@ conversation = [
 
 OPENAI_CLIENT = OpenAI(base_url=host, api_key="sk-123")
 stream = OPENAI_CLIENT.chat.completions.create(
-    model="llama2-7b",
+    model="llama3",
     messages=conversation,
     stream=True,
 )
