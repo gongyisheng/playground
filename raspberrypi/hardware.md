@@ -7,7 +7,7 @@
 `free -h`  
 
 # setup swap
-change default system-level swap size  
+change default system-level swap size (only for raspberry pi os)  
 `sudo vim /etc/dphys-swapfile`  
 `CONF_SWAPFILE=4096`(MB)  
 `CONF_MAXSWAP=8192`(MB)   
