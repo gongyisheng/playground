@@ -9,7 +9,8 @@
 # setup swap
 change default system-level swap size  
 `sudo vim /etc/dphys-swapfile`  
-`CONF_SWAPFILE=4000`(MB)  
+`CONF_SWAPFILE=4096`(MB)  
+`CONF_MAXSWAP=8192`(MB)   
 flush existing swap  
 `sudo swapoff -a`  
 add new swap files (bs=size per file, count=file count, bs*count=swap size)  
