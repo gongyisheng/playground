@@ -62,7 +62,7 @@ ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 ref: https://easycode.page/monitoring-on-raspberry-pi-with-node-exporter-prometheus-and-grafana/#steps-to-deploy-prometheus-on-docker
 
 # run monitoring
-- run node exporter
+- run node exporter (docker native)
 ```
 # Navigate to the node-exporter directory
 cd monitoring/node-exporter
@@ -108,7 +108,7 @@ prom/prometheus
 ```
 **note**: net="host" means container to use host's network configuration. 
 
-# run cloudflare tunnel
+# run cloudflare tunnel - ubuntu
 ```
 docker run -d \
 --name cloudflared \
@@ -116,6 +116,14 @@ docker run -d \
 --net="host" \
 --pid="host" \
 cloudflare/cloudflared:latest tunnel --no-autoupdate run --token
+```
+
+# run cloudflare tunnel - arm32
+```
+download from: https://hobin.ca/cloudflared/
+tar -xvzf cloudflared-stable-linux-arm.tgz
+sudo cp ./cloudflared /usr/local/bin
+sudo chmod +x /usr/local/bin/cloudflared
 ```
 
 # run sqlite web
