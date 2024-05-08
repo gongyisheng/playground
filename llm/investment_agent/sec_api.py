@@ -42,7 +42,7 @@ def cik_lookup(ticker: str):
 def company_facts(cik: str):
     url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
     response = requests.get(url, headers=headers)
-    f = open("company_facts.json", "w")
+    f = open("company_facts.json", "w", encoding="utf_8")
     f.write(json.dumps(response.json()))
     f.close()
     return response.json()
