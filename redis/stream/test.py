@@ -10,7 +10,6 @@ import string
 
 # Generate random data
 data_size = 1024*4
-group_name = 'mygroup'
 
 async def producer(num, task_id, batch_size=10):
     # Connect to Redis
@@ -38,6 +37,7 @@ async def producer(num, task_id, batch_size=10):
     print(f"[{task_id}] Added {num} messages with 10KB data each to Redis stream in {elapsed_time} seconds")
 
 async def consumer(num, task_id, batch_size=10):
+    await asyncio.sleep(0.1)
     # Connect to Redis
     r = aioredis.Redis(host='localhost', port=6379, db=0)
 
@@ -53,7 +53,7 @@ async def consumer(num, task_id, batch_size=10):
             for item in stream_data:
                 id = item[0].decode('utf-8')
                 stream_ids.append(id)
-            await r.xack(f'mystream_{task_id}', group_name, *stream_ids)
+            await r.xack(f'mystream_{task_id}', *stream_ids)
 
     # Calculate elapsed time
     end_time = time.time()
