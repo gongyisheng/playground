@@ -33,3 +33,8 @@ chatbackend:latest
 ```
 sudo nohup python3 server.py --config /etc/prompt_tool/backend-config.prod.yaml
 ```
+
+# SQL
+```
+SELECT user_id, sum(cost) FROM "audit_log" where billing_period = '2024-04' group by user_id
+```

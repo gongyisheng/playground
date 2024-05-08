@@ -8,3 +8,5 @@
 `sudo vim /etc/rsyslog.d/50-default.conf`
 # cronjob execution record
 `grep CRON /var/log/syslog`
+# chmod of file if run with root user
+`chmod +x <FILE>`

@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import md5 from "md5";
 
-import { ENDPOINT_SIGNIN, ENDPOINT_AUTH } from "../constants";
+import { ENDPOINT_FORGET_PASSWORD } from "../constants";
 
 const logoSrc = "./logo.png";
 
-const SignIn = () => {
+const ForgetPassword = () => {
   const navigate = useNavigate();
-  const [sessionState, setSessionState] = useState(0);
-  const [checkSessionStateEvent, setCheckSessionStateEvent] = useState(0);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [invitationCode, setInvitationCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleUsernameChange = (e) => {
@@ -22,7 +21,11 @@ const SignIn = () => {
     setPassword(e.target.value);
   };
 
-  async function handleSignIn(e) {
+  const handleInvitationCodeChange = (e) => {
+    setInvitationCode(e.target.value);
+  };
+
+  async function handleSignUp(e) {
     e.preventDefault();
     if (username === "") {
       setErrorMessage("Username is not provided.");
@@ -30,22 +33,24 @@ const SignIn = () => {
     } else if (password === "") {
       setErrorMessage("Password is not provided.");
       return;
+    } else if (invitationCode === "") {
+      setErrorMessage("Invitation code is not provided.");
+      return;
     }
 
     try {
-      const response = await fetch(ENDPOINT_SIGNIN, {
+      const response = await fetch(ENDPOINT_FORGET_PASSWORD, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        credentials: "include", // <-- includes cookies in the request
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: username,
           password: md5(password),
+          invitation_code: invitationCode,
         }),
       });
+
       if (response.status === 200) {
-        navigate("/playground");
+        navigate("/signin");
       } else {
         const data = await response.json();
         setErrorMessage(data.error);
@@ -56,53 +61,17 @@ const SignIn = () => {
     }
   }
 
-  const handleSessionStateChange = (state) => {
-    setSessionState(state);
-    setCheckSessionStateEvent(checkSessionStateEvent + 1);
-  };
-
-  const checkSessionState = async () => {
-    try {
-      const response = await fetch(ENDPOINT_AUTH, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // <-- includes cookies in the request
-      });
-      if (response.status === 200) {
-        handleSessionStateChange(1);
-      } else if (response.status === 401) {
-        handleSessionStateChange(-1);
-      }
-    } catch (error) {
-      console.error("Failed to check session state:", error);
-    }
-  }
-
-  useEffect(() => {
-    if (sessionState > 0) {
-      navigate("/playground");
-    } else if (sessionState < 0) {
-      navigate("/signin");
-    }
-  }, [checkSessionStateEvent]);
-
-  useEffect(() => {
-    checkSessionState();
-  }, []);
-
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <img className="mx-auto h-20 w-auto" src={logoSrc} alt="Your Logo" />
         <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight">
-          Sign in to continue
+          Reset Password
         </h2>
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form className="space-y-6" action="#" onSubmit={handleSignIn}>
+        <form className="space-y-6" action="#" onSubmit={handleSignUp}>
           <div>
             <label
               htmlFor="username"
@@ -123,10 +92,10 @@ const SignIn = () => {
           </div>
 
           <div>
-            <div className="flex items-center justify-between">
+            <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium leading-6 text-black"
+                className="block text-sm font-medium leading-6 text-balance"
               >
                 Password
               </label>
@@ -140,38 +109,58 @@ const SignIn = () => {
                 onChange={handlePasswordChange}
                 className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 focus:border-black sm:text-sm sm:leading-6"
               />
+              <p className="text-gray-600 text-xs mt-1">
+                Recommend to contain 1 uppercase letter, 1 number, min. 8 characters.
+              </p>
             </div>
           </div>
 
           <div>
             <div>
-              <p className="text-xs text-red-500 italic">{errorMessage}</p>
+              <label
+                htmlFor="invitation-code"
+                className="block text-sm font-medium leading-6 text-black"
+              >
+                Invitation Code
+              </label>
+            </div>
+            <div className="mt-2">
+              <input
+                id="invitation-code"
+                name="invitation-code"
+                type="invitation-code"
+                autoComplete="off"
+                onChange={handleInvitationCodeChange}
+                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div>
+              <p className="text-red-500 text-xs italic">{errorMessage}</p>
             </div>
             <button
               type="submit"
               className="flex mt-2 w-full justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
             >
-              Sign in
+              Register
             </button>
           </div>
         </form>
 
-        <p className="mt-5 text-center text-sm text-gray-400">
-          <p className="mt-1">Not a member?{" "}
-            <a href="/signup" className="font-semibold leading-6 text-red-500">
-              Sign up with invitation code
-            </a>
-          </p>
-          <p className="mt-1">
-            It's okay to{" "}
-            <a href="/forget_password" className="font-semibold leading-6 text-red-300">
-              forget your password
-            </a>
-          </p>
+        <p className="mt-10 text-center text-sm text-gray-400">
+          Don't have an invitation code?{" "}
+          <a
+            href="https://yishenggong.com/about-me"
+            className="font-semibold leading-6 text-red-500"
+          >
+            Contact with the author
+          </a>
         </p>
       </div>
     </div>
   );
 };
 
-export default SignIn;
+export default ForgetPassword;
