@@ -17,12 +17,31 @@ block_timeout = 5
 
 async def init(stream_name):
     r = aioredis.Redis(host='localhost', port=6379, db=0)
-    resp = await r.xgroup_create(stream_name, group_name, id='$', mkstream=True)
-    if resp != True:
-        print("Create group failed, response: ", resp)
-    resp = await r.xgroup_createconsumer(stream_name, group_name, consumer_name)
-    if resp != 1:
-        print("Create consumer failed, response: ", resp)
+    resp = await r.xinfo_groups(stream_name)
+    has_group = False
+    for group in resp:
+        if group['name'].decode('utf-8') == group_name:
+            has_group = True
+            print("Group already exists")
+            break
+    if not has_group:
+        print("Create group")
+        resp = await r.xgroup_create(stream_name, group_name, id='$', mkstream=True)
+        if resp != True:
+            print("Create group failed, response: ", resp)
+    
+    resp = await r.xinfo_consumers(stream_name, group_name)
+    has_consumer = False
+    for consumer in resp:
+        if consumer['name'].decode('utf-8') == consumer_name:
+            has_consumer = True
+            print("Consumer already exists")
+            break
+    if not has_consumer:
+        print("Create consumer")
+        resp = await r.xgroup_createconsumer(stream_name, group_name, consumer_name)
+        if resp != 1:
+            print("Create consumer failed, response: ", resp)
     print(f"Stream {stream_name} initialized")
 
 async def producer(num, task_id, batch_size=10):
@@ -116,7 +135,7 @@ async def cleanup():
     await r.flushdb()
 
 async def main(num, concurrency, batch_size=10):
-    await cleanup()
+    #await cleanup()
 
     tasks = []
     tasks += [asyncio.create_task(init(f'mystream_{i}')) for i in range(concurrency)]
