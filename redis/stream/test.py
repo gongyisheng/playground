@@ -9,7 +9,7 @@ import string
 # config set appendfsync always
 
 # Generate random data
-data_size = 1024*4
+data_size = 10
 
 async def producer(num, task_id, batch_size=10):
     # Connect to Redis
@@ -27,6 +27,7 @@ async def producer(num, task_id, batch_size=10):
         for i in range(batch_size):
             pipe.xadd(f'mystream_{task_id}', {'data': data})
         res = await pipe.execute()
+        print(res)
         # print(res)
 
     # Calculate elapsed time
@@ -48,12 +49,14 @@ async def consumer(num, task_id, batch_size=10):
     for i in range(num//batch_size):
         for j in range(batch_size):
             res = await r.xread({f'mystream_{task_id}': '0-0'}, count=batch_size)
+            print(res)
             stream_data = res[0][1]
             stream_ids = []
             for item in stream_data:
                 id = item[0].decode('utf-8')
                 stream_ids.append(id)
-            await r.xack(f'mystream_{task_id}', *stream_ids)
+            print(stream_ids, id)
+            await r.xack(f'mystream_{task_id}', "default_group", *stream_ids)
 
     # Calculate elapsed time
     end_time = time.time()
