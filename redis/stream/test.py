@@ -10,6 +10,20 @@ import string
 
 # Generate random data
 data_size = 10
+group_name = "default_group"
+consumer_name = "consumer_0"
+min_idle_time = 5
+block_timeout = 5
+
+async def init(stream_name):
+    r = aioredis.Redis(host='localhost', port=6379, db=0)
+    resp = await r.xgroup_create(stream_name, group_name, id='$', mkstream=True)
+    if resp != True:
+        print("Create group failed, response: ", resp)
+    resp = await r.xgroup_createconsumer(stream_name, group_name, consumer_name)
+    if resp != 1:
+        print("Create consumer failed, response: ", resp)
+    print(f"Stream {stream_name} initialized")
 
 async def producer(num, task_id, batch_size=10):
     # Connect to Redis
@@ -26,9 +40,8 @@ async def producer(num, task_id, batch_size=10):
         pipe = r.pipeline()
         for i in range(batch_size):
             pipe.xadd(f'mystream_{task_id}', {'data': data})
-        res = await pipe.execute()
-        print(res)
-        # print(res)
+        resp = await pipe.execute()
+        print("produce ", resp)
 
     # Calculate elapsed time
     end_time = time.time()
@@ -45,18 +58,30 @@ async def consumer(num, task_id, batch_size=10):
     # Start the timer
     start_time = time.time()
 
+    await r.xclaim(f'mystream_{task_id}', group_name, consumer_name, min_idle_time, ['0-0'])
+
     # Read data from stream
-    for i in range(num//batch_size):
-        for j in range(batch_size):
-            res = await r.xread({f'mystream_{task_id}': '0-0'}, count=batch_size)
-            print(res)
-            stream_data = res[0][1]
-            stream_ids = []
-            for item in stream_data:
-                id = item[0].decode('utf-8')
-                stream_ids.append(id)
-            print(stream_ids, id)
-            await r.xack(f'mystream_{task_id}', "default_group", *stream_ids)
+    count = 0
+    last_id = '>'
+    while count < num:
+        res = await r.xreadgroup(
+            group_name,
+            consumer_name,
+            streams={f'mystream_{task_id}': last_id},
+            count=batch_size,
+            block=block_timeout,
+        )
+        if len(res) == 0:
+            print("No more data to read")
+            continue
+        stream_data = res[0][1]
+        stream_ids = []
+        for item in stream_data:
+            id = item[0].decode('utf-8')
+            stream_ids.append(id)
+        count += len(stream_ids)
+        print("consume ", stream_ids, last_id)
+        resp = await r.xack(f'mystream_{task_id}', group_name, *stream_ids)
 
     # Calculate elapsed time
     end_time = time.time()
@@ -86,13 +111,23 @@ async def replay(num, task_id, start_id, stop_id):
     # Print benchmark results
     print(f"[{task_id}] Read {num} messages with 10KB data from Redis stream in {elapsed_time} seconds")
 
-
+async def cleanup():
+    r = aioredis.Redis(host='localhost', port=6379, db=0)
+    await r.flushdb()
 
 async def main(num, concurrency, batch_size=10):
+    await cleanup()
+
+    tasks = []
+    tasks += [asyncio.create_task(init(f'mystream_{i}')) for i in range(concurrency)]
+    await asyncio.gather(*tasks)
+
     tasks = []
     tasks += [asyncio.create_task(producer(num, i, batch_size)) for i in range(concurrency)]
     tasks += [asyncio.create_task(consumer(num, i, batch_size)) for i in range(concurrency)]
     await asyncio.gather(*tasks)
+
+    # await cleanup()
 
 if __name__ == '__main__':
     import sys
