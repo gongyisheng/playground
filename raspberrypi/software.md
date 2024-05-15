@@ -142,20 +142,23 @@ docker run -d \
 coleifer/sqlite-web
 ```
 
-# run nextcloud
+# run dufs
 ```
-sudo docker run \
---init \
---sig-proxy=false \
---name nextcloud-aio-mastercontainer \
+docker run -d \
+--name dufs \
 --restart always \
---publish 8080:8080 \
---network host \
---env APACHE_PORT=11000 \
---env APACHE_IP_BINDING=0.0.0.0 \
---env SKIP_DOMAIN_VALIDATION=true \
---env NEXTCLOUD_DATADIR="/media/usbdisk/nextcloud" \
---volume nextcloud_aio_mastercontainer:/mnt/docker-aio-config \
---volume /var/run/docker.sock:/var/run/docker.sock:ro \
-nextcloud/all-in-one:latest
+-v /media/usbdisk/:/data \
+-v /media/usbdisk/codebase/user-key/dufs/dufs.yaml:/etc/dufs/dufs.yaml \
+-p 5000:5000 \
+sigoden/dufs --config /etc/dufs/dufs.yaml
+```
+
+# run folding at home
+```
+docker run -d \
+--name=foldingathome \
+-p 7396:7396 \
+-p 36330:36330 \
+--restart unless-stopped \
+lscr.io/linuxserver/foldingathome:latest
 ```
