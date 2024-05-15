@@ -32,3 +32,9 @@ reboot
 # stress test
 `sudo apt-get install stress`
 `while true; do vcgencmd measure_clock arm; vcgencmd measure_temp; sleep 10; done& stress -c 4 -t 900s`
+
+# external disk mount
+`sudo fdisk -l` see drivers number  
+`sudo mount /dev/sda# /media/usbdisk` mount disk  
+add following line to `/etc/fstab` to mount disk after boot  
+`UUID=XXXXXXX /media/usbdisk auto nosuid,nodev,nofail 0 0`
