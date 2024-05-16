@@ -152,13 +152,3 @@ docker run -d \
 -p 5000:5000 \
 sigoden/dufs --config /etc/dufs/dufs.yaml
 ```
-
-# run folding at home
-```
-docker run -d \
---name=foldingathome \
--p 7396:7396 \
--p 36330:36330 \
---restart unless-stopped \
-lscr.io/linuxserver/foldingathome:latest
-```
