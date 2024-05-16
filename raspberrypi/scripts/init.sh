@@ -3,7 +3,7 @@ is_master=$1
 echo "Is master: $is_master"
 
 cd ~
-git config --global user.name "gongyisheng“
+git config --global user.name "gongyisheng"
 git config --global user.email "yisheng_gong@onmail.com"
 git config --global credential.helper store
 
@@ -54,3 +54,9 @@ if [ "$is_master" = "true" ]; then
   cd ~/monitoring/grafana
   sudo docker run -d --name=grafana --net="host" --pid="host" -p 3000:3000 --restart always grafana/grafana
 fi
+
+# 5. Install cloudflare tunnel
+curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
+sudo dpkg -i cloudflared.deb
+sudo cloudflared service install XXXXX
+sudo systemctl enable cloudflared
