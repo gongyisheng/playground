@@ -14,24 +14,17 @@ sudo apt-get upgrade
 sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential -y
 
 # 1. Install docker
-# Add Docker's official GPG key:
 sudo apt-get update
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-# Add the repository to Apt sources:
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get update
-
-# Install Docker:
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Enable and start the Docker service:
 sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
 
@@ -41,19 +34,15 @@ cd ~/monitoring/node-exporter
 sudo docker run -d --name="node-exporter" --net="host" --pid="host" -v "/:/host:ro,rslave" --restart=always quay.io/prometheus/node-exporter:latest --path.rootfs=/host
 
 # 3. Install prometheus (only on master)
-if [ "$is_master" = "true" ]; then
-  mkdir -p ~/monitoring/prometheus
-  cd ~/monitoring/prometheus
-  cp ~/user-key/prometheus/prometheus.yml .
-  sudo docker run -d --name prometheus --net="host" --pid="host" -p 9090:9090 -v ~/monitoring/prometheus:/etc/prometheus --restart always prom/prometheus
-fi
+mkdir -p ~/monitoring/prometheus
+cd ~/monitoring/prometheus
+cp ~/user-key/prometheus/prometheus.yml .
+sudo docker run -d --name prometheus --net="host" --pid="host" -p 9090:9090 -v ~/monitoring/prometheus:/etc/prometheus --restart always prom/prometheus
 
 # 4. Install grafana (only on master)
-if [ "$is_master" = "true" ]; then
-  mkdir -p ~/monitoring/grafana
-  cd ~/monitoring/grafana
-  sudo docker run -d --name=grafana --net="host" --pid="host" -p 3000:3000 --restart always grafana/grafana
-fi
+mkdir -p ~/monitoring/grafana
+cd ~/monitoring/grafana
+sudo docker run -d --name=grafana --net="host" --pid="host" -p 3000:3000 --restart always grafana/grafana
 
 # 5. Install cloudflare tunnel
 curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
