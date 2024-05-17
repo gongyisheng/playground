@@ -19,16 +19,17 @@ def upload_to_s3(file_path, bucket_name, s3_file_name):
         print("Credentials not available.")
 
 if __name__ == "__main__":
-    import sys
+    from argparse import ArgumentParser
+
+    options = ArgumentParser()
+    options.add_argument("-p", "--path", dest="path", required=True, help="path to the folder to backup")
+    options.add_argument("-skip-zip", "--skip-zip", dest="skip_zip", required=False, help="skip zip the folder", action="store_true")
+    options.add_argument("-skip-upload", "--skip-upload", dest="skip_upload", required=False, help="skip upload the zip file", action="store_true")
+    args = options.parse_args()
 
     base_folder = '/media/usbdisk'
     key_file_path = f'{base_folder}/codebase/user-key/s3/key.json'
-
-    if len(sys.argv) < 2:
-        print("Usage: python3 s3_backup.py <subpath>")
-        sys.exit(1)
-    else:
-        subpath = sys.argv[1]
+    subpath = args.path
 
     folder_path = f'{base_folder}/{subpath}'  # Replace with the path to your folder
     output_zip = f'{base_folder}/backup/{subpath}'  # Replace with your desired output zip file name (without .zip extension)
@@ -46,9 +47,11 @@ if __name__ == "__main__":
         secret_key = content['secret_key']
 
     # Compress the folder
-    zip_folder(folder_path, output_zip)
-    print(f"Zip file created.")
+    if not args.skip_zip:
+        zip_folder(folder_path, output_zip)
+        print(f"Zip file created.")
 
     # Upload to S3
-    upload_to_s3(f"{output_zip}.zip", bucket_name, s3_file_name)
-    print(f"Backup uploaded to S3.")
+    if not args.skip_upload:
+        upload_to_s3(f"{output_zip}.zip", bucket_name, s3_file_name)
+        print(f"Backup uploaded to S3.")
