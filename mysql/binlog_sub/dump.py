@@ -5,9 +5,6 @@ from pymysqlreplication.row_event import (
     WriteRowsEvent,
 )
 
-from ext import setup_logger
-import logging
-import time
 import sys
 from config import MYSQL_SETTINGS
 
@@ -38,10 +35,10 @@ def binlog_subscribe():
         only_events=[DeleteRowsEvent, UpdateRowsEvent, WriteRowsEvent],
         blocking=True,
         enable_logging=False,
-        only_schemas=set(["test"]),
-        only_tables=set(["binlog_test"]),
+        only_schemas=set(["cdc_test"]),
+        only_tables=set(["test"]),
     )
-    logging.info("Start to subscribe binlog")
+    print("Start to subscribe binlog")
     try:
         for binlogevent in stream:
             db = binlogevent.schema
@@ -71,7 +68,6 @@ def binlog_subscribe():
         stream.close()
 
 if __name__ == "__main__":
-    setup_logger()
     binlog_subscribe()
     for k in sorted(list(QPS_DICT.keys())):
         print(f"{k} QPS: {QPS_DICT[k]}")
