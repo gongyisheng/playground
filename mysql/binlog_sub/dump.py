@@ -5,6 +5,7 @@ from pymysqlreplication.row_event import (
     WriteRowsEvent,
 )
 
+import time
 import sys
 from config import MYSQL_SETTINGS
 
@@ -63,6 +64,7 @@ def binlog_subscribe():
                     message_body = row["values"]
                     QPS_DICT[timestamp]["insert"] += 1
                 print(f"[{log_file}-{log_pos}][{db}.{table}] time={timestamp}, body={message_body}")
+                time.sleep(1)
                 
     except KeyboardInterrupt:
         stream.close()
