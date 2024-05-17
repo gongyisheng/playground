@@ -36,7 +36,7 @@ if __name__ == "__main__":
     
     bucket_name = 'yisheng-backup'  # Replace with your S3 bucket name
     s3_file_name = f'{subpath}.zip'  # Replace with desired path and file name in S3
-    storage_class = 'GLACIER'
+    storage_class = 'DEEP_ARCHIVE'
     print(f"bucket name: {bucket_name}, s3 file name: {s3_file_name}, storage class: {storage_class}")
     
     with open(key_file_path, 'r') as f:
