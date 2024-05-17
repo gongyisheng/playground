@@ -1,1 +1,0 @@
-"https://stats.foldingathome.org/user?user=Yisheng&team=1065585&passkey=&version=7.6.21"

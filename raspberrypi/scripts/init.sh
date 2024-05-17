@@ -11,7 +11,7 @@ git clone https://github.com/gongyisheng/user-key.git
 
 sudo apt-get update
 sudo apt-get upgrade
-sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential -y
+sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip -y
 
 # 1. Install docker
 sudo apt-get update
