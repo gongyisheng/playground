@@ -15,6 +15,7 @@ from config import MYSQL_SETTINGS
 
 LOG_FILE = sys.argv[1] if len(sys.argv) > 1 else None
 LOG_POS = int(sys.argv[2]) if len(sys.argv) > 2 else None
+RESUME_STREAM = LOG_FILE is not None and LOG_POS is not None
 
 QPS_DICT = {}
 
@@ -23,7 +24,6 @@ QPS_DICT = {}
 #         now = int(time.time())
 #         print(f"{now-1} QPS: {QPS_DICT.get(now-1, 0)}")
 #         await asyncio.sleep(1)
-        
 
 def binlog_subscribe():
     # server_id is your slave identifier, it should be unique.
@@ -34,14 +34,22 @@ def binlog_subscribe():
         connection_settings=MYSQL_SETTINGS, 
         server_id=2, 
         only_events=[DeleteRowsEvent, UpdateRowsEvent, WriteRowsEvent],
-        blocking=True,
-        enable_logging=False,
+        resume_stream=RESUME_STREAM,
+        blocking=False,
+        enable_logging=True,
         only_schemas=set(["cdc_test"]),
         only_tables=set(["test"]),
+        log_file=LOG_FILE,
+        log_pos=LOG_POS,
     )
     print("Start to subscribe binlog")
     try:
-        for binlogevent in stream:
+        while True:
+            binlogevent = stream.fetchone()
+            if binlogevent is None:
+                print("No event, retry...")
+                time.sleep(1)
+                continue
             db = binlogevent.schema
             table = binlogevent.table
             timestamp = binlogevent.timestamp
@@ -64,7 +72,6 @@ def binlog_subscribe():
                     message_body = row["values"]
                     QPS_DICT[timestamp]["insert"] += 1
                 print(f"[{log_file}-{log_pos}][{db}.{table}] time={timestamp}, body={message_body}")
-                time.sleep(1)
                 
     except KeyboardInterrupt:
         stream.close()
