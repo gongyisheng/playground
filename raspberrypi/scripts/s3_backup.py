@@ -11,7 +11,7 @@ def upload_to_s3(file_path, bucket_name, s3_file_name):
     """Upload a file to an S3 bucket."""
     s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     try:
-        s3.upload_file(file_path, bucket_name, s3_file_name)
+        s3.upload_file(file_path, bucket_name, s3_file_name, ExtraArgs={'StorageClass': storage_class})
         print(f"File {s3_file_name} uploaded to S3 bucket {bucket_name}.")
     except FileNotFoundError:
         print("The file was not found.")
@@ -24,7 +24,11 @@ if __name__ == "__main__":
     base_folder = '/media/usbdisk'
     key_file_path = f'{base_folder}/codebase/user-key/s3/key.json'
 
-    subpath = sys.argv[0]
+    if len(sys.argv) < 2:
+        print("Usage: python3 s3_backup.py <subpath>")
+        sys.exit(1)
+    else:
+        subpath = sys.argv[1]
 
     folder_path = f'{base_folder}/{subpath}'  # Replace with the path to your folder
     output_zip = f'{base_folder}/backup/{subpath}'  # Replace with your desired output zip file name (without .zip extension)
@@ -32,7 +36,8 @@ if __name__ == "__main__":
     
     bucket_name = 'yisheng-backup'  # Replace with your S3 bucket name
     s3_file_name = f'{subpath}.zip'  # Replace with desired path and file name in S3
-    print(f"bucket name: {bucket_name}, s3 file name: {s3_file_name}")
+    storage_class = 'GLACIER'
+    print(f"bucket name: {bucket_name}, s3 file name: {s3_file_name}, storage class: {storage_class}")
     
     with open(key_file_path, 'r') as f:
         content = f.read()
