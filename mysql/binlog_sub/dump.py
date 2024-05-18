@@ -37,8 +37,8 @@ def binlog_subscribe():
         resume_stream=RESUME_STREAM,
         blocking=False,
         enable_logging=True,
-        only_schemas=set(["cdc_test"]),
-        only_tables=set(["test"]),
+        only_schemas={"cdc_test"},
+        only_tables={"test"},
         log_file=LOG_FILE,
         log_pos=LOG_POS,
     )

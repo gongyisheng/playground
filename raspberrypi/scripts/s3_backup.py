@@ -40,7 +40,7 @@ if __name__ == "__main__":
     storage_class = 'DEEP_ARCHIVE'
     print(f"bucket name: {bucket_name}, s3 file name: {s3_file_name}, storage class: {storage_class}")
     
-    with open(key_file_path, 'r') as f:
+    with open(key_file_path, 'r', encoding='utf_8') as f:
         content = f.read()
         content = json.loads(content)
         access_key = content['access_key']
@@ -49,9 +49,9 @@ if __name__ == "__main__":
     # Compress the folder
     if not args.skip_zip:
         zip_folder(folder_path, output_zip)
-        print(f"Zip file created.")
+        print("Zip file created.")
 
     # Upload to S3
     if not args.skip_upload:
         upload_to_s3(f"{output_zip}.zip", bucket_name, s3_file_name)
-        print(f"Backup uploaded to S3.")
+        print("Backup uploaded to S3.")

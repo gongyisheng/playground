@@ -28,7 +28,7 @@ async def init(stream_name):
     if not has_group:
         print("Create group")
         resp = await r.xgroup_create(stream_name, group_name, id="$", mkstream=True)
-        if resp != True:
+        if resp is not True:
             print("Create group failed, response: ", resp)
 
     resp = await r.xinfo_consumers(stream_name, group_name)

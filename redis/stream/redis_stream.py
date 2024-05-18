@@ -21,7 +21,7 @@ min_idle_time = 5
 block_timeout = 5
 
 
-class RedisStream(object):
+class RedisStream:
     MESSAGE_ID_KEY = "MESSAGE_ID"
     MESSAGE_DATA_KEY = "MESSAGE_DATA"
 
@@ -99,7 +99,7 @@ class RedisStream(object):
             resp = await self._redis.xgroup_create(
                 self._stream_name, self._group_name, id="$", mkstream=True
             )
-            if resp != True:
+            if resp is not True:
                 logging.error(f"Create group failed, response=[{resp}]")
 
         # check if consumer exists
