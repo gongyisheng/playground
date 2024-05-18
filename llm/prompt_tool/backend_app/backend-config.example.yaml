@@ -19,7 +19,7 @@ session_cookie_domain: "localhost"
 # model name related
 model_mapping:
   gpt-3.5: "gpt-3.5-turbo-0125"
-  gpt-4: "gpt-4-0125-preview"
+  gpt-4: "gpt-4o-2024-05-13"
   llama3: "llama3-70b-8192"
   claude3: "claude-3-opus-20240229"
 

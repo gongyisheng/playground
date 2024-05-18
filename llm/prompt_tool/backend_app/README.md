@@ -21,9 +21,9 @@ chatbackend-test:latest
 docker run -d \
 --name chatbackend \
 -p 5600:5600 \
--v "/home/yisheng/user-key/prompt_tool/backend-app.prod.yaml:/etc/prompt_tool/backend-config.yaml" \
--v "/var/data/app-data.db:/var/data/app-data.db" \
--v "/var/data/key-data.db:/var/data/key-data.db" \
+-v "/media/usbdisk/codebase/user-key/prompt_tool/backend-app.prod.yaml:/etc/prompt_tool/backend-config.yaml" \
+-v "/media/usbdisk/codebase/user-key/prompt_tool/app-data.db:/var/data/app-data.db" \
+-v "/media/usbdisk/codebase/user-key/prompt_tool/key-data.db:/var/data/key-data.db" \
 -v "/home/yisheng/log/chatbackend.log:/var/log/prompt_tool/backend-app.log" \
 --restart always \
 chatbackend:latest

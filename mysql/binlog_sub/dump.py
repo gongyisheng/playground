@@ -5,8 +5,6 @@ from pymysqlreplication.row_event import (
     WriteRowsEvent,
 )
 
-from ext import setup_logger
-import logging
 import time
 import sys
 from config import MYSQL_SETTINGS
@@ -17,6 +15,7 @@ from config import MYSQL_SETTINGS
 
 LOG_FILE = sys.argv[1] if len(sys.argv) > 1 else None
 LOG_POS = int(sys.argv[2]) if len(sys.argv) > 2 else None
+RESUME_STREAM = LOG_FILE is not None and LOG_POS is not None
 
 QPS_DICT = {}
 
@@ -25,7 +24,6 @@ QPS_DICT = {}
 #         now = int(time.time())
 #         print(f"{now-1} QPS: {QPS_DICT.get(now-1, 0)}")
 #         await asyncio.sleep(1)
-        
 
 def binlog_subscribe():
     # server_id is your slave identifier, it should be unique.
@@ -36,14 +34,22 @@ def binlog_subscribe():
         connection_settings=MYSQL_SETTINGS, 
         server_id=2, 
         only_events=[DeleteRowsEvent, UpdateRowsEvent, WriteRowsEvent],
-        blocking=True,
-        enable_logging=False,
-        only_schemas=set(["test"]),
-        only_tables=set(["binlog_test"]),
+        resume_stream=RESUME_STREAM,
+        blocking=False,
+        enable_logging=True,
+        only_schemas={"cdc_test"},
+        only_tables={"test"},
+        log_file=LOG_FILE,
+        log_pos=LOG_POS,
     )
-    logging.info("Start to subscribe binlog")
+    print("Start to subscribe binlog")
     try:
-        for binlogevent in stream:
+        while True:
+            binlogevent = stream.fetchone()
+            if binlogevent is None:
+                print("No event, retry...")
+                time.sleep(1)
+                continue
             db = binlogevent.schema
             table = binlogevent.table
             timestamp = binlogevent.timestamp
@@ -71,7 +77,6 @@ def binlog_subscribe():
         stream.close()
 
 if __name__ == "__main__":
-    setup_logger()
     binlog_subscribe()
     for k in sorted(list(QPS_DICT.keys())):
         print(f"{k} QPS: {QPS_DICT[k]}")

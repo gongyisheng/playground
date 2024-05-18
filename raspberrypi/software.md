@@ -3,7 +3,7 @@
 `sudo apt-get upgrade`  
 
 # install vim, tcpdump, perf, network tools
-`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential`  
+`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip`  
 
 # setup mariadb
 download and install:  
@@ -140,4 +140,15 @@ docker run -d \
 -e SQLITE_DATABASE=db_filename.db \
 -e SQLITE_WEB_PASSWORD=<YOUR PASSWORD> \
 coleifer/sqlite-web
+```
+
+# run dufs
+```
+docker run -d \
+--name dufs \
+--restart always \
+-v /media/usbdisk/:/data \
+-v /media/usbdisk/codebase/user-key/dufs/dufs.yaml:/etc/dufs/dufs.yaml \
+-p 5000:5000 \
+sigoden/dufs --config /etc/dufs/dufs.yaml
 ```
