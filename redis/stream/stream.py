@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import snappy
-from typing import Union
+from typing import Optional, Union
 
 import redis.asyncio as aioredis
 import signal_state_aio as signal_state
@@ -93,8 +93,8 @@ class RedisStream:
 
         # check if group exists
         has_group = False
-        resp = await self._redis.xinfo_groups(self._stream_name)
         if has_stream:
+            resp = await self._redis.xinfo_groups(self._stream_name)
             for group in resp:
                 if ensure_str(group["name"]) == self._group_name:
                     has_group = True
@@ -142,7 +142,7 @@ class RedisStream:
             ["0-0"],
         )
 
-    async def batch_put(self, values=[]) -> bool:
+    async def batch_put(self, values: list = [], retry: Optional[int] = None) -> bool:
         """
         Put a batch of messages to redis stream using pipeline
         If failed, retry until success
@@ -152,27 +152,32 @@ class RedisStream:
         for item in values:
             _buffer.append(self._encode(item))
 
+        if retry is None:
+            retry = float("inf")
+
         succ = False
-        while not succ:
+        while not succ and retry > 0:
             try:
                 pipe = self._redis.pipeline()
                 for item in _buffer:
                     pipe.xadd(self._stream_name, {"data": item})
                 await pipe.execute()
+                
                 succ = True
+                logging.info(
+                    f"Batch put - Send {len(_buffer)} messages to stream [{self._stream_name}], group=[{self._group_name}]"
+                )
+                break
             except Exception as ex:
                 logging.error("Batch send error - error[%s]", ex, exc_info=True)
-                pipe.reset()
+                await pipe.reset()
                 await asyncio.sleep(1)
 
+            retry -= 1
             if not signal_state.ALIVE:
                 logging.info("Batch send - exit signal received")
                 break
 
-        if succ:
-            logging.info(
-                f"Batch put - Send {len(_buffer)} messages to stream [{self._stream_name}], group=[{self._group_name}]"
-            )
         return succ
 
     async def batch_get(self, count=10, block=5):

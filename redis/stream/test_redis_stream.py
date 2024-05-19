@@ -32,7 +32,7 @@ from typing import Callable, List, Optional, Union
 import uuid
 
 from redis.asyncio import Redis, BlockingConnectionPool
-from redis_stream import RedisStream
+from stream import RedisStream
 
 request = ContextVar("request")
 LOG_SETUP_FLAG = False
@@ -83,6 +83,16 @@ def setup_logger():
     LOG_SETUP_FLAG = True
 
 
+async def monitor(redis, callback_func=[]):
+    async with redis.monitor() as m:
+        async for info in m.listen():
+            for func in callback_func:
+                func(message=info)
+            logging.debug(
+                f"server side monitor: command={info.get('command')}, time={info.get('time')}"
+            )
+
+
 # Monitor audit functions
 def _audit_monitor(
     message: dict,
@@ -104,16 +114,6 @@ def _audit_monitor(
             break
 
 
-async def monitor(redis, callback_func=[]):
-    async with redis.monitor() as m:
-        async for info in m.listen():
-            for func in callback_func:
-                func(message=info)
-            logging.debug(
-                f"server side monitor: command={info.get('command')}, time={info.get('time')}"
-            )
-
-
 async def init(**kwargs):
     setup_logger()
     signal_state.ALIVE = True
@@ -130,7 +130,7 @@ async def init(**kwargs):
     )  # You can also test decode_responses=True, it should also work
     await redis.flushdb()
 
-    redis_stream = RedisStream("test_stream", redis=redis)
+    redis_stream = RedisStream(redis, "test_stream")
     await redis_stream.init()
 
     monitor_task = asyncio.create_task(
@@ -158,12 +158,12 @@ async def demo():
     await redis_stream.batch_put(values=put_messages)
 
     get_messages = await redis_stream.batch_get(count=10)
-    ack_ids = [id for id, _ in get_messages]
-    # await redis_stream.batch_ack(ack_ids)
+    ack_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages]
+    await redis_stream.batch_ack(ack_ids)
 
     assert len(put_messages) == len(get_messages)
     for i in range(len(get_messages)):
-        assert put_messages[i] == get_messages[i][1]
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
 
     assert monitor_task.done() is False
     monitor_task.cancel()
@@ -172,7 +172,7 @@ async def demo():
 
 
 @pytest.mark.asyncio
-async def test_batch_put():
+async def test_batch_put_succ():
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
         monitor_callback=[
@@ -185,7 +185,8 @@ async def test_batch_put():
     )
     message_count = 10
     put_messages = gen_test_messages(count=message_count)
-    await redis_stream.batch_put(values=put_messages)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
 
     assert monitor_task.done() is False
     monitor_task.cancel()
@@ -195,6 +196,40 @@ async def test_batch_put():
     assert AUDIT_DATA_RETURN[-1]["command"] == "EXEC"
     for i in range(1, message_count + 1):
         assert AUDIT_DATA_RETURN[i]["command"].startswith("XADD")
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
+async def test_batch_put_fail():
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XADD", "MULTI", "EXEC"],
+            ),
+        ],
+    )
+
+    await redis_stream._redis.flushdb()
+    await redis_stream._redis.set("test_stream", "test_value")
+
+    retry = 3
+    message_count = 10
+    put_messages = gen_test_messages(count=message_count)
+    succ = await redis_stream.batch_put(values=put_messages, retry=retry)
+    assert succ is False
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == retry * (message_count + 2)
+    for i in range(retry):
+        assert AUDIT_DATA_RETURN[i * (message_count + 2)]["command"] == "MULTI"
+        assert AUDIT_DATA_RETURN[(i + 1) * (message_count + 2) - 1]["command"] == "EXEC"
+        for j in range(1, message_count + 1):
+            assert AUDIT_DATA_RETURN[i * (message_count + 2) + j]["command"].startswith("XADD")
 
     await redis_stream._redis.close(close_connection_pool=True)
 
