@@ -386,9 +386,9 @@ async def test_batch_get_unicode():
 
 
 @pytest.mark.asyncio
-async def test_batch_get_empty_result():
+async def test_batch_get_empty_result1():
     """
-    Empty result case for batch get
+    Empty result case for batch get: stream is empty
     """
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
@@ -634,6 +634,55 @@ async def test_batch_ack_error():
 
 
 @pytest.mark.asyncio
+async def test_batch_ack_with_delete():
+    """
+    Case for batch ack: ack with delete message
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XACK"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_message_count = put_message_count
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    # Trim the stream
+    await asyncio.sleep(1)
+    delete_count, stream_length = await redis_stream.trim(0, approximate=False)
+    assert delete_count == get_message_count
+    assert stream_length == 0
+
+    # Ack the deleted messages
+    successful_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages]
+    succ = await redis_stream.batch_ack(successful_ids)
+    assert succ is True
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    for id in successful_ids:
+        assert id in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
 async def test_get_pending_list_length_succ():
     """
     Success case for get pending list length
@@ -823,6 +872,104 @@ async def test_batch_claim_error():
     assert has_error is True
     assert len(AUDIT_DATA_RETURN) == 1
     assert f"COUNT {claim_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_claim_with_delete():
+    """
+    Successful case for batch claim: contains delete message
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XAUTOCLAIM"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_message_count = put_message_count
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    # Trim the stream
+    delete_count, stream_length = await redis_stream.trim(0, approximate=False)
+    assert delete_count == put_message_count
+    assert stream_length == 0
+
+    # Claim message with delete
+    claim_message_count = random.randint(1, get_message_count)
+    claim_messages = await redis_stream.batch_claim(count=claim_message_count)
+    assert isinstance(claim_messages, list)
+    assert len(claim_messages) == 0
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {claim_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_trim_succ():
+    """
+    Success case for trim: trim message that has inserted time older than the specified time
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XTRIM"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    print(int(time.time() * 1000))
+    assert succ is True
+
+    await asyncio.sleep(2)
+    checkpoint_time = int(time.time())
+
+    await asyncio.sleep(2)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    delete_count, stream_length = await redis_stream.trim(3600)
+    assert delete_count == 0
+    assert stream_length == put_message_count * 2
+
+    delete_count, stream_length = await redis_stream.trim(
+        int(time.time()) - checkpoint_time, approximate=False
+    )
+    assert delete_count == put_message_count
+    assert stream_length == put_message_count
+
+    delete_count, stream_length = await redis_stream.trim(0, approximate=False)
+    assert delete_count == put_message_count
+    assert stream_length == 0
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 3
 
     await redis_stream._redis.close(close_connection_pool=True)
 

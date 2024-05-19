@@ -2,7 +2,8 @@ import asyncio
 import json
 import logging
 import snappy
-from typing import List, Optional, Union
+import time
+from typing import List, Optional, Tuple, Union
 
 import redis.asyncio as aioredis
 import signal_state_aio as signal_state
@@ -312,6 +313,22 @@ class RedisStream:
             f"Get pending list length - Length: {length}, Min ID: {min_id}, Max ID: {max_id}"
         )
         return length
+
+    async def trim(self, ttl: int, approximate: bool = True) -> Tuple[int, int]:
+        """
+        Trim stream based on TTL (time-to-live)
+        :param ttl: time-to-live in seconds
+        :return: number of messages deleted
+        """
+        minid = f"{int((time.time() - ttl)*1000)}-0"
+        pipe = self._redis.pipeline()
+        pipe.xtrim(self._stream_name, minid=minid, approximate=approximate)
+        pipe.xlen(self._stream_name)
+        delete_count, stream_length = await pipe.execute()
+        logging.info(
+            f"Trim - Trim stream=[{self._stream_name}], ttl=[{ttl}], minid=[{minid}], delete_count=[{delete_count}], stream_length=[{stream_length}]"
+        )
+        return delete_count, stream_length
 
     async def batch_process(self, buffer: List[dict]) -> List[str]:
         """
