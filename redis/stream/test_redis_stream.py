@@ -203,7 +203,7 @@ async def test_batch_put_succ():
     await redis_stream._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
-async def test_batch_put_fail():
+async def test_batch_put_error():
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
         monitor_callback=[
@@ -368,6 +368,43 @@ async def test_batch_get_block():
     assert len(AUDIT_DATA_RETURN) == 1
     assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
     assert f"BLOCK {get_block_time}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
+async def test_batch_get_error():
+    """
+    Error case for batch get: redis stream is not initialized
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XREADGROUP"],
+            ),
+        ],
+    )
+    await redis_stream._redis.flushdb()
+    await redis_stream._redis.set(STREAM_NAME, "test_value")
+
+    get_message_count = 10
+    has_error = False
+    try:
+        get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+    except Exception as ex:
+        logging.error("Error caught: %s", ex)
+        has_error = True
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert has_error is True
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"BLOCK {GET_BLOCK_TIME}" in AUDIT_DATA_RETURN[0]["command"]
     assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
 
     await redis_stream._redis.close(close_connection_pool=True)
