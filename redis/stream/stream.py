@@ -136,15 +136,6 @@ class RedisStream:
             f"Redis stream client initialized. Stream=[{self._stream_name}], Group=[{self._group_name}], Consumer=[{self._consumer_name}]"
         )
 
-    async def claim_ownership(self) -> None:
-        await self._redis.xclaim(
-            self._stream_name,
-            self._group_name,
-            self._consumer_name,
-            1,
-            ["0-0"],
-        )
-
     async def batch_put(
         self, values: List[str] = [], retry: Optional[int] = None
     ) -> bool:
@@ -227,6 +218,43 @@ class RedisStream:
         )
         return _buffer
 
+    async def batch_claim(self, count: int = 10) -> None:
+        """
+        Auto claim ownership for current <stream, group, consumer>
+        Get messages from pending list
+        :param count: number of messages to claim
+
+        This method will claim ownership for messages in pending list
+        After claiming, messages in pending list will be re-delivered to consumer
+        """
+        _buffer = []
+        resp = await self._redis.xautoclaim(
+            self._stream_name,
+            self._group_name,
+            self._consumer_name,
+            0,
+            count=count,
+        )
+
+        delete_data = resp[2]
+        if len(delete_data) > 0:
+            logging.error(f"Batch claim - Found {len(delete_data)} deleted messages in pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]. delete_data={delete_data}")
+        
+        stream_data = resp[1]
+        if len(stream_data) == 0:
+            logging.info(
+                f"Batch claim - No data to claim from pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]."
+            )
+            return _buffer
+        
+        for item in stream_data:
+            id = ensure_str(item[0])
+            value = self._decode(item[1][ensure_bytes("data")])
+            _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
+        
+        logging.info(f"Batch claim - Claimed {len(stream_data)} messages from pending list")
+        return resp
+
     async def batch_ack(
         self, successful_ids: List[str] = [], retry: Optional[int] = None
     ) -> bool:
@@ -267,24 +295,63 @@ class RedisStream:
 
         return succ
 
-    async def get_lag(self):
+    async def get_pending_list_length(self) -> int:
+        """
+        Get pending list length for current <stream, group>
+        :return: pending list length
+        """
         resp = await self._redis.xpending(self._stream_name, self._group_name)
-        return resp
+        length = resp["pending"]
+        min_id = ensure_str(resp["min"])
+        max_id = ensure_str(resp["max"])
+        logging.info(
+            f"Get pending list length - Length: {length}, Min ID: {min_id}, Max ID: {max_id}"
+        )
+        return length
 
-    async def batch_process(self, buffer):
-        return []
+    async def batch_process(self, buffer: List[dict]) -> List[str]:
+        """
+        Process messages in buffer and return successful message ids
+        :param buffer: list of messages to process
+        :return: list of successful message ids
+        
+        This method should be implemented by subclass
+        If this method raises exception, the whole batch will not be acked
+        If this method returns partial successful message ids, the rest will not be acked
+        """
+        raise NotImplementedError
 
-    async def run(self):
+    async def run(self, count: int = 10, block: int = 5000):
+        """
+        Run the stream client
+        :param count: number of messages to process each time
+        :param block: block time in milliseconds
+
+        This method will claim messages from pending list first, process them, then ack.
+        If no pending messages, get messages from stream and process them, then ack.
+        If no messages available, sleep for 1s and retry.
+        If exit signal received, stop and exit after processing current batch.
+        """
         await self.init()
+        need_claim = True
         while signal_state.ALIVE:
             try:
-                # batch get
-                _buffer = await self.batch_get()
-                if _buffer:
-                    successful_ids = self.batch_process(_buffer)
-                    await self.batch_ack(successful_ids)
+                if need_claim:
+                    # claim message for pending messages
+                    _buffer = await self.batch_claim(count=count)
+                    if len(_buffer) == 0:
+                        need_claim = False
+                        continue
                 else:
-                    await asyncio.sleep(1)
+                    # get message from stream
+                    _buffer = await self.batch_get(count=count, block=block)
+                    if len(_buffer) == 0:
+                        await asyncio.sleep(1)
+                        continue
+
+                successful_ids = self.batch_process(_buffer)
+                await self.batch_ack(successful_ids)
             except Exception as ex:
-                logging.error("Run error - error[%s]", ex, exc_info=True)
+                logging.error("Run - Get error[%s]", ex, exc_info=True)
                 await asyncio.sleep(1)
+        logging.info("Run - Exit redis stream client loop")
