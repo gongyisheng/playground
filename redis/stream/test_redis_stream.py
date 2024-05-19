@@ -233,6 +233,35 @@ async def test_batch_put_fail():
 
     await redis_stream._redis.close(close_connection_pool=True)
 
+@pytest.mark.asyncio
+async def test_batch_get_succ():
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XREADGROUP"],
+            ),
+        ],
+    )
+    message_count = 10
+    put_messages = gen_test_messages(count=message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(count=message_count)
+    assert len(get_messages) == message_count
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    for i in range(message_count):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
 
 if __name__ == "__main__":
     import sys
