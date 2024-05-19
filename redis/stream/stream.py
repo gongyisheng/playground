@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import snappy
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import redis.asyncio as aioredis
 import signal_state_aio as signal_state
@@ -145,6 +145,10 @@ class RedisStream:
     async def batch_put(self, values: list = [], retry: Optional[int] = None) -> bool:
         """
         Put a batch of messages to redis stream using pipeline
+        :param values: list of messages to put
+        :param retry: number of retries if failed
+        :return: True if success, False if failed
+
         If failed, retry until success
         If exit signal received, stop retry and exit
         """
@@ -180,7 +184,13 @@ class RedisStream:
 
         return succ
 
-    async def batch_get(self, count=10, block=5):
+    async def batch_get(self, count: int = 10, block: int = 5000) -> List[dict]:
+        """
+        Batch get messages from redis stream
+        count: number of messages to get
+        block: block time in milliseconds
+        return: list of messages
+        """
         _buffer = []
         res = await self._redis.xreadgroup(
             groupname=self._group_name,
@@ -190,8 +200,9 @@ class RedisStream:
             block=block,
         )
         if len(res) == 0:
-            logging.info("Batch get - No data to read")
-            return
+            logging.info(f"Batch get - No data to read from stream [{self._stream_name}], group=[{self._group_name}]")
+            return _buffer
+
         stream_data = res[0][1]
         for item in stream_data:
             id = ensure_str(item[0])

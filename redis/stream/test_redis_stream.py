@@ -18,6 +18,9 @@ REDIS_MAX_CONNECTIONS = 5
 #    python <test function name> run test function directly, usually for demo
 #    python <test function name> run test function directly and profiling it
 
+STREAM_NAME = "test_stream"
+GET_BLOCK_TIME = 2500
+
 import asyncio
 from contextvars import ContextVar
 from functools import partial
@@ -130,7 +133,7 @@ async def init(**kwargs):
     )  # You can also test decode_responses=True, it should also work
     await redis.flushdb()
 
-    redis_stream = RedisStream(redis, "test_stream")
+    redis_stream = RedisStream(redis, STREAM_NAME)
     await redis_stream.init()
 
     monitor_task = asyncio.create_task(
@@ -213,7 +216,7 @@ async def test_batch_put_fail():
     )
 
     await redis_stream._redis.flushdb()
-    await redis_stream._redis.set("test_stream", "test_value")
+    await redis_stream._redis.set(STREAM_NAME, "test_value")
 
     retry = 3
     message_count = 10
@@ -234,7 +237,10 @@ async def test_batch_put_fail():
     await redis_stream._redis.close(close_connection_pool=True)
 
 @pytest.mark.asyncio
-async def test_batch_get_succ():
+async def test_batch_get_succ1():
+    """
+    Success case for batch get: get message count is less than put message count
+    """
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
         monitor_callback=[
@@ -245,20 +251,124 @@ async def test_batch_get_succ():
             ),
         ],
     )
-    message_count = 10
-    put_messages = gen_test_messages(count=message_count)
+    put_message_count = 10
+    get_message_count = random.randint(1, put_message_count)
+    put_messages = gen_test_messages(count=put_message_count)
     succ = await redis_stream.batch_put(values=put_messages)
     assert succ is True
 
-    get_messages = await redis_stream.batch_get(count=message_count)
-    assert len(get_messages) == message_count
+    get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+    assert len(get_messages) == get_message_count
 
     assert monitor_task.done() is False
     monitor_task.cancel()
 
     assert len(AUDIT_DATA_RETURN) == 1
-    for i in range(message_count):
+    assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"BLOCK {GET_BLOCK_TIME}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
+    for i in range(get_message_count):
         assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
+async def test_batch_get_succ2():
+    """
+    Success case for batch get: get message count is more than put message count
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XREADGROUP"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    get_message_count = random.randint(put_message_count+1, put_message_count*2)
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+    assert len(get_messages) == put_message_count
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"BLOCK {GET_BLOCK_TIME}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
+    for i in range(put_message_count):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
+async def test_batch_get_empty_result():
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XREADGROUP"],
+            ),
+        ],
+    )
+
+    get_message_count = 10
+    get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+
+    assert type(get_messages) == list
+    assert len(get_messages) == 0
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"BLOCK {GET_BLOCK_TIME}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+@pytest.mark.asyncio
+async def test_batch_get_block():
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XREADGROUP"],
+            ),
+        ],
+    )
+
+    get_message_count = random.randint(1, 10)
+    get_block_time = random.randint(1000, 5000)
+    start_time = time.time()
+    get_messages = await redis_stream.batch_get(count=get_message_count, block=get_block_time)
+    end_time = time.time()
+    elapsed_time = int((end_time - start_time)*1000)
+
+    assert type(get_messages) == list
+    assert len(get_messages) == 0
+    assert elapsed_time >= get_block_time
+    logging.info(f"block time: {get_block_time}, elapsed time: {elapsed_time}")
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"BLOCK {get_block_time}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
 
     await redis_stream._redis.close(close_connection_pool=True)
 
