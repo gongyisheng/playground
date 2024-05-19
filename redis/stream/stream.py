@@ -330,6 +330,68 @@ class RedisStream:
         )
         return delete_count, stream_length
 
+    async def range_replay(
+        self, start_time: int, end_time: int, count: int = 10
+    ) -> List[dict]:
+        """
+        Replay messages in a time range from start_time to end_time
+        :param start_id: start id
+        :param end_id: end id
+        :param count: number of messages to process each time
+        """
+        _buffer = []
+        start_id = f"{start_time*1000}-0"
+        end_id = f"{end_time*1000}-0"
+        resp = await self._redis.xrange(
+            self._stream_name, start_id, end_id, count=count
+        )
+
+        if len(resp) == 0:
+            logging.info(
+                f"Batch replay - No data to replay from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}]"
+            )
+            return _buffer
+
+        for item in resp:
+            id = ensure_str(item[0])
+            value = self._decode(item[1][ensure_bytes("data")])
+            _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
+
+        batch_max_id = _buffer[-1][self.MESSAGE_ID_KEY]
+        logging.info(
+            f"Batch replay - Replay messages from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}], batch_max_id=[{batch_max_id}]"
+        )
+        return _buffer
+
+    async def item_replay(self, message_ids: List[str]) -> List[dict]:
+        """
+        Replay messages by specific message ids
+        :param message_ids: list of message ids
+        :return: list of messages
+        """
+        _buffer = []
+        pipe = self._redis.pipeline()
+        for id in message_ids:
+            pipe.xrange(self._stream_name, min=id, max=id)
+        resp = await pipe.execute()
+        resp = [item[0] for item in resp if len(item) > 0]
+
+        if len(resp) == 0:
+            logging.info(
+                f"Item replay - No data to replay from stream=[{self._stream_name}], message_ids={message_ids}"
+            )
+            return _buffer
+
+        for item in resp:
+            id = ensure_str(item[0])
+            value = self._decode(item[1][ensure_bytes("data")])
+            _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
+
+        logging.info(
+            f"Item replay - Replay messages from stream=[{self._stream_name}], message_ids={message_ids}"
+        )
+        return _buffer
+
     async def batch_process(self, buffer: List[dict]) -> List[str]:
         """
         Process messages in buffer and return successful message ids
@@ -344,7 +406,7 @@ class RedisStream:
 
     async def run(self, count: int = 10, block: int = 5000) -> None:
         """
-        Run the stream client
+        Run the real-time stream client
         :param count: number of messages to process each time
         :param block: block time in milliseconds
 
@@ -370,9 +432,67 @@ class RedisStream:
                         await asyncio.sleep(1)
                         continue
 
-                successful_ids = self.batch_process(_buffer)
+                successful_ids = await self.batch_process(_buffer)
                 await self.batch_ack(successful_ids)
             except Exception as ex:
                 logging.error("Run - Get error[%s]", ex, exc_info=True)
                 await asyncio.sleep(1)
         logging.info("Run - Exit redis stream client loop")
+
+    async def run_range_replay(
+        self, start_time: int, end_time: int, count: int = 10
+    ) -> None:
+        """
+        Run the replay client
+        :param start_time: start time to replay
+        :param end_time: end time to replay
+        :param count: number of messages to process each time
+
+        This method will replay messages from start_time to end_time, process them.
+        No ack will be done in this method.
+        If no messages available, exit the loop.
+        If exit signal received, stop and exit after processing current batch.
+        """
+        await self.init()
+        while signal_state.ALIVE:
+            try:
+                # replay messages from stream
+                _buffer = await self.batch_replay(start_time, end_time, count=count)
+                if len(_buffer) == 0:
+                    break
+
+                await self.batch_process(_buffer)
+            except Exception as ex:
+                logging.error("Run range replay - Get error[%s]", ex, exc_info=True)
+                await asyncio.sleep(1)
+        logging.info("Run range replay - Exit redis stream client loop")
+
+    async def run_item_replay(self, message_ids: List[str]) -> None:
+        """
+        Run the replay client
+        :param message_ids: list of message ids to replay
+
+        This method will replay messages by message ids, process them.
+        No ack will be done in this method.
+        If no messages available, exit the loop.
+        If exit signal received, stop and exit after processing current batch.
+        """
+        await self.init()
+        cutoff = 0
+        while signal_state.ALIVE:
+            try:
+                _batch_message_ids = message_ids[cutoff : cutoff + 10]
+                # replay messages from stream
+                _buffer = await self.item_replay(_batch_message_ids)
+                if len(_buffer) == 0:
+                    break
+
+                await self.batch_process(_buffer)
+
+                if cutoff >= len(message_ids):
+                    break
+                cutoff += 10
+            except Exception as ex:
+                logging.error("Run item replay - Get error[%s]", ex, exc_info=True)
+                await asyncio.sleep(1)
+        logging.info("Run item replay - Exit redis stream client loop")
