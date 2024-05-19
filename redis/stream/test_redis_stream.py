@@ -406,7 +406,7 @@ async def test_batch_get_empty_result():
         count=get_message_count, block=GET_BLOCK_TIME
     )
 
-    assert type(get_messages) == list
+    assert isinstance(get_messages, list)
     assert len(get_messages) == 0
 
     assert monitor_task.done() is False
@@ -445,7 +445,7 @@ async def test_batch_get_block():
     end_time = time.time()
     elapsed_time = int((end_time - start_time) * 1000)
 
-    assert type(get_messages) == list
+    assert isinstance(get_messages, list)
     assert len(get_messages) == 0
     assert elapsed_time >= get_block_time
     logging.info(f"block time: {get_block_time}, elapsed time: {elapsed_time}")
@@ -629,6 +629,200 @@ async def test_batch_ack_error():
     for i in range(retry):
         for id in successful_ids:
             assert id in AUDIT_DATA_RETURN[i]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_get_pending_list_length_succ():
+    """
+    Success case for get pending list length
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XPENDING"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_message_count = put_message_count
+    get_messages = await redis_stream.batch_get(count=get_message_count)
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    successful_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages]
+    for i in range(len(successful_ids)):
+        length = await redis_stream.get_pending_list_length()
+        assert length == get_message_count - i
+        await redis_stream.batch_ack([successful_ids[i]])
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == get_message_count
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_claim_succ1():
+    """
+    Success case for batch claim: claim message count is less than pending list message count
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XAUTOCLAIM"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    get_message_count = random.randint(1, put_message_count)
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    claim_message_count = random.randint(1, get_message_count)
+    claim_messages = await redis_stream.batch_claim(count=claim_message_count)
+    assert len(claim_messages) == claim_message_count
+    for i in range(claim_message_count):
+        assert put_messages[i] == claim_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {claim_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_claim_succ2():
+    """
+    Success case for batch claim: claim message count is more than pending list message count
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XAUTOCLAIM"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    get_message_count = random.randint(1, put_message_count)
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+
+    claim_message_count = random.randint(get_message_count + 1, put_message_count * 2)
+    claim_messages = await redis_stream.batch_claim(count=claim_message_count)
+    assert len(claim_messages) == get_message_count
+    for i in range(len(claim_messages)):
+        assert put_messages[i] == claim_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {claim_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_claim_empty_result():
+    """
+    Empty result case for batch claim: no message in the pending list
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XAUTOCLAIM"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    claim_message_count = random.randint(1, put_message_count)
+    claim_messages = await redis_stream.batch_claim(count=claim_message_count)
+    assert isinstance(claim_messages, list)
+    assert len(claim_messages) == 0
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {claim_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_claim_error():
+    """
+    Error case for batch claim: WRONGTYPE Operation against a key holding the wrong kind of value
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XAUTOCLAIM"],
+            ),
+        ],
+    )
+    await redis_stream._redis.flushdb()
+    await redis_stream._redis.set(STREAM_NAME, "test_value")
+
+    claim_message_count = 10
+    has_error = False
+    try:
+        claim_messages = await redis_stream.batch_claim(count=claim_message_count)
+    except Exception as ex:
+        logging.error("Error caught: %s", ex)
+        has_error = True
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert has_error is True
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {claim_message_count}" in AUDIT_DATA_RETURN[0]["command"]
 
     await redis_stream._redis.close(close_connection_pool=True)
 

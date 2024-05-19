@@ -238,22 +238,26 @@ class RedisStream:
 
         delete_data = resp[2]
         if len(delete_data) > 0:
-            logging.error(f"Batch claim - Found {len(delete_data)} deleted messages in pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]. delete_data={delete_data}")
-        
+            logging.error(
+                f"Batch claim - Found {len(delete_data)} deleted messages in pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]. delete_data={delete_data}"
+            )
+
         stream_data = resp[1]
         if len(stream_data) == 0:
             logging.info(
-                f"Batch claim - No data to claim from pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]."
+                f"Batch claim - No data to claim from pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]"
             )
             return _buffer
-        
+
         for item in stream_data:
             id = ensure_str(item[0])
             value = self._decode(item[1][ensure_bytes("data")])
             _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
-        
-        logging.info(f"Batch claim - Claimed {len(stream_data)} messages from pending list")
-        return resp
+
+        logging.info(
+            f"Batch claim - Claimed {len(stream_data)} messages from pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]"
+        )
+        return _buffer
 
     async def batch_ack(
         self, successful_ids: List[str] = [], retry: Optional[int] = None
@@ -314,14 +318,14 @@ class RedisStream:
         Process messages in buffer and return successful message ids
         :param buffer: list of messages to process
         :return: list of successful message ids
-        
+
         This method should be implemented by subclass
         If this method raises exception, the whole batch will not be acked
         If this method returns partial successful message ids, the rest will not be acked
         """
         raise NotImplementedError
 
-    async def run(self, count: int = 10, block: int = 5000):
+    async def run(self, count: int = 10, block: int = 5000) -> None:
         """
         Run the stream client
         :param count: number of messages to process each time
