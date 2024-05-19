@@ -202,6 +202,7 @@ async def test_batch_put_succ():
 
     await redis_stream._redis.close(close_connection_pool=True)
 
+
 @pytest.mark.asyncio
 async def test_batch_put_error():
     AUDIT_DATA_RETURN = []
@@ -232,9 +233,12 @@ async def test_batch_put_error():
         assert AUDIT_DATA_RETURN[i * (message_count + 2)]["command"] == "MULTI"
         assert AUDIT_DATA_RETURN[(i + 1) * (message_count + 2) - 1]["command"] == "EXEC"
         for j in range(1, message_count + 1):
-            assert AUDIT_DATA_RETURN[i * (message_count + 2) + j]["command"].startswith("XADD")
+            assert AUDIT_DATA_RETURN[i * (message_count + 2) + j]["command"].startswith(
+                "XADD"
+            )
 
     await redis_stream._redis.close(close_connection_pool=True)
+
 
 @pytest.mark.asyncio
 async def test_batch_get_succ1():
@@ -257,7 +261,9 @@ async def test_batch_get_succ1():
     succ = await redis_stream.batch_put(values=put_messages)
     assert succ is True
 
-    get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
     assert len(get_messages) == get_message_count
 
     assert monitor_task.done() is False
@@ -271,6 +277,7 @@ async def test_batch_get_succ1():
         assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
 
     await redis_stream._redis.close(close_connection_pool=True)
+
 
 @pytest.mark.asyncio
 async def test_batch_get_succ2():
@@ -288,12 +295,14 @@ async def test_batch_get_succ2():
         ],
     )
     put_message_count = 10
-    get_message_count = random.randint(put_message_count+1, put_message_count*2)
+    get_message_count = random.randint(put_message_count + 1, put_message_count * 2)
     put_messages = gen_test_messages(count=put_message_count)
     succ = await redis_stream.batch_put(values=put_messages)
     assert succ is True
 
-    get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
     assert len(get_messages) == put_message_count
 
     assert monitor_task.done() is False
@@ -308,8 +317,79 @@ async def test_batch_get_succ2():
 
     await redis_stream._redis.close(close_connection_pool=True)
 
+
+@pytest.mark.asyncio
+async def test_batch_get_unicode():
+    """
+    Success case for batch get: put and get unicode messages
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XREADGROUP"],
+            ),
+        ],
+    )
+
+    put_messages = [
+        "这是一段中文测试",  # Chinese
+        "🎡🐖🚿↕️🏓♉️🌨🤓😟🔁💔🎆🌆🔍😡🍧🚷🌇↗️🦀❎⏏🍃🤐🙍👤🎧🌹⏺🕦🏮⛑",  # emoji
+        "\t\n\r",  # control characters
+        "هذا اختبار عربي",  # Arabic
+        "ဒါက ဗမာဘာသာစကား စမ်းသပ်မှုပါ။",  # Burmese
+        "これは日本語のテストです",  # Japanese
+        "이것은 한국어 테스트입니다",  # Korean
+        "Esta es una prueba de español",  # Spanish
+        "Este é um teste de português",  # Portuguese
+        "Ceci est un test en français",  # French
+        "यह एक हिंदी परीक्षा है",  # Hindi
+        "Это тест на русском",  # Russian
+        "זהו מבחן בעברית",  # Hebrew
+        "ນີ້ແມ່ນການທົດສອບພາສາລາວ",  # Lao
+        "Αυτό είναι ένα ελληνικό τεστ",  # Greek
+        "این یک آزمون فارسی است",  # Persian
+        "ეს არის ქართული ტესტი",  # Georgian
+        "ഇത് ഒരു മലയാളം പരീക്ഷണമാണ്",  # Malayalam
+        "Đây là bài kiểm tra tiếng Việt",  # Vietnamese
+        "මෙය සිංහල පරිවර්තනයකි",  # Sinhala
+        "இது தமிழ் சோதனை",  # Tamil
+        "ఇది తెలుగు పరీక్ష",  # Telugu
+        "\u00C0\u00C1\u00C2\u00C3\u00C4\u00C5\u00C6\u00C7\u00C8\u00C9\u00CA\u00CB\u00CC\u00CD\u00CE\u00CF",  # Latin-1 Supplement
+        "🀱🀲🀳🀴🀵🀶🀷🀸🀹🀺🀻🀼🀽🀾🀿",  # Domino Tiles
+        "🀠🀡🀢🀣🀤🀥🀦🀧🀨🀩🀪",  # Mahjong Tiles
+        "𓅯𓆝𓆟𓆜𓆞𓆝𓆟𓆜𓆞",  # Egyptian Hieroglyph
+    ]
+    put_message_count = len(put_messages)
+    get_message_count = put_message_count
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == put_message_count
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"BLOCK {GET_BLOCK_TIME}" in AUDIT_DATA_RETURN[0]["command"]
+    assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
+    for i in range(put_message_count):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
 @pytest.mark.asyncio
 async def test_batch_get_empty_result():
+    """
+    Empty result case for batch get
+    """
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
         monitor_callback=[
@@ -322,7 +402,9 @@ async def test_batch_get_empty_result():
     )
 
     get_message_count = 10
-    get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
 
     assert type(get_messages) == list
     assert len(get_messages) == 0
@@ -337,8 +419,12 @@ async def test_batch_get_empty_result():
 
     await redis_stream._redis.close(close_connection_pool=True)
 
+
 @pytest.mark.asyncio
 async def test_batch_get_block():
+    """
+    Block time test for batch get
+    """
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
         monitor_callback=[
@@ -353,9 +439,11 @@ async def test_batch_get_block():
     get_message_count = random.randint(1, 10)
     get_block_time = random.randint(1000, 5000)
     start_time = time.time()
-    get_messages = await redis_stream.batch_get(count=get_message_count, block=get_block_time)
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=get_block_time
+    )
     end_time = time.time()
-    elapsed_time = int((end_time - start_time)*1000)
+    elapsed_time = int((end_time - start_time) * 1000)
 
     assert type(get_messages) == list
     assert len(get_messages) == 0
@@ -372,10 +460,11 @@ async def test_batch_get_block():
 
     await redis_stream._redis.close(close_connection_pool=True)
 
+
 @pytest.mark.asyncio
 async def test_batch_get_error():
     """
-    Error case for batch get: redis stream is not initialized
+    Error case for batch get: WRONGTYPE Operation against a key holding the wrong kind of value
     """
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
@@ -393,7 +482,9 @@ async def test_batch_get_error():
     get_message_count = 10
     has_error = False
     try:
-        get_messages = await redis_stream.batch_get(count=get_message_count, block=GET_BLOCK_TIME)
+        get_messages = await redis_stream.batch_get(
+            count=get_message_count, block=GET_BLOCK_TIME
+        )
     except Exception as ex:
         logging.error("Error caught: %s", ex)
         has_error = True
@@ -406,6 +497,138 @@ async def test_batch_get_error():
     assert f"COUNT {get_message_count}" in AUDIT_DATA_RETURN[0]["command"]
     assert f"BLOCK {GET_BLOCK_TIME}" in AUDIT_DATA_RETURN[0]["command"]
     assert f"STREAMS {STREAM_NAME} >" in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_ack_succ1():
+    """
+    Success case for batch get: get message count is less than put message count
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XACK"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    get_message_count = random.randint(1, put_message_count)
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    successful_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages]
+    succ = await redis_stream.batch_ack(successful_ids)
+    assert succ is True
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    for id in successful_ids:
+        assert id in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_ack_succ2():
+    """
+    Success case for batch ack: ack duplicated message id
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XACK"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    get_message_count = random.randint(1, put_message_count)
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    successful_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages] + [
+        get_messages[0][RedisStream.MESSAGE_ID_KEY]
+    ]
+    succ = await redis_stream.batch_ack(successful_ids)
+    assert succ is True
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+    for id in set(successful_ids):
+        assert id in AUDIT_DATA_RETURN[0]["command"]
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_batch_ack_error():
+    """
+    Error case for batch get: ack non-exist message id
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XACK"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    get_message_count = random.randint(1, put_message_count)
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    retry = 3
+    successful_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages] + [
+        "non_exist_id"
+    ]
+    succ = await redis_stream.batch_ack(successful_ids, retry=retry)
+    assert succ is False
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == retry
+    for i in range(retry):
+        for id in successful_ids:
+            assert id in AUDIT_DATA_RETURN[i]["command"]
 
     await redis_stream._redis.close(close_connection_pool=True)
 

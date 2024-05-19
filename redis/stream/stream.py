@@ -21,15 +21,18 @@ consumer_name = "consumer_0"
 min_idle_time = 5
 block_timeout = 5
 
+
 def ensure_str(s: Union[str, bytes]) -> str:
     if isinstance(s, bytes):
-        return s.decode('utf-8')
+        return s.decode("utf-8")
     return s
+
 
 def ensure_bytes(s: Union[str, bytes]) -> bytes:
     if isinstance(s, str):
-        return s.encode('utf-8')
+        return s.encode("utf-8")
     return s
+
 
 class RedisStream:
     MESSAGE_ID_KEY = "MESSAGE_ID"
@@ -142,15 +145,18 @@ class RedisStream:
             ["0-0"],
         )
 
-    async def batch_put(self, values: list = [], retry: Optional[int] = None) -> bool:
+    async def batch_put(
+        self, values: List[str] = [], retry: Optional[int] = None
+    ) -> bool:
         """
         Put a batch of messages to redis stream using pipeline
         :param values: list of messages to put
         :param retry: number of retries if failed
         :return: True if success, False if failed
 
-        If failed, retry until success
+        If failed, retry until success or retry times reached
         If exit signal received, stop retry and exit
+        Only support string type messages, bytes type messages should be converted to string before calling this method
         """
         _buffer = []
         for item in values:
@@ -166,7 +172,7 @@ class RedisStream:
                 for item in _buffer:
                     pipe.xadd(self._stream_name, {"data": item})
                 await pipe.execute()
-                
+
                 succ = True
                 logging.info(
                     f"Batch put - Send {len(_buffer)} messages to stream [{self._stream_name}], group=[{self._group_name}]"
@@ -187,9 +193,14 @@ class RedisStream:
     async def batch_get(self, count: int = 10, block: int = 5000) -> List[dict]:
         """
         Batch get messages from redis stream
-        count: number of messages to get
-        block: block time in milliseconds
-        return: list of messages
+        :param count: number of messages to get
+        :param block: block time in milliseconds
+        :return: list of messages
+
+        This method will block until messages received or timeout
+        This method may raise exception if error occurred
+        If available messages number less than count, return all available messages
+        If no message received, return empty list
         """
         _buffer = []
         res = await self._redis.xreadgroup(
@@ -200,7 +211,9 @@ class RedisStream:
             block=block,
         )
         if len(res) == 0:
-            logging.info(f"Batch get - No data to read from stream [{self._stream_name}], group=[{self._group_name}]")
+            logging.info(
+                f"Batch get - No data to read from stream [{self._stream_name}], group=[{self._group_name}]"
+            )
             return _buffer
 
         stream_data = res[0][1]
@@ -214,29 +227,44 @@ class RedisStream:
         )
         return _buffer
 
-    async def batch_ack(self, successful_ids):
+    async def batch_ack(
+        self, successful_ids: List[str] = [], retry: Optional[int] = None
+    ) -> bool:
+        """
+        Batch ack messages in redis stream
+        :param successful_ids: list of message ids to ack
+        :return: True if success, False if failed
+
+        If failed, retry until success or retry times reached
+        If exit signal received, stop retry and exit
+        """
         if len(successful_ids) == 0:
             logging.info("Batch ack - No data to ack")
 
+        if retry is None:
+            retry = float("inf")
+
         succ = False
-        while not succ:
+        while not succ and retry > 0:
             try:
                 await self._redis.xack(
                     self._stream_name, self._group_name, *successful_ids
                 )
+
                 succ = True
+                logging.info(
+                    f"Batch ack - Acked {len(successful_ids)} messages in stream=[{self._stream_name}], group=[{self._group_name}]"
+                )
+                break
             except Exception as ex:
                 logging.error("Batch ack error - error[%s]", ex, exc_info=True)
                 await asyncio.sleep(1)
 
+            retry -= 1
             if not signal_state.ALIVE:
                 logging.info("Batch ack - exit signal received")
                 break
 
-        if succ:
-            logging.info(
-                f"Batch ack - Acked {len(successful_ids)} messages in stream=[{self._stream_name}], group=[{self._group_name}]"
-            )
         return succ
 
     async def get_lag(self):
