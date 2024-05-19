@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import snappy
+from typing import Union
 
 import redis.asyncio as aioredis
 import signal_state_aio as signal_state
@@ -20,6 +21,15 @@ consumer_name = "consumer_0"
 min_idle_time = 5
 block_timeout = 5
 
+def ensure_str(s: Union[str, bytes]) -> str:
+    if isinstance(s, bytes):
+        return s.decode('utf-8')
+    return s
+
+def ensure_bytes(s: Union[str, bytes]) -> bytes:
+    if isinstance(s, str):
+        return s.encode('utf-8')
+    return s
 
 class RedisStream:
     MESSAGE_ID_KEY = "MESSAGE_ID"
@@ -86,7 +96,7 @@ class RedisStream:
         resp = await self._redis.xinfo_groups(self._stream_name)
         if has_stream:
             for group in resp:
-                if group["name"].decode("utf-8") == self._group_name:
+                if ensure_str(group["name"]) == self._group_name:
                     has_group = True
                     logging.info(f"Group already exists: [{self._group_name}]")
                     break
@@ -106,7 +116,7 @@ class RedisStream:
         has_consumer = False
         resp = await self._redis.xinfo_consumers(self._stream_name, self._group_name)
         for consumer in resp:
-            if consumer["name"].decode("utf-8") == self._consumer_name:
+            if ensure_str(consumer["name"]) == self._consumer_name:
                 has_consumer = True
                 logging.info(f"Consumer already exists: [{self._consumer_name}]")
                 break
@@ -179,8 +189,8 @@ class RedisStream:
             return
         stream_data = res[0][1]
         for item in stream_data:
-            id = item[0].decode("utf-8")
-            value = self._decode(item[1][b"data"])
+            id = ensure_str(item[0])
+            value = self._decode(item[1][ensure_bytes("data")])
             _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
 
         logging.info(
