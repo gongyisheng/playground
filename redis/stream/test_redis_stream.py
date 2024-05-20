@@ -24,14 +24,13 @@ GET_BLOCK_TIME = 2500
 import asyncio
 from contextvars import ContextVar
 from functools import partial
-import json
 import logging
 import pytest
 import random
 import signal_state_aio as signal_state
 import string
 import time
-from typing import Callable, List, Optional, Union
+from typing import List, Optional, Union
 import uuid
 
 from redis.asyncio import Redis, BlockingConnectionPool
