@@ -5,9 +5,10 @@ from io import BytesIO
 Image.MAX_IMAGE_PIXELS = 466550000
 
 import warnings
-warnings.simplefilter('error', Image.DecompressionBombWarning)
 
-with open('test.jpg', 'rb') as f:
+warnings.simplefilter("error", Image.DecompressionBombWarning)
+
+with open("test.jpg", "rb") as f:
     im = Image.open(BytesIO(f.read()))
 
 

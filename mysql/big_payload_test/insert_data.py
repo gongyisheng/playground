@@ -9,7 +9,7 @@ from config import db_cred
 try:
     payload_size = int(sys.argv[1])
     unit = str(sys.argv[2])
-    if unit not in ["b","kb","mb"]:
+    if unit not in ["b", "kb", "mb"]:
         print("Invalid unit. Please use b, kb, or mb")
         raise Exception
 except Exception:
@@ -32,18 +32,21 @@ conn = mysql.connector.connect(**db_cred)
 # Create cursor
 cursor = conn.cursor()
 
+
 # Define function to generate random strings
 def random_string(length):
     letters = string.ascii_letters
-    return ''.join(random.choice(letters) for i in range(length))
+    return "".join(random.choice(letters) for i in range(length))
+
 
 # Define function to generate random integers
 def random_int(length):
     return random.randint(0, 10**length)
 
-user_data =  random_string(1_000_000)
+
+user_data = random_string(1_000_000)
 for i in range(num_rows):
-    cursor.execute(f"INSERT INTO {table} (payload) VALUES (\"{user_data}\")")
+    cursor.execute(f'INSERT INTO {table} (payload) VALUES ("{user_data}")')
     print(f"Inserted row {i}")
 
 # Commit changes and close connection

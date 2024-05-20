@@ -15,13 +15,6 @@ import signal_state_aio as signal_state
 # redis client config
 # decode_responses=False: must return bytes
 
-# Generate random data
-data_size = 10
-group_name = "default_group"
-consumer_name = "consumer_0"
-min_idle_time = 5
-block_timeout = 5
-
 
 def ensure_str(s: Union[str, bytes]) -> str:
     if isinstance(s, bytes):

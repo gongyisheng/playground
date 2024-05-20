@@ -7,17 +7,17 @@ import string
 from config import db_cred
 
 supported_table = {
-    "100k": 100_000, 
-    "200k": 200_000, 
-    "500k": 500_000, 
-    "1m": 1_000_000, 
-    "2m": 2_000_000, 
+    "100k": 100_000,
+    "200k": 200_000,
+    "500k": 500_000,
+    "1m": 1_000_000,
+    "2m": 2_000_000,
     "5m": 5_000_000,
-    "10m": 10_000_000, 
-    "20m": 20_000_000, 
+    "10m": 10_000_000,
+    "20m": 20_000_000,
     "30m": 30_000_000,
     "50m": 50_000_000,
-    "80m": 80_000_000
+    "80m": 80_000_000,
 }
 
 table_size = sys.argv[1]
@@ -37,16 +37,20 @@ conn = mysql.connector.connect(**db_cred)
 # Create cursor
 cursor = conn.cursor()
 
+
 def random_string(length):
     letters = string.ascii_letters
-    return ''.join(random.choice(letters) for i in range(length))
+    return "".join(random.choice(letters) for i in range(length))
+
 
 def compact_string(string):
-    return "\"" + string + "\""
+    return '"' + string + '"'
+
 
 # Define function to generate random integers
 def random_int(_min, _max):
     return random.randint(_min, _max)
+
 
 for i in range(num_rows):
     person_id = random_int(0, max_rows)
@@ -55,7 +59,7 @@ for i in range(num_rows):
     update_time = random_int(insert_time, 1684298424)
     sql = f"INSERT INTO {table} (person_id, person_name, insert_time, update_time) VALUES ({person_id}, {person_name}, {insert_time}, {update_time})"
     cursor.execute(sql)
-    if i%100 == 0:
+    if i % 100 == 0:
         conn.commit()
         print(f"Inserted row {i}")
 

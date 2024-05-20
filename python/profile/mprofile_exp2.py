@@ -1,14 +1,17 @@
 from pympler import classtracker, asizeof
 import time
 
+
 class TestClass(object):
     def __init__(self):
-        self.a = [1,2,3]*1000
-        self.b = [4,5,6]*1000
-        self.description = "This is a test class"*1000
+        self.a = [1, 2, 3] * 1000
+        self.b = [4, 5, 6] * 1000
+        self.description = "This is a test class" * 1000
+
     def func(self):
         self.c = self.a + self.b
         return self.c
+
 
 def main():
     # class tracker, track all instances of a class, periodically take snapshots
@@ -25,23 +28,23 @@ def main():
 
     # track object size, manually take snapshots
     tracked_obj = classtracker.TrackedObject(obj, "TestClass")
-    
+
     _test1 = obj.func()
-    tracked_obj.track_size(time.time(), asizeof.Asizer()) # manually take a snapshot
-    obj._desc1 = "This is a test class"*1000
-    tracked_obj.track_size(time.time(), asizeof.Asizer()) # manually take a snapshot
+    tracked_obj.track_size(time.time(), asizeof.Asizer())  # manually take a snapshot
+    obj._desc1 = "This is a test class" * 1000
+    tracked_obj.track_size(time.time(), asizeof.Asizer())  # manually take a snapshot
     time.sleep(2)
-    obj._desc2 = "This is a test class"*1000
-    tracked_obj.track_size(time.time(), asizeof.Asizer()) # manually take a snapshot
-    
+    obj._desc2 = "This is a test class" * 1000
+    tracked_obj.track_size(time.time(), asizeof.Asizer())  # manually take a snapshot
+
     time.sleep(2)
 
     _obj = TestClass()
     _test2 = _obj.func()
     time.sleep(2)
-    _obj._desc1 = "Hello"*10000
+    _obj._desc1 = "Hello" * 10000
     time.sleep(2)
-    
+
     print("-----Test object memory usage-----")
     obj_tr.stats.print_summary()
     obj_tr.stats.print_object(tracked_obj)
@@ -51,7 +54,8 @@ def main():
 
     return (_test1, _test2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
 
 # Output:

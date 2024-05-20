@@ -5,16 +5,19 @@ def follow(f, target):
         if last_line is not None:
             target.send(last_line)
 
+
 def printer():
     while True:
         line = yield
-        print(line, end='')
+        print(line, end="")
+
 
 def main():
-    f = open('channel-data.txt')
+    f = open("channel-data.txt")
     prt = printer()
-    next(prt) # initialize the couroutine
-    follow(f, prt) # start the event loop
+    next(prt)  # initialize the couroutine
+    follow(f, prt)  # start the event loop
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

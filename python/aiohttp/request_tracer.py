@@ -8,14 +8,14 @@ from contextvars import ContextVar
 
 request = ContextVar("request")
 
+
 def setup_logging():
     logging.basicConfig(
         level=logging.INFO,
         format="[%(asctime)s,%(msecs)03d][%(filename)s:%(lineno)d][%(process)s:%(threadName)s][%(request)s] %(message)s",
-        handlers=[
-            logging.StreamHandler()
-        ],
+        handlers=[logging.StreamHandler()],
     )
+
 
 def request_tracer(results_collector):
     """
@@ -37,8 +37,9 @@ def request_tracer(results_collector):
     >>> asyncio.get_event_loop().run_until_complete(func())
     {'dns_lookup_and_dial': 43.3, 'connect': 334.29, 'transfer': 148.48, 'total': 526.08, 'is_redirect': False}
     """
+
     async def on_request_start(session, context, params):
-        request.set(str(uuid.uuid4()).split('-')[0])
+        request.set(str(uuid.uuid4()).split("-")[0])
         context.on_request_start = time.perf_counter()
         context.is_redirect = False
 
@@ -62,7 +63,7 @@ def request_tracer(results_collector):
     async def on_connection_create_end(session, context, params):
         since_start = time.perf_counter() - context.on_request_start
         context.on_connection_create_end = since_start
-    
+
     async def on_request_chunk_sent(session, context, params):
         since_start = time.perf_counter() - context.on_request_start
         context.on_request_chunk_sent = since_start
@@ -71,16 +72,18 @@ def request_tracer(results_collector):
         total = time.perf_counter() - context.on_request_start
         context.on_request_end = total
 
-        dns_lookup_and_dial = context.on_dns_resolvehost_end - context.on_dns_resolvehost_start
+        dns_lookup_and_dial = (
+            context.on_dns_resolvehost_end - context.on_dns_resolvehost_start
+        )
         connect = context.on_connection_create_end - dns_lookup_and_dial
         transfer = total - context.on_connection_create_end
         is_redirect = context.is_redirect
 
-        results_collector['dns_lookup_and_dial'] = round(dns_lookup_and_dial * 1000, 2)
-        results_collector['connect'] = round(connect * 1000, 2)
-        results_collector['transfer'] = round(transfer * 1000, 2)
-        results_collector['total'] = round(total * 1000, 2)
-        results_collector['is_redirect'] = is_redirect
+        results_collector["dns_lookup_and_dial"] = round(dns_lookup_and_dial * 1000, 2)
+        results_collector["connect"] = round(connect * 1000, 2)
+        results_collector["transfer"] = round(transfer * 1000, 2)
+        results_collector["total"] = round(total * 1000, 2)
+        results_collector["is_redirect"] = is_redirect
 
     trace_config = aiohttp.TraceConfig()
 
@@ -95,18 +98,16 @@ def request_tracer(results_collector):
 
     return trace_config
 
+
 async def fetch(url):
     trace = {}
     async with aiohttp.ClientSession(trace_configs=[request_tracer(trace)]) as client:
         async with client.get(url) as response:
             logging.info(f"URL={url}, trace={trace}", extra={"request": request.get()})
 
+
 if __name__ == "__main__":
-    urls = [
-        'https://github.com',
-        'https://www.google.com',
-        'https://www.yahoo.com'
-    ]
+    urls = ["https://github.com", "https://www.google.com", "https://www.yahoo.com"]
     setup_logging()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.gather(*[fetch(url) for url in urls]))

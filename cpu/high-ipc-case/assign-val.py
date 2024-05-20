@@ -1,4 +1,4 @@
-while(True):
+while True:
     i = 1
     i = 1
     i = 1

@@ -34,12 +34,15 @@ conn = mysql.connector.connect(**db_cred)
 # Create cursor
 cursor = conn.cursor()
 
+
 def random_string(length):
     letters = string.ascii_letters
-    return ''.join(random.choice(letters) for i in range(length))
+    return "".join(random.choice(letters) for i in range(length))
+
 
 def compact_string(string):
-    return "\"" + string + "\""
+    return '"' + string + '"'
+
 
 fixed_tail = random_string(756)
 
@@ -50,7 +53,7 @@ for i in range(num_rows):
     pk = compact_string(head + fixed_tail)
     sql = f"INSERT INTO {table} (big_pk, big_index_key) VALUES ({pk}, {pk})"
     cursor.execute(sql)
-    if i%100 == 0:
+    if i % 100 == 0:
         conn.commit()
         print(f"Inserted row {i}")
 

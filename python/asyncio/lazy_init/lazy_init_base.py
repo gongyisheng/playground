@@ -1,4 +1,5 @@
 from lazy_init_ac import AttachmentClient
 
-class Global():
+
+class Global:
     attachment_client = AttachmentClient()

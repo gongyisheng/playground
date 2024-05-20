@@ -9,7 +9,7 @@ from config import db_cred
 try:
     payload_size = int(sys.argv[1])
     unit = str(sys.argv[2])
-    if unit not in ["b","kb","mb"]:
+    if unit not in ["b", "kb", "mb"]:
         print("Invalid unit. Please use b, kb, or mb")
         raise Exception
 except Exception:
@@ -28,7 +28,9 @@ except Exception:
     round = 1
 
 table = f"{payload_size}{unit}_test"
-print(f"Test Job: selects {num_rows} rows of {payload_size}{unit} data. Table: {table}, Round: {round}")
+print(
+    f"Test Job: selects {num_rows} rows of {payload_size}{unit} data. Table: {table}, Round: {round}"
+)
 
 # Connect to MySQL server
 conn = mysql.connector.connect(**db_cred)

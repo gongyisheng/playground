@@ -1,10 +1,13 @@
 import asyncio
 import redis.asyncio as aioredis
 
-pool = aioredis.BlockingConnectionPool(host='localhost', port=6379, db=0, max_connections=20)
+pool = aioredis.BlockingConnectionPool(
+    host="localhost", port=6379, db=0, max_connections=20
+)
 node = aioredis.Redis(connection_pool=pool)
-prefix = ['abc', 'zoo']
+prefix = ["abc", "zoo"]
 LISTEN_INVALIDATE_CHANNEL = b"__redis__:invalidate"
+
 
 async def open_close():
     _pubsub = node.pubsub()
@@ -16,7 +19,9 @@ async def open_close():
     resp = await _pubsub.get_message(timeout=1)
     print(resp)
 
-    resp = await node.client_tracking_on(clientid=_pubsub_client_id, bcast=True, prefix=prefix)
+    resp = await node.client_tracking_on(
+        clientid=_pubsub_client_id, bcast=True, prefix=prefix
+    )
     print(resp)
 
     resp = await node.client_tracking_off(clientid=_pubsub_client_id, bcast=True)
@@ -28,10 +33,12 @@ async def open_close():
 
     await _pubsub.reset()
 
+
 async def main(round):
     for i in range(round):
         await open_close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(10))

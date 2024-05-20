@@ -1,13 +1,14 @@
 import logging
 
+
 def get_log_formatter():
     formatter = logging.Formatter(
         "%(levelname)s: [%(asctime)s][%(module)s][%(filename)s:%(lineno)s]%(message)s"
     )
     return formatter
 
-def setup_logger():
 
+def setup_logger():
     logger = logging.getLogger()
     formatter = get_log_formatter()
 

@@ -3,7 +3,8 @@ import logging
 init_count = 0
 add_count = 0
 
-class PageQueue():
+
+class PageQueue:
     def __init__(self):
         global init_count
         init_count += 1
@@ -12,5 +13,6 @@ class PageQueue():
         global add_count
         add_count += 1
 
+
 def summary_stat():
-    logging.info(f'init_count={init_count}, add_count={add_count}')
+    logging.info(f"init_count={init_count}, add_count={add_count}")

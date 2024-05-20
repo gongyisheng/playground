@@ -1,8 +1,8 @@
 import asyncio
 
-class Test:
 
-    KEY = 'test'
+class Test:
+    KEY = "test"
     PLACEHOLDER = object()
 
     def __init__(self):
@@ -11,18 +11,18 @@ class Test:
         self._cache = {}
 
     async def wait(self):
-        print('waiting for it...')
+        print("waiting for it...")
         await self.event.wait()
-        print('...got it!')
+        print("...got it!")
 
     def set(self):
-        print('setting it')
+        print("setting it")
         self.event.set()
-    
+
     def clear(self):
-        print('clearing it')
+        print("clearing it")
         self.event.clear()
-    
+
     async def main(self):
         if self.KEY in self._cache:
             if self._cache[self.KEY] == self.PLACEHOLDER:
@@ -32,7 +32,7 @@ class Test:
             await self.lock.acquire()
             self._cache[self.KEY] = self.PLACEHOLDER
             await asyncio.sleep(2)
-            self._cache[self.KEY] = 'value'
+            self._cache[self.KEY] = "value"
             self.lock.release()
             self.set()
             self.clear()
@@ -47,5 +47,6 @@ async def test():
     tasks = [t.main() for _ in range(10)]
     await asyncio.gather(*tasks)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(test())

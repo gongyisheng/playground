@@ -31,9 +31,9 @@ class Global:
     pricing_model = None
     config = None
 
+
 # base handler for all requests, cors configs
 class BaseHandler(tornado.web.RequestHandler):
-
     def set_default_headers(self):
         # Only allow origins from nginx reverse proxy
         self.set_header(

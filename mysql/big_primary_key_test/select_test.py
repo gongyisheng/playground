@@ -28,8 +28,8 @@ print(f"Test Job: count * test. Table: {table}")
 target_key = "OawrGDEUPtVxudqspDncYswuJReaLenIRaazDUrNuvoJOfpTfrJOfnJWQZZuAklIMSKytNsiIOPBXvmLlanDTeBVaxEkeilJdnOFpMcXGQLesGYahIUpbuwpkloZneWSvUrCbfGhzAWFqrtxPoITZgdZvTrGFGrYMDRHtzDIrazFVZOFHrZxylgEwNRoHdvwDIXeWuJxDpaCsqSjgQDhEjIMumVPtySerRLnlQjbVtlIJoqqslwZwRZnIbFCHaCFMeSwOYXKPCjZiQfHucMfgpZmVJXJzbEKxnSbOrBwzeXwWYNCvjWgiIKKXLEygZlncrKfEPuwqBcsSYmvPQjwsufvVTkHUVrGcAEvxCUziRvXtcOCfQHcnlaXcBdNfTcQMXwCcUeUgVpohdxaagcjAGgybOgjQPMFraipkrBgcVkOQjXVzaRyQTZvksmUxTPKuMYhYHSgdYvtSwhbKUEQiURkTBuZqfrjcicTrovimVdLrcBhbgqjLIFkYsogfrSSBhDOAHImynXMxNjeFtNVbWFxlJTZycWxkyxMomphFzFVguzYbmcYiRgNyuPfBOXdgemLcLgCTcCXiEOARhmOEGwERFQyLvwCVrwGNVXGHAwVPrktEqjZQXkjcNvXmvjOcJnrDHwHLCVTWIJrReGvjByLjVWrGLdlTvCquSxuzIwyRzPScirvYiodNNjROjRmFvwvvxClCmlhoXigVdQQOejVcHrEeBhtbLnLCgezWGgROxWVfHcVENbDWFSvnFJI"
 
 sql = {
-    1: f"select * from {table} where big_pk = \"{target_key}\"",
-    2: f"select * from {table} where big_index_key = \"{target_key}\"",
+    1: f'select * from {table} where big_pk = "{target_key}"',
+    2: f'select * from {table} where big_index_key = "{target_key}"',
 }
 
 # Connect to MySQL server
@@ -47,7 +47,7 @@ for i in range(round):
     data = cursor.fetchall()
     end = time.perf_counter()
     print(f"select_time: {end-start}, round: {i}, has_result: {len(data) > 0}")
-    total_time += end-start
+    total_time += end - start
 cursor.execute("show status like 'innodb_buffer_pool_pages_data'")
 end_status = cursor.fetchall()
 print(f"Total_round: {round}, avg_time: {total_time/round}")

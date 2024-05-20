@@ -1,4 +1,4 @@
-class Global():
+class Global:
     def __init__(self):
         self._role_arn = None
         self.role_arn
@@ -10,10 +10,12 @@ class Global():
             self._role_arn = 1
         return self._role_arn
 
+
 def test():
     global_obj = Global()
     print(global_obj.role_arn)
     print(global_obj.role_arn)
+
 
 if __name__ == "__main__":
     test()
