@@ -61,6 +61,11 @@ ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 # setup node-exporter, prometheus
 ref: https://easycode.page/monitoring-on-raspberry-pi-with-node-exporter-prometheus-and-grafana/#steps-to-deploy-prometheus-on-docker
 
+# run docker compose
+```
+docker compose -f docker-compose.yaml up -d
+```
+
 # run monitoring
 - run node exporter (docker native)
 ```
