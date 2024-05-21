@@ -682,9 +682,9 @@ async def test_batch_ack_with_delete():
 
 
 @pytest.mark.asyncio
-async def test_get_pending_list_length_succ():
+async def test_monitor_xpel_succ():
     """
-    Success case for get pending list length
+    Success case for monitor pending list
     """
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
@@ -709,8 +709,9 @@ async def test_get_pending_list_length_succ():
 
     successful_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages]
     for i in range(len(successful_ids)):
-        length = await redis_stream.get_pending_list_length()
+        length, min_time = await redis_stream.monitor_xpel()
         assert length == get_message_count - i
+        assert min_time != -1
         await redis_stream.batch_ack([successful_ids[i]])
 
     assert monitor_task.done() is False

@@ -293,19 +293,26 @@ class RedisStream:
 
         return succ
 
-    async def get_pending_list_length(self) -> int:
+    async def monitor_xpel(self) -> Tuple[int, int]:
         """
-        Get pending list length for current <stream, group>
+        Get pending list length and min timestamp for current <stream, group>
         :return: pending list length
         """
         resp = await self._redis.xpending(self._stream_name, self._group_name)
         length = resp["pending"]
         min_id = ensure_str(resp["min"])
         max_id = ensure_str(resp["max"])
+
+        min_time = -1
+        try:
+            min_time = int(min_id.split("-")[0]) // 1000
+        except Exception as ex:
+            logging.error("Monitor xpel - Get min time error[%s]", ex, exc_info=True)
         logging.info(
-            f"Get pending list length - Length: {length}, Min ID: {min_id}, Max ID: {max_id}"
+            f"Get pending list length - Length: {length}, Min ID: {min_id}, Max ID: {max_id}, Min Time: {min_time}"
         )
-        return length
+
+        return length, min_time
 
     async def trim(self, ttl: int, approximate: bool = True) -> Tuple[int, int]:
         """
