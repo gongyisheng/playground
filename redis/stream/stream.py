@@ -28,6 +28,8 @@ def ensure_bytes(s: Union[str, bytes]) -> bytes:
     return s
 
 
+# KNOWN ISSUE
+# 1. This package is tested under redis=6.2.14. XAUTOCLAIM may not work as expected in redis >= 6.2.14 due to API change.
 class RedisStream:
     MESSAGE_ID_KEY = "MESSAGE_ID"
     MESSAGE_DATA_KEY = "MESSAGE_DATA"
@@ -207,8 +209,9 @@ class RedisStream:
             value = self._decode(item[1][ensure_bytes("data")])
             _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
 
+        message_ids = [item[self.MESSAGE_ID_KEY] for item in _buffer]
         logging.info(
-            f"Batch get - Get {len(stream_data)} messages from stream [{self._stream_name}], group=[{self._group_name}]"
+            f"Batch get - Get {len(stream_data)} messages from stream [{self._stream_name}], group=[{self._group_name}], message_ids={message_ids}"
         )
         return _buffer
 
@@ -230,13 +233,26 @@ class RedisStream:
             count=count,
         )
 
-        delete_data = resp[2]
+        # Build stream_data and delete_data based on response
+        if len(resp) > 2:
+            # redis > 6.2.14
+            stream_data = resp[1]
+            delete_data = resp[2]
+        else:
+            # redis <= 6.2.14
+            stream_data = []
+            delete_data = []
+            for item in resp[1]:
+                if item[0] is None:
+                    delete_data.append(item)
+                else:
+                    stream_data.append(item)
+
         if len(delete_data) > 0:
             logging.error(
                 f"Batch claim - Found {len(delete_data)} deleted messages in pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]. delete_data={delete_data}"
             )
 
-        stream_data = resp[1]
         if len(stream_data) == 0:
             logging.info(
                 f"Batch claim - No data to claim from pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]"
@@ -248,8 +264,9 @@ class RedisStream:
             value = self._decode(item[1][ensure_bytes("data")])
             _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
 
+        message_ids = [item[self.MESSAGE_ID_KEY] for item in _buffer]
         logging.info(
-            f"Batch claim - Claimed {len(stream_data)} messages from pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}]"
+            f"Batch claim - Claimed {len(stream_data)} messages from pending list of stream=[{self._stream_name}], group=[{self._group_name}], consumer=[{self._consumer_name}], message_ids={message_ids}"
         )
         return _buffer
 
@@ -357,9 +374,10 @@ class RedisStream:
             value = self._decode(item[1][ensure_bytes("data")])
             _buffer.append({self.MESSAGE_ID_KEY: id, self.MESSAGE_DATA_KEY: value})
 
-        batch_max_id = _buffer[-1][self.MESSAGE_ID_KEY]
+        max_id = _buffer[-1][self.MESSAGE_ID_KEY]
+        message_ids = [item[self.MESSAGE_ID_KEY] for item in _buffer]
         logging.info(
-            f"Batch replay - Replay messages from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}], batch_max_id=[{batch_max_id}]"
+            f"Batch replay - Replay messages from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}], max_id=[{max_id}], message_ids={message_ids}"
         )
         return _buffer
 
@@ -453,11 +471,25 @@ class RedisStream:
         If no messages available, exit the loop.
         If exit signal received, stop and exit after processing current batch.
         """
+        if start_time is None or end_time is None:
+            logging.error("Run range replay error - Start time or end time is None")
+            return
+        elif start_time >= end_time:
+            logging.error(
+                f"Run range replay error - Start time [{start_time}] is greater than end time [{end_time}]"
+            )
+            return
+        elif start_time < 0 or end_time < 0:
+            logging.error(
+                f"Run range replay error - Start time [{start_time}] or end time [{end_time}] is less than 0"
+            )
+            return
+
         await self.init()
         while signal_state.ALIVE:
             try:
                 # replay messages from stream
-                _buffer = await self.batch_replay(start_time, end_time, count=count)
+                _buffer = await self.range_replay(start_time, end_time, count=count)
                 if len(_buffer) == 0:
                     break
 
@@ -477,6 +509,13 @@ class RedisStream:
         If no messages available, exit the loop.
         If exit signal received, stop and exit after processing current batch.
         """
+        if message_ids is None:
+            logging.error("Run item replay error - Message ids is None")
+            return
+        elif len(message_ids) == 0:
+            logging.error("Run item replay error - Message ids is empty")
+            return
+
         await self.init()
         cutoff = 0
         while signal_state.ALIVE:
