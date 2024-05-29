@@ -6,6 +6,7 @@ class TreeNode:
         self.left = left
         self.right = right
 
+# LC 144
 def preorder_traversal(root: TreeNode) -> List[int]:
     if root is None:
         return []
@@ -15,6 +16,7 @@ def preorder_traversal(root: TreeNode) -> List[int]:
     vals.extend(preorder_traversal(root.right))
     return vals
 
+# LC 94
 def inorder_traversal(root: TreeNode) -> List[int]:
     if root is None:
         return []
@@ -24,6 +26,7 @@ def inorder_traversal(root: TreeNode) -> List[int]:
     vals.extend(inorder_traversal(root.right))
     return vals
 
+# LC 145
 def postorder_traversal(root: TreeNode) -> List[int]:
     if root is None:
         return []
@@ -33,11 +36,12 @@ def postorder_traversal(root: TreeNode) -> List[int]:
     vals.append(root.val)
     return vals
 
+# LC 102
 def levelorder_traversal(root: TreeNode) -> List[int]:
-    if root is None:
-        return []
     vals = []
-    queue = [root]
+    queue = []
+    if root:
+        queue.append(root)
     while queue:
         node = queue.pop(0)
         vals.append(node.val)
