@@ -8,6 +8,7 @@ class TreeNode:
         self.left = left
         self.right = right
 
+
 class NrayTreeNode:
     def __init__(self, val=0, children=None):
         self.val = val
@@ -25,6 +26,7 @@ def build_binary_tree(vals: List[int]) -> TreeNode:
         return node
 
     return build_tree_helper(vals, 0)
+
 
 # def build_nray_tree(n: int, vals: List[int]) -> NrayTreeNode:
 #     def build_tree_helper(vals: List[int], idx: int) -> NaryTreeNode:
@@ -89,6 +91,7 @@ def levelorder_traversal(root: TreeNode) -> List[List[int]]:
                 queue.append(node.right)
         vals.append(level)
     return vals
+
 
 # LC 429
 def levelorder_traversal_nray(root: NrayTreeNode) -> List[List[int]]:
