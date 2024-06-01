@@ -28,11 +28,12 @@ import pytest
 import random
 import signal_state_aio as signal_state
 import time
+import timeout_decorator
 from typing import Callable, Optional, Union
 import uuid
 
 from redis.asyncio import Redis, BlockingConnectionPool
-from cached_redis import CachedRedis
+from broadcast import CachedRedis
 
 request = ContextVar("request")
 LOG_SETUP_FLAG = False
@@ -134,6 +135,26 @@ class ValueParser(object):
         return self.parsed_value.get(key)
 
 
+def inf_loop():
+    while True:
+        a = 1
+
+
+async def inf_loop_with_timeout(sleep=5, timeout=60):
+    @timeout_decorator.timeout(timeout)
+    def _inf_loop():
+        inf_loop()
+
+    await asyncio.sleep(sleep)
+
+    try:
+        _inf_loop()
+    except Exception as e:
+        logging.debug(f"inf loop timeout complete")
+
+    await asyncio.sleep(sleep)
+
+
 # WARNING: if func(info) raise exception, monitor coroutine will stop but no exception will be raised
 async def monitor(redis, callback_func=[]):
     async with redis.monitor() as m:
@@ -193,8 +214,9 @@ async def init(**kwargs):
         max_connections=kwargs.get("max_connections", REDIS_MAX_CONNECTIONS + 1),
         timeout=30,
     )
+    decode_responses = kwargs.get("decode_responses", False)
     redis = Redis(
-        connection_pool=pool
+        connection_pool=pool, decode_responses=decode_responses
     )  # You can also test decode_responses=True, it should also work
     await redis.flushdb()
 
@@ -287,6 +309,73 @@ async def _synchronized_hget(
     except Exception as e:
         logging.error(
             f"Get error during hget test: key={key}, field={field}, expected_value={expected_value}, actual_value={value}",
+            exc_info=True,
+        )
+        if error_return is not None:
+            error_return.append((time.time(), e))
+        if raise_error:
+            raise e
+    finally:
+        signal_state.ALIVE = False
+
+
+async def _synchronized_hgetall(
+    client: CachedRedis,
+    key: str,
+    expected_value: str,
+    error_return: Optional[list] = None,
+    raise_error: bool = True,
+    sleep: Optional[int] = None,
+    duration: int = 5,
+    callback_func: Optional[Callable] = None,
+):
+    try:
+        start = time.time()
+        while time.time() - start <= duration and signal_state.ALIVE:
+            request.set(str(uuid.uuid4()).split("-")[0])
+            _value = await client.hgetall(key)
+            value = {k.decode("ascii"): v.decode("ascii") for k, v in _value.items()}
+            assert value == expected_value
+            if sleep is not None:
+                await asyncio.sleep(sleep)
+    except Exception as e:
+        logging.error(
+            f"Get error during hgetall test: key={key}, expected_value={expected_value}, actual_value={value}",
+            exc_info=True,
+        )
+        if error_return is not None:
+            error_return.append((time.time(), e))
+        if raise_error:
+            raise e
+    finally:
+        signal_state.ALIVE = False
+
+
+async def _synchronized_hkeys(
+    client: CachedRedis,
+    key: str,
+    expected_value: set,
+    error_return: Optional[list] = None,
+    raise_error: bool = True,
+    sleep: Optional[int] = None,
+    duration: int = 5,
+    callback_func: Optional[Callable] = None,
+):
+    try:
+        start = time.time()
+        while time.time() - start <= duration and signal_state.ALIVE:
+            request.set(str(uuid.uuid4()).split("-")[0])
+            _value = await client.hkeys(key)
+            value = sorted([item.decode("ascii") for item in _value])
+            expected_value = sorted(list(expected_value))
+            assert len(value) == len(expected_value)
+            for i in range(len(value)):
+                assert value[i] == expected_value[i]
+            if sleep is not None:
+                await asyncio.sleep(sleep)
+    except Exception as e:
+        logging.error(
+            f"Get error during hkeys test: key={key}, expected_value={expected_value}, actual_value={value}",
             exc_info=True,
         )
         if error_return is not None:
@@ -458,6 +547,57 @@ async def test_hget():
     await client._redis.close(close_connection_pool=True)
 
 
+@pytest.mark.asyncio
+async def test_hgetall():
+    AUDIT_DATA_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(
+                _audit_monitor, data_return=AUDIT_DATA_RETURN, prefix="HGETALL my_key"
+            )
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+    await _synchronized_hgetall(client, "my_key", data, sleep=1)
+    await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_hkeys():
+    AUDIT_DATA_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(
+                _audit_monitor, data_return=AUDIT_DATA_RETURN, prefix="HKEYS my_key"
+            )
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    expected_value = list(data.keys())
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+    await _synchronized_hkeys(client, "my_key", expected_value, sleep=1)
+    await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+
+    await client._redis.close(close_connection_pool=True)
+
+
 # TODO: test long prefix and many prefix
 @pytest.mark.asyncio
 async def test_prefix():
@@ -504,6 +644,28 @@ async def test_prefix():
 
 
 @pytest.mark.asyncio
+async def test_redis_decode_responses():
+    AUDIT_DATA_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        decode_responses=True,
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(_audit_monitor, data_return=AUDIT_DATA_RETURN, prefix="GET my_key")
+        ],
+    )
+    await client.set("my_key", "my_value")
+    await _synchronized_get(client, "my_key", "my_value", sleep=1)
+    await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
 async def test_synchronized_get():
     AUDIT_RETURN = []
     client, daemon_task, monitor_task = await init(
@@ -543,6 +705,57 @@ async def test_synchronized_hget():
     monitor_task.cancel()
 
     assert len(AUDIT_RETURN) == 1
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_synchronized_hgetall():
+    AUDIT_DATA_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(
+                _audit_monitor, data_return=AUDIT_DATA_RETURN, prefix="HGETALL my_key"
+            )
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+    await _synchronized_hgetall(client, "my_key", data)
+    await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_synchronized_hkeys():
+    AUDIT_DATA_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(
+                _audit_monitor, data_return=AUDIT_DATA_RETURN, prefix="HKEYS my_key"
+            )
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    expected_value = list(data.keys())
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+    await _synchronized_hkeys(client, "my_key", expected_value)
+    await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 1
 
     await client._redis.close(close_connection_pool=True)
 
@@ -624,6 +837,73 @@ async def test_hget_short_cache_ttl():
 
 
 @pytest.mark.asyncio
+async def test_hgetall_short_cache_ttl():
+    # This function introduces a random value in cache ttl
+    # You can run this test multiple times to make sure that any value in cache ttl is working
+    # pytest -k test_hgetall_short_cache_ttl --count X
+    CACHE_TTL = max(random.random() * 5, 0.1)
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        cache_ttl=CACHE_TTL,
+        monitor_callback=[
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="HGETALL my_key")
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+    await _synchronized_hgetall(client, "my_key", data)
+    await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    max_cache_ttl = CACHE_TTL * (1 - client.cache_ttl_deviation)
+    for i in range(len(AUDIT_RETURN) - 1):
+        diff = AUDIT_RETURN[i + 1]["time"] - AUDIT_RETURN[i]["time"]
+        assert diff >= max_cache_ttl
+    expected_count = 5 // (CACHE_TTL * (1 - client.cache_ttl_deviation)) + 1
+    assert len(AUDIT_RETURN) in [expected_count - 1, expected_count]
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_hkeys_short_cache_ttl():
+    # This function introduces a random value in cache ttl
+    # You can run this test multiple times to make sure that any value in cache ttl is working
+    # pytest -k test_hkeys_short_cache_ttl --count X
+    CACHE_TTL = max(random.random() * 5, 0.1)
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        cache_ttl=CACHE_TTL,
+        monitor_callback=[
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="HKEYS my_key")
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    expected_value = list(data.keys())
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+    await _synchronized_hkeys(client, "my_key", expected_value)
+    await asyncio.gather(daemon_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    max_cache_ttl = CACHE_TTL * (1 - client.cache_ttl_deviation)
+    for i in range(len(AUDIT_RETURN) - 1):
+        diff = AUDIT_RETURN[i + 1]["time"] - AUDIT_RETURN[i]["time"]
+        assert diff >= max_cache_ttl
+    expected_count = 5 // (CACHE_TTL * (1 - client.cache_ttl_deviation)) + 1
+    assert len(AUDIT_RETURN) in [expected_count - 1, expected_count]
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
 async def test_short_health_check():
     # This function introduces a random value in health check interval
     # You can run this test multiple times to make sure that any value in cache ttl is working
@@ -648,6 +928,48 @@ async def test_short_health_check():
         diff = AUDIT_RETURN[i + 1]["time"] - AUDIT_RETURN[i]["time"]
         assert diff >= HEALTH_CHECK_INTERVAL
     assert len(AUDIT_RETURN) <= min(5 // HEALTH_CHECK_INTERVAL + 1, 6)
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_health_check_reset_timeout():
+    AUDIT_RETURN = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        health_check_interval=2,
+        health_check_reset_timeout=5,
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_RETURN,
+                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
+            )
+        ],
+    )
+    await client.set("my_key", "my_value")
+    get_task = asyncio.create_task(
+        _synchronized_get(client, "my_key", "my_value", sleep=0.5, duration=20)
+    )
+    inf_loop_task = asyncio.create_task(inf_loop_with_timeout(sleep=5, timeout=10))
+    await asyncio.gather(daemon_task, get_task, inf_loop_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_RETURN) == 6
+    CLIENT_TRACKING_ON_COMMANDS = [
+        d["command"]
+        for d in AUDIT_RETURN
+        if d["command"].startswith("CLIENT TRACKING ON")
+    ]
+    CLIENT_TRACKING_OFF_COMMANDS = [
+        d["command"]
+        for d in AUDIT_RETURN
+        if d["command"].startswith("CLIENT TRACKING OFF")
+    ]
+    assert len(CLIENT_TRACKING_ON_COMMANDS) == 2
+    assert len(CLIENT_TRACKING_OFF_COMMANDS) == 2
 
     await client._redis.close(close_connection_pool=True)
 
@@ -717,34 +1039,26 @@ async def test_concurrent_hget():
 
 
 @pytest.mark.asyncio
-async def test_concurrent_hget_with_deviation():
-    HGET_CLIENT_TIMESTAMP = None
+async def test_concurrent_hgetall():
     AUDIT_RETURN = []
     ERROR = []
-
-    async def _hget():
-        nonlocal ERROR
-        nonlocal HGET_CLIENT_TIMESTAMP
-        start = time.time()
-        if HGET_CLIENT_TIMESTAMP is None:
-            HGET_CLIENT_TIMESTAMP = start
-        await _synchronized_hget(
-            client, "my_key", "my_field", "my_value", error_return=ERROR
-        )
-
     client, daemon_task, monitor_task = await init(
         cache_prefix=["my_key", "test"],
-        hget_deviation_option={"my_key": 10},
         monitor_callback=[
-            partial(
-                _audit_monitor, data_return=AUDIT_RETURN, prefix="HGET my_key my_field"
-            )
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="HGETALL my_key")
         ],
     )
-    await client.hset("my_key", "my_field", f"my_value")
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
 
     pool_num = 10
-    task = [asyncio.create_task(_hget()) for _ in range(pool_num)]
+    task = [
+        asyncio.create_task(
+            _synchronized_hgetall(client, "my_key", data, error_return=ERROR)
+        )
+        for _ in range(pool_num)
+    ]
     await asyncio.gather(daemon_task, *task)
 
     assert monitor_task.done() is False
@@ -752,22 +1066,39 @@ async def test_concurrent_hget_with_deviation():
 
     assert len(AUDIT_RETURN) == 1
     assert len(ERROR) == 0
-    HGET_SERVER_TIMESTAMP = AUDIT_RETURN[0]["time"]
-    assert HGET_SERVER_TIMESTAMP is not None
-    diff = HGET_SERVER_TIMESTAMP - HGET_CLIENT_TIMESTAMP
-    assert diff >= 0.01 and diff <= 10
 
-    # If don't have hget deviation option, diff is usually less than 0.005
-    # FAILED test_concurrent_hget_with_deviation[1-10] - assert 0.003918886184692383 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[2-10] - assert 0.002978801727294922 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[3-10] - assert 0.0022521018981933594 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[4-10] - assert 0.0016889572143554688 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[5-10] - assert 0.0029039382934570312 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[6-10] - assert 0.003061056137084961 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[7-10] - assert 0.0022199153900146484 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[8-10] - assert 0.0019199848175048828 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[9-10] - assert 0.0018799304962158203 >= 0.01
-    # FAILED test_concurrent_hget_with_deviation[10-10] - assert 0.0030639171600341797 >= 0.01
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_hkeys():
+    AUDIT_RETURN = []
+    ERROR = []
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        monitor_callback=[
+            partial(_audit_monitor, data_return=AUDIT_RETURN, prefix="HKEYS my_key")
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    expected_value = list(data.keys())
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+
+    pool_num = 10
+    task = [
+        asyncio.create_task(
+            _synchronized_hkeys(client, "my_key", expected_value, error_return=ERROR)
+        )
+        for _ in range(pool_num)
+    ]
+    await asyncio.gather(daemon_task, *task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_RETURN) == 1
+    assert len(ERROR) == 0
 
     await client._redis.close(close_connection_pool=True)
 
@@ -873,6 +1204,95 @@ async def test_noevict_hget():
     for field in FIELD_COUNT:
         assert FIELD_COUNT[field] == 1
     assert len(FIELD_COUNT) == pool_num
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_noevict_hgetall():
+    AUDIT_RETURN = []
+    ERROR = []
+    pool_num = 10
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        cache_noevict_prefix=["my_key_no_evict"],
+        cache_size=5,
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_RETURN,
+                prefix="HGETALL my_key_no_evict",
+            )
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+        await client.hset("my_key_no_evict", field, value)
+
+    task = [
+        asyncio.create_task(
+            _synchronized_hget(
+                client, f"my_key", f"my_field_{i}", f"my_value_{i}", error_return=ERROR
+            )
+        )
+        for i in range(pool_num)
+    ]
+    noevict_task = asyncio.create_task(
+        _synchronized_hgetall(client, "my_key_no_evict", data, error_return=ERROR)
+    )
+    await asyncio.gather(daemon_task, *task, noevict_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_RETURN) == 1
+    assert len(ERROR) == 0
+
+    await client._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_noevict_hkeys():
+    AUDIT_RETURN = []
+    ERROR = []
+    pool_num = 10
+    client, daemon_task, monitor_task = await init(
+        cache_prefix=["my_key", "test"],
+        cache_noevict_prefix=["my_key_no_evict"],
+        cache_size=5,
+        monitor_callback=[
+            partial(
+                _audit_monitor, data_return=AUDIT_RETURN, prefix="HKEYS my_key_no_evict"
+            )
+        ],
+    )
+    data = {f"my_field_{i}": f"my_value_{i}" for i in range(10)}
+    expected_value = list(data.keys())
+    for field, value in data.items():
+        await client.hset("my_key", field, value)
+        await client.hset("my_key_no_evict", field, value)
+
+    task = [
+        asyncio.create_task(
+            _synchronized_hget(
+                client, f"my_key", f"my_field_{i}", f"my_value_{i}", error_return=ERROR
+            )
+        )
+        for i in range(pool_num)
+    ]
+    noevict_task = asyncio.create_task(
+        _synchronized_hkeys(
+            client, "my_key_no_evict", expected_value, error_return=ERROR
+        )
+    )
+    await asyncio.gather(daemon_task, *task, noevict_task)
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_RETURN) == 1
     assert len(ERROR) == 0
 
     await client._redis.close(close_connection_pool=True)
@@ -1214,115 +1634,6 @@ async def test_1000_client_listen_invalidate_concurrent():
 #   After connection is intentionally closed, the next time we restart client tracking on, client may get following error:
 #      Prefix 'my_key' overlaps with an existing prefix 'my_key'. Prefixes for a single client must not overlap.
 #   This is because server lazy remove the client id from prefix tree. So we may need +1 more attempt to get it work.
-@pytest.mark.asyncio
-async def test_synchronized_get_close_connection_single():
-    KILL_INTERVAL = 1
-    CLIENT_TRACKING_AUDIT_RETURN = []
-    GET_AUDIT_RETURN = []
-    ERROR = []
-    client, daemon_task, monitor_task = await init(
-        cache_prefix=["my_key", "test"],
-        monitor_callback=[
-            partial(
-                _audit_monitor,
-                data_return=CLIENT_TRACKING_AUDIT_RETURN,
-                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
-            ),
-            partial(_audit_monitor, data_return=GET_AUDIT_RETURN, prefix="TTL my_key"),
-        ],
-    )
-    await client.set("my_key", "my_value")
-
-    kill_task = asyncio.create_task(
-        kill_listen_invalidate(client, repeat=1, sleep=KILL_INTERVAL)
-    )
-    get_task = asyncio.create_task(
-        _synchronized_get(client, "my_key", "my_value", error_return=ERROR, sleep=0.1)
-    )
-    await asyncio.gather(get_task, kill_task, daemon_task)
-
-    assert monitor_task.done() is False
-    monitor_task.cancel()
-
-    assert len(ERROR) == 0
-    ON_EVENT = [
-        event
-        for event in CLIENT_TRACKING_AUDIT_RETURN
-        if event["command"].startswith("CLIENT TRACKING ON")
-    ]
-    OFF_EVENT = [
-        event
-        for event in CLIENT_TRACKING_AUDIT_RETURN
-        if event["command"].startswith("CLIENT TRACKING OFF")
-    ]
-    logging.info(f"ON_EVENT: {ON_EVENT}")
-    logging.info(f"OFF_EVENT: {OFF_EVENT}")
-    assert len(ON_EVENT) in [2, 3]
-    assert len(OFF_EVENT) in [2, 3]
-    assert len(ON_EVENT) == len(OFF_EVENT)
-    assert ON_EVENT[1]["time"] - ON_EVENT[0]["time"] >= KILL_INTERVAL
-    assert len(GET_AUDIT_RETURN) == 2
-
-    await client._redis.close(close_connection_pool=True)
-
-
-@pytest.mark.asyncio
-async def test_concurrent_get_close_connection_single():
-    KILL_INTERVAL = 1
-    CLIENT_TRACKING_AUDIT_RETURN = []
-    GET_AUDIT_RETURN = []
-    ERROR = []
-    client, daemon_task, monitor_task = await init(
-        cache_prefix=["my_key", "test"],
-        monitor_callback=[
-            partial(
-                _audit_monitor,
-                data_return=CLIENT_TRACKING_AUDIT_RETURN,
-                prefix=CLIENT_TRACKING_AUDIT_PREFIX,
-            ),
-            partial(_audit_monitor, data_return=GET_AUDIT_RETURN, prefix="TTL my_key"),
-        ],
-    )
-    await client.set("my_key", "my_value")
-
-    pool_size = 10
-    kill_task = asyncio.create_task(
-        kill_listen_invalidate(client, repeat=1, sleep=KILL_INTERVAL)
-    )
-    get_task = [
-        asyncio.create_task(
-            _synchronized_get(
-                client, "my_key", "my_value", error_return=ERROR, sleep=0.1
-            )
-        )
-        for _ in range(pool_size)
-    ]
-    await asyncio.gather(*get_task, kill_task, daemon_task)
-
-    assert monitor_task.done() is False
-    monitor_task.cancel()
-
-    assert len(ERROR) == 0
-    ON_EVENT = [
-        event
-        for event in CLIENT_TRACKING_AUDIT_RETURN
-        if event["command"].startswith("CLIENT TRACKING ON")
-    ]
-    OFF_EVENT = [
-        event
-        for event in CLIENT_TRACKING_AUDIT_RETURN
-        if event["command"].startswith("CLIENT TRACKING OFF")
-    ]
-    logging.info(f"ON_EVENT: {ON_EVENT}")
-    logging.info(f"OFF_EVENT: {OFF_EVENT}")
-    assert len(ON_EVENT) in [2, 3]
-    assert len(OFF_EVENT) in [2, 3]
-    assert len(ON_EVENT) == len(OFF_EVENT)
-    assert len(GET_AUDIT_RETURN) == 2
-
-    await client._redis.close(close_connection_pool=True)
-
-
 @pytest.mark.asyncio
 async def test_synchronized_get_close_connection_multi():
     KILL_INTERVAL = 2
