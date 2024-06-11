@@ -61,6 +61,11 @@ ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 # setup node-exporter, prometheus
 ref: https://easycode.page/monitoring-on-raspberry-pi-with-node-exporter-prometheus-and-grafana/#steps-to-deploy-prometheus-on-docker
 
+# run docker compose
+```
+docker compose -f docker-compose.yaml up -d
+```
+
 # run monitoring
 - run node exporter (docker native)
 ```
@@ -145,10 +150,22 @@ coleifer/sqlite-web
 # run dufs
 ```
 docker run -d \
---name dufs \
+--name dufs-drive \
 --restart always \
 -v /media/usbdisk/:/data \
--v /media/usbdisk/codebase/user-key/dufs/dufs.yaml:/etc/dufs/dufs.yaml \
+-v /home/yisheng/log/dufs-drive.log:/var/log/dufs.log \
+-v /media/usbdisk/codebase/user-key/dufs/drive.yaml:/etc/dufs/dufs.yaml \
 -p 5000:5000 \
+sigoden/dufs --config /etc/dufs/dufs.yaml
+```
+
+```
+docker run -d \
+--name dufs-book \
+--restart always \
+-v /media/usbdisk/books:/data \
+-v /home/yisheng/log/dufs-book.log:/var/log/dufs.log \
+-v /media/usbdisk/codebase/user-key/dufs/book.yaml:/etc/dufs/dufs.yaml \
+-p 5001:5001 \
 sigoden/dufs --config /etc/dufs/dufs.yaml
 ```

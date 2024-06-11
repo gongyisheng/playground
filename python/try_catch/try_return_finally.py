@@ -11,6 +11,7 @@ def main(doRaise=False):
         print("finally")
         # return 3 # if uncommented, 3 will be returned
 
+
 if __name__ == "__main__":
     print(main(doRaise=False))
     print(main(doRaise=True))

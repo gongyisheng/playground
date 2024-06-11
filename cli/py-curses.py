@@ -1,5 +1,6 @@
 import curses
 
+
 def main(stdscr):
     # Setup
     curses.curs_set(1)
@@ -22,7 +23,7 @@ def main(stdscr):
         key = stdscr.getch()
 
         # Handle user input
-        if key == ord('a'):
+        if key == ord("a"):
             stdscr.addstr(7 + len(tasks), 0, "Enter task: ")
             stdscr.refresh()
             curses.echo()  # Enable text input
@@ -32,10 +33,11 @@ def main(stdscr):
             if new_task:
                 tasks.append(new_task.decode("utf-8"))
 
-        elif key == ord('q'):
+        elif key == ord("q"):
             break
 
         stdscr.clear()
+
 
 if __name__ == "__main__":
     curses.wrapper(main)

@@ -25,14 +25,15 @@ QPS_DICT = {}
 #         print(f"{now-1} QPS: {QPS_DICT.get(now-1, 0)}")
 #         await asyncio.sleep(1)
 
+
 def binlog_subscribe():
     # server_id is your slave identifier, it should be unique.
     # set blocking to True if you want to block and wait for the next event at
     # the end of the stream
     global QPS_DICT
     stream = BinLogStreamReader(
-        connection_settings=MYSQL_SETTINGS, 
-        server_id=2, 
+        connection_settings=MYSQL_SETTINGS,
+        server_id=2,
         only_events=[DeleteRowsEvent, UpdateRowsEvent, WriteRowsEvent],
         resume_stream=RESUME_STREAM,
         blocking=False,
@@ -71,10 +72,13 @@ def binlog_subscribe():
                     print("Insert Event")
                     message_body = row["values"]
                     QPS_DICT[timestamp]["insert"] += 1
-                print(f"[{log_file}-{log_pos}][{db}.{table}] time={timestamp}, body={message_body}")
-                
+                print(
+                    f"[{log_file}-{log_pos}][{db}.{table}] time={timestamp}, body={message_body}"
+                )
+
     except KeyboardInterrupt:
         stream.close()
+
 
 if __name__ == "__main__":
     binlog_subscribe()

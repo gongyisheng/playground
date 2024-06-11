@@ -1,6 +1,7 @@
 import asyncio
 from lazy_init_pq import PageQueue
 
+
 class AttachmentClient(object):
     def __init__(self):
         self._sift_attachment_queue = None

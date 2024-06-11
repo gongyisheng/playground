@@ -35,6 +35,7 @@ reboot
 
 # external disk mount
 `sudo fdisk -l` see drivers number  
+`sudo blkid` get UUID of a device
 `sudo mount /dev/sda# /media/usbdisk` mount disk  
 add following line to `/etc/fstab` to mount disk after boot  
 `UUID=XXXXXXX /media/usbdisk auto nosuid,nodev,nofail 0 0`

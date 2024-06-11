@@ -3,17 +3,21 @@ from pympler import summary
 from pympler import refbrowser
 from recursive_getsizeof import total_size
 
+
 class TestClass(object):
     def __init__(self):
-        self.a = [1,2,3]*1000
-        self.b = [4,5,6]*1000
-        self.description = "This is a test class"*1000
+        self.a = [1, 2, 3] * 1000
+        self.b = [4, 5, 6] * 1000
+        self.description = "This is a test class" * 1000
+
     def func(self):
         self.c = self.a + self.b
         return self.c
 
+
 def output_function(obj):
     return str(type(obj))
+
 
 def main():
     all_objects = muppy.get_objects()
@@ -22,7 +26,7 @@ def main():
 
     obj = TestClass()
     _test = obj.func()
-    
+
     all_objects = muppy.get_objects()
     obj_num2 = len(all_objects)
     sum2 = summary.summarize(all_objects)
@@ -36,7 +40,7 @@ def main():
     print("-----Test class objects memory usage-----")
     for o in my_types:
         print(o, total_size(o))
-    
+
     # see the object tree
     print("-----Object tree-----")
     root_ref = obj
@@ -46,10 +50,11 @@ def main():
     # get first level referents and their sizes
     print("-----First level referents-----")
     refs = muppy.get_referents(root_ref, level=1)[0]
-    for k,v in refs.items():
-        print(k, total_size(v)/8)
+    for k, v in refs.items():
+        print(k, total_size(v) / 8)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
 
 

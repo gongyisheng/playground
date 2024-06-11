@@ -5,15 +5,16 @@ import asyncio
 # Most magic methods aren't designed to work with async def/await
 # https://docs.python.org/3/reference/datamodel.html#special-method-names
 
-# correct example 
+
+# correct example
 # FooCorrect.__init__ -> FooCorrect.__await__ -> FooCorrect.init -> FooCorrect.init: Bar
 class FooCorrect(object):
     def __init__(self, name="Bar"):
         print("FooCorrect.__init__")
         self.name = name
-    
+
     def __await__(self):
-        # override FooCorrect.__await__ func, will return a Generator 
+        # override FooCorrect.__await__ func, will return a Generator
         # ref: https://docs.python.org/3/reference/datamodel.html#awaitable-objects
         print("FooCorrect.__await__")
         return self.init().__await__()
@@ -31,11 +32,12 @@ class FooWrong(object):
         print("FooWrong.__init__")
         self.name = name
         await self.init()
-    
+
     async def init(self):
         print("FooWrong.init")
         await asyncio.sleep(1)
         print(f"FooWrong.init: {self.name}")
+
 
 async def testcorrect():
     print("------ test foo = FooCorrect() -------")
@@ -43,18 +45,20 @@ async def testcorrect():
     print("------ test foo = await FooCorrect() -------")
     foo = await FooCorrect()
 
+
 async def testwrong():
     print("------ test foo = FooWrong() -------")
     try:
         foo = FooWrong()
     except Exception as e:
         print(f"error: {e}")
-    
+
     print("------ test foo = await FooWrong() -------")
     try:
         foo = await FooWrong()
     except Exception as e:
         print(f"error: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(testcorrect())

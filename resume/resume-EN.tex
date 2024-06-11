@@ -1,0 +1,176 @@
+%-------------------------
+% Resume in Latex
+% Author : Jake Gutierrez
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+
+%----------FONT OPTIONS----------
+% sans-serif
+% \usepackage[sfdefault]{FiraSans}
+% \usepackage[sfdefault]{roboto}
+% \usepackage[sfdefault]{noto-sans}
+% \usepackage[default]{sourcesanspro}
+
+% serif
+% \usepackage{CormorantGaramond}
+% \usepackage{charter}
+
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generate pdf is machine readable/ATS parsable
+\pdfgentounicode=1
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+%----------HEADING----------
+% \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+%   \textbf{\href{http://sourabhbajaj.com/}{\Large Sourabh Bajaj}} & Email : \href{mailto:sourabh@sourabhbajaj.com}{sourabh@sourabhbajaj.com}\\
+%   \href{http://sourabhbajaj.com/}{http://www.sourabhbajaj.com} & Mobile : +1-123-456-7890 \\
+% \end{tabular*}
+
+\begin{center}
+    \textbf{\Huge \scshape Yisheng Gong} \\ \vspace{1pt}
+    \small +1 314-904-6457(US) $|$ \href{mailto:x@x.com}{{yishenggong9437@gmail.com}} $|$ \href{https://www.linkedin.com/in/yisheng-gong1997}{{linkedin}} $|$
+    \href{https://www.github.com/gongyisheng}{{github}} $|$ \href{https://yishenggong.com}{{website}}
+\end{center}
+
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Washington University in St.Louis}{St.Louis, MO}
+      {Master of Science in Business Analytics}{Jan 2021 -- May 2022}
+    \resumeSubheading
+      {Fudan University}{Shanghai, China}
+      {Bachelor of Science in Chemistry }{Sept 2015 -- June 2019}
+  \resumeSubHeadingListEnd
+
+  %
+%-----------PROGRAMMING SKILLS-----------
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Languages}{: Python, Golang, Java, SQL, C/C++, Javascript} \\
+     \textbf{Software}{: Databricks, Spark, Git, Nginx, Kubernetes, Docker, Grafana, Prometheus} \\
+     \textbf{Database}{: MySql, PostgreSQL, Redis, MongoDB, ElasticSearch} \\
+     \textbf{Linux tools}{: Ubuntu 22, tcpdump/wireshark, netstat, perf, trace}\\
+     \textbf{Cloud}{: AWS EC2/S3/RDS/Elasticcache/Lambda} \\
+     \textbf{Interests}{: performance improvement, network, database}
+    }}
+ \end{itemize}
+
+
+%-----------EXPERIENCE-----------
+\section{Professional Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Software Engineer}{June 2022 -- }
+      {Yipitdata, Edison Platform Team}{Mountain View, CA, US}
+      \resumeItemListStart
+      \resumeItem{Maintained a mulit-million ETL data pipeline. Migrated pipeline from AWS EMR to Databricks. Optimized the weekly refresh pipeline's performance and achieve 60\% reduce in run time and 40\% cost cut. Set up automatic data quality check on pipeline delivery to find out issues in time.}
+        \resumeItem{Maintained Edison Mail's email extraction service. Improved service's performance by 55\% and achieved 70\% cost cut through profiling, caching time-consuming function's result and reducing duplicated function calls. Helped the team make faster respond to client's requests.}
+        \resumeItem{Designed and implemented Redis client side cache with python asyncio and redis client tracking. Reduced I/O requests by 90\% in Edison mail's extraction service and and achieved real-time updates}
+        \resumeItem{Designed and implemented a generalized streaming sync system using MySQL binlog and redis stream. Refactor the system to be event-driven. Achieved real-time data sync for online search service and legal demand.}
+      \resumeItemListEnd
+    \resumeSubheading
+      {Software Engineer, Part Time}{Jan 2022 -- May 2022}
+      {Massachusetts Institute of Technology, ChemE, CRIPT Team}{Remote, US}
+      \resumeItemListStart
+        \resumeItem{Designed and Developed an open-source, semi-automated data ingestion tool based on excel spreadsheet and CRIPT sdk for chemists to upload experiment data to CRIPT database using python. Designed the tool with a compiler-like structure. Assisted early users to upload about 100 thousand data points to database.}
+        \resumeItem{Created unit tests for the data ingestion tool, fixed 20+ bugs based on self testing and user feedback.}
+      \resumeItemListEnd
+    \resumeSubheading
+      {Data Engineer Intern}{Jan 2021 -- May 2021}
+      {Bytedance(TikTok), Group of Douyin E-commerce, Commercialization Division}{Beijing, China}
+      \resumeItemListStart
+        \resumeItem{Developed ETL pipeline with 30+ dependencies to process collected raw data and store in Hbase using HiveSQL. Developed 4 DM tables with different aggregation degrees to satisfy needs. Separated DW data from business logic. Supported the data needs of 200+ colleagues from data science team and operation team.}
+        \resumeItem{Collaborated with team members to implement a regression model to evaluate GMV increment of sales promotion tools using SQL and python. Visualized results with matplotlib. Deployed the model to perform daily update.}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+%-------------------------------------------
+\end{document}
+

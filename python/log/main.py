@@ -2,10 +2,12 @@ import logging
 from logger import setup_logger
 from utils import print_something
 
+
 def main():
     setup_logger()
     print_something()
     logging.info("Hello World")
+
 
 if __name__ == "__main__":
     main()

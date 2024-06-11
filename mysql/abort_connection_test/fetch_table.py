@@ -36,7 +36,7 @@ async def main():
     sql = "SELECT * FROM fetchtable_test where id > 0"
     async for row in fetch_table(sql):
         print(row)
-        if row['id'] == 1:
+        if row["id"] == 1:
             await asyncio.sleep(120)
 
 

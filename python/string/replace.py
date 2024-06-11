@@ -2,15 +2,18 @@ import time
 
 s = "abcaskjhknjaccoiekasldkasn,calsjdjnjkcejncalksjdefhkjahcbamsfjkajlwonascbjahjsdljkasfkl;k;l\ndsakjdgkbdjkhkakhhcalslklkajklsd\tdlksajnclkajlksdjkl"
 
+
 def str_replace1(s):
-    s = s.replace('\n', ' ')
-    s = s.replace('\t', ' ')
-    s = s.replace(',', ' ')
+    s = s.replace("\n", " ")
+    s = s.replace("\t", " ")
+    s = s.replace(",", " ")
     return s
 
+
 def str_replace2(s):
-    s = s.replace('\n', ' ').replace('\t', ' ').replace(',', ' ')
+    s = s.replace("\n", " ").replace("\t", " ").replace(",", " ")
     return s
+
 
 def main(round):
     start = time.time()
@@ -26,6 +29,7 @@ def main(round):
         _s = str_replace2(_s)
     end = time.time()
     print("str_replace2: ", end - start)
+
 
 if __name__ == "__main__":
     main(1000000)

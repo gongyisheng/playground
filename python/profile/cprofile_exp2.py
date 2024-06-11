@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import contextmanager
 
+
 @contextmanager
 def profile_and_print():
     import cProfile, pstats
@@ -15,6 +16,7 @@ def profile_and_print():
 
     pstats.Stats(profiler).sort_stats(pstats.SortKey.CUMULATIVE).print_stats(100)
 
+
 def fib(n):
     if n == 0:
         return 0
@@ -23,6 +25,7 @@ def fib(n):
     else:
         return fib(n - 1) + fib(n - 2)
 
+
 def fib_seq(n):
     seq = []
     if n > 0:
@@ -30,11 +33,13 @@ def fib_seq(n):
     seq.append(fib(n))
     return seq
 
+
 @profile_and_print()
 async def combined(n):
     for i in range(n):
         fib_seq(10)
         await asyncio.sleep(1)
+
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

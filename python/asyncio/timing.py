@@ -8,11 +8,12 @@ import asyncio
 import selectors
 import contextlib
 
+
 class TimedSelector(selectors.DefaultSelector):
-    select_time = 0.
+    select_time = 0.0
 
     def reset_select_time(self):
-        self.select_time = 0.
+        self.select_time = 0.0
 
     def select(self, timeout=None):
         if timeout <= 0:
@@ -29,6 +30,7 @@ class TimedEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
         selector = TimedSelector()
         return asyncio.DefaultEventLoopPolicy._loop_factory(selector)
 
+
 # Method 1: Using a context manager
 @contextlib.contextmanager
 def print_timing():
@@ -39,11 +41,12 @@ def print_timing():
     real_time = time.perf_counter() - real_time
     cpu_time = time.process_time() - process_time
     select_time = asyncio.get_event_loop()._selector.select_time
-    other_io_time = max(0., real_time - cpu_time - select_time)
+    other_io_time = max(0.0, real_time - cpu_time - select_time)
     print(f"CPU time:      {cpu_time:.3f} s")
     print(f"Select time:   {select_time:.3f} s")
     print(f"Other IO time: {other_io_time:.3f} s")
     print(f"Real time:     {real_time:.3f} s")
+
 
 # Method 2: Using a decorator
 def log_timing(func):
@@ -57,7 +60,7 @@ def log_timing(func):
         real_time = time.perf_counter() - real_time
         cpu_time = time.process_time() - process_time
         select_time = asyncio.get_event_loop()._selector.select_time
-        other_io_time = max(0., real_time - cpu_time - select_time)
+        other_io_time = max(0.0, real_time - cpu_time - select_time)
         print(f"CPU time:      {cpu_time:.3f} s")
         print(f"Select time:   {select_time:.3f} s")
         print(f"Other IO time: {other_io_time:.3f} s")
@@ -66,13 +69,16 @@ def log_timing(func):
 
     return wrapper
 
+
 @log_timing
 async def doSomething():
     time.sleep(0.2)
     await asyncio.sleep(0.8)
     return sum(range(10**6))
 
+
 # Testing
+
 
 async def main():
     print("~ Correct IO management ~")

@@ -16,6 +16,7 @@ BIG_MSG = "a" * 1024 * 600
 MAX_PRODUCE_NUMBER = 10000
 CURR_PRODUCE_NUMBER = 0
 
+
 def new_redis(host):
     cpool = aioredis.BlockingConnectionPool(
         host=host,
@@ -27,6 +28,7 @@ def new_redis(host):
     redis_client = aioredis.Redis(connection_pool=cpool)
     return redis_client
 
+
 async def single_produce(host):
     global CURR_PRODUCE_NUMBER, MAX_PRODUCE_NUMBER
     node = new_redis(host)
@@ -37,13 +39,16 @@ async def single_produce(host):
             message = BIG_MSG
         await node.lpush(TOPIC, message)
         CURR_PRODUCE_NUMBER += 1
-    
+
+
 async def main(host):
     task = [asyncio.create_task(single_produce(host))]
     await asyncio.gather(*task)
 
+
 if __name__ == "__main__":
     import sys
+
     host = sys.argv[1] if len(sys.argv) > 1 else "localhost"
 
     asyncio.run(main(host))
