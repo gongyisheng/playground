@@ -26,3 +26,15 @@ def addTwoNumbers(l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[Li
         p1 = p1.next if p1 else None
         p2 = p2.next if p2 else None
     return dummyHead.next
+
+
+# LC 206
+def reverseList(head: Optional[ListNode]) -> Optional[ListNode]:
+    prev = None
+    curr = head
+    while curr:
+        temp = curr.next
+        curr.next = prev
+        prev = curr
+        curr = temp
+    return prev
