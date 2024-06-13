@@ -975,9 +975,9 @@ async def test_trim_succ():
 
 
 @pytest.mark.asyncio
-async def test_range_replay_succ():
+async def test_range_replay_succ1():
     """
-    Success case for range replay: replay message that is in the specified range
+    Success case for range replay: replay message that is in the specified range, left_closed=True
     """
     AUDIT_DATA_RETURN = []
     redis_stream, monitor_task = await init(
@@ -1012,7 +1012,9 @@ async def test_range_replay_succ():
     end_time = int(time.time())
 
     replay_messages = await redis_stream.range_replay(
-        start_time=start_time, end_time=end_time, count=put_message_count
+        start_id=f"{start_time*1000}-0",
+        end_id=f"{end_time*1000}-0",
+        count=put_message_count,
     )
     assert len(replay_messages) == put_message_count
     for i in range(len(replay_messages)):
@@ -1022,6 +1024,70 @@ async def test_range_replay_succ():
     monitor_task.cancel()
 
     assert len(AUDIT_DATA_RETURN) == 1
+
+    await redis_stream._redis.close(close_connection_pool=True)
+
+
+@pytest.mark.asyncio
+async def test_range_replay_succ2():
+    """
+    Success case for range replay: replay message that is in the specified range, left_closed=False
+    """
+    AUDIT_DATA_RETURN = []
+    redis_stream, monitor_task = await init(
+        monitor_callback=[
+            partial(
+                _audit_monitor,
+                data_return=AUDIT_DATA_RETURN,
+                prefix=["XRANGE"],
+            ),
+        ],
+    )
+    put_message_count = 10
+    get_message_count = random.randint(1, put_message_count)
+    put_messages = gen_test_messages(count=put_message_count)
+    succ = await redis_stream.batch_put(values=put_messages)
+    assert succ is True
+
+    start_time = int(time.time())
+
+    get_messages = await redis_stream.batch_get(
+        count=get_message_count, block=GET_BLOCK_TIME
+    )
+    assert len(get_messages) == get_message_count
+    for i in range(len(get_messages)):
+        assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    successful_ids = [item[RedisStream.MESSAGE_ID_KEY] for item in get_messages]
+    succ = await redis_stream.batch_ack(successful_ids)
+    assert succ is True
+
+    await asyncio.sleep(1)
+    end_time = int(time.time())
+
+    start_id = (
+        await redis_stream.range_replay(
+            start_id=f"{start_time*1000}-0",
+            end_id=f"{end_time*1000}-0",
+            count=1,
+            left_closed=True,
+        )
+    )[0][RedisStream.MESSAGE_ID_KEY]
+
+    replay_messages = await redis_stream.range_replay(
+        start_id=start_id,
+        end_id=f"{end_time*1000}-0",
+        count=put_message_count,
+        left_closed=False,
+    )
+    assert len(replay_messages) == put_message_count - 1
+    for i in range(len(replay_messages)):
+        assert put_messages[i + 1] == replay_messages[i][RedisStream.MESSAGE_DATA_KEY]
+
+    assert monitor_task.done() is False
+    monitor_task.cancel()
+
+    assert len(AUDIT_DATA_RETURN) == 2
 
     await redis_stream._redis.close(close_connection_pool=True)
 

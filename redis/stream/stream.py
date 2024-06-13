@@ -348,24 +348,25 @@ class RedisStream:
         return delete_count, stream_length
 
     async def range_replay(
-        self, start_time: int, end_time: int, count: int = 10
+        self, start_id: str, end_id: str, count: int = 10, left_closed: bool = True
     ) -> List[dict]:
         """
         Replay messages in a time range from start_time to end_time
         :param start_id: start id
         :param end_id: end id
         :param count: number of messages to process each time
+        :param left_closed: whether to include messages with id = start_id or not
         """
+        if not left_closed:
+            start_id = f"({start_id}"
         _buffer = []
-        start_id = f"{start_time*1000}-0"
-        end_id = f"{end_time*1000}-0"
         resp = await self._redis.xrange(
             self._stream_name, start_id, end_id, count=count
         )
 
         if len(resp) == 0:
             logging.info(
-                f"Batch replay - No data to replay from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}]"
+                f"Batch replay - No data to replay from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}], left_closed=[{left_closed}]"
             )
             return _buffer
 
@@ -377,7 +378,7 @@ class RedisStream:
         max_id = _buffer[-1][self.MESSAGE_ID_KEY]
         message_ids = [item[self.MESSAGE_ID_KEY] for item in _buffer]
         logging.info(
-            f"Batch replay - Replay messages from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}], max_id=[{max_id}], message_ids={message_ids}"
+            f"Batch replay - Replay messages from stream=[{self._stream_name}], start_id=[{start_id}], end_id=[{end_id}], count=[{count}], left_closed=[{left_closed}, max_id=[{max_id}], message_ids={message_ids}"
         )
         return _buffer
 
@@ -486,14 +487,22 @@ class RedisStream:
             return
 
         await self.init()
+        start_id = f"{start_time*1000}-0"
+        end_id = f"{end_time*1000}-0"
+        left_closed = True
+
         while signal_state.ALIVE:
             try:
                 # replay messages from stream
-                _buffer = await self.range_replay(start_time, end_time, count=count)
+                _buffer = await self.range_replay(
+                    start_id, end_id, count=count, left_closed=left_closed
+                )
                 if len(_buffer) == 0:
                     break
 
                 await self.batch_process(_buffer)
+                start_id = _buffer[-1][self.MESSAGE_ID_KEY]
+                left_closed = False
             except Exception as ex:
                 logging.error("Run range replay - Get error[%s]", ex, exc_info=True)
                 await asyncio.sleep(1)
