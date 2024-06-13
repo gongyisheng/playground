@@ -1,15 +1,20 @@
+#include <stdio.h>
+#include <unistd.h>
 
-int main(){
-    int pid = fork();
-    if(pid > 0){
-        printf("parent: child=%d\n", pid);
-        pid = wait();
-        printf("child %d is done\n", pid);
-    } else if(pid == 0){
-        printf("child: exiting\n");
-        exit();
+int main() {
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        // Fork failed
+        printf("fork failed");
+        return 1;
+    } else if (pid == 0) {
+        // Child process
+        printf("This is the child process. PID: %d\n", getpid());
     } else {
-        printf("fork error\n");
+        // Parent process
+        printf("This is the parent process. PID: %d, Child PID: %d\n", getpid(), pid);
     }
+
     return 0;
 }
