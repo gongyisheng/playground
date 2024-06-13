@@ -1129,7 +1129,7 @@ async def test_range_replay_empty_result():
     start_time = 0
     end_time = int(time.time()) - 3600
     replay_messages = await redis_stream.range_replay(
-        start_time=start_time, end_time=end_time, count=put_message_count
+        start_id=f"{start_time*1000}-0", end_id=f"{end_time*1000}-0", count=put_message_count
     )
     assert len(replay_messages) == 0
 
