@@ -3,6 +3,11 @@
 #include <fcntl.h> // for open()
 #include <stdlib.h> // for waitpid(), exit()
 
+// This is an example of how to fork a file descriptor and write
+// to the file descriptor
+// Two file descriptors share an offset if they were derived 
+// from the same original file descriptor by a sequence of fork 
+// and dup calls
 int main() {
     pid_t pid = fork();
     if(pid == 0) {
