@@ -662,7 +662,7 @@ async def test_batch_ack_with_delete():
 
     # Trim the stream
     await asyncio.sleep(1)
-    delete_count, stream_length = await redis_stream.trim(0, approximate=False)
+    delete_count, stream_length = await redis_stream.trim(0, approximate=False, force_delete=True)
     assert delete_count == get_message_count
     assert stream_length == 0
 
@@ -905,7 +905,7 @@ async def test_batch_claim_with_delete():
         assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
 
     # Trim the stream
-    delete_count, stream_length = await redis_stream.trim(0, approximate=False)
+    delete_count, stream_length = await redis_stream.trim(0, approximate=False, force_delete=True)
     assert delete_count == put_message_count
     assert stream_length == 0
 
@@ -952,17 +952,17 @@ async def test_trim_succ():
     succ = await redis_stream.batch_put(values=put_messages)
     assert succ is True
 
-    delete_count, stream_length = await redis_stream.trim(3600)
+    delete_count, stream_length = await redis_stream.trim(3600, force_delete=True)
     assert delete_count == 0
     assert stream_length == put_message_count * 2
 
     delete_count, stream_length = await redis_stream.trim(
-        int(time.time()) - checkpoint_time, approximate=False
+        int(time.time()) - checkpoint_time, approximate=False, force_delete=True
     )
     assert delete_count == put_message_count
     assert stream_length == put_message_count
 
-    delete_count, stream_length = await redis_stream.trim(0, approximate=False)
+    delete_count, stream_length = await redis_stream.trim(0, approximate=False, force_delete=True)
     assert delete_count == put_message_count
     assert stream_length == 0
 

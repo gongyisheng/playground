@@ -331,13 +331,26 @@ class RedisStream:
 
         return length, min_time
 
-    async def trim(self, ttl: int, approximate: bool = True) -> Tuple[int, int]:
+    async def trim(self, ttl: int, approximate: bool = True, force_delete: bool = False) -> Tuple[int, int]:
         """
         Trim stream based on TTL (time-to-live)
         :param ttl: time-to-live in seconds
+        :approximate: whether to use approximate trim or not
+        :force_delete: whether to force delete all messages or not (may delete not delivered messages)
         :return: number of messages deleted
         """
         minid = f"{int((time.time() - ttl)*1000)}-0"
+        if not force_delete:
+            # make sure minid is less than all last-delivered-id
+            min_delivered_id = None
+            resp = await self._redis.xinfo_groups(self._stream_name, self._group_name)
+            for group in resp:
+                last_delivered_id = ensure_str(group["last-delivered-id"])
+                if min_delivered_id is None or last_delivered_id < min_delivered_id:
+                    min_delivered_id = last_delivered_id
+            if min_delivered_id is not None and min_delivered_id < minid:
+                minid = min_delivered_id
+        # trim stream
         pipe = self._redis.pipeline()
         pipe.xtrim(self._stream_name, minid=minid, approximate=approximate)
         pipe.xlen(self._stream_name)
