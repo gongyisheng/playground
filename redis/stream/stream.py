@@ -526,6 +526,7 @@ class RedisStream:
             return
 
         await self.init()
+        message_ids = sorted(list(set(message_ids)))
         cutoff = 0
         while signal_state.ALIVE:
             try:
