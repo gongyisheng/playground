@@ -331,7 +331,9 @@ class RedisStream:
 
         return length, min_time
 
-    async def trim(self, ttl: int, approximate: bool = True, force_delete: bool = False) -> Tuple[int, int]:
+    async def trim(
+        self, ttl: int, approximate: bool = True, force_delete: bool = False
+    ) -> Tuple[int, int]:
         """
         Trim stream based on TTL (time-to-live)
         :param ttl: time-to-live in seconds
@@ -343,7 +345,7 @@ class RedisStream:
         if not force_delete:
             # make sure minid is less than all last-delivered-id
             min_delivered_id = None
-            resp = await self._redis.xinfo_groups(self._stream_name, self._group_name)
+            resp = await self._redis.xinfo_groups(self._stream_name)
             for group in resp:
                 last_delivered_id = ensure_str(group["last-delivered-id"])
                 if min_delivered_id is None or last_delivered_id < min_delivered_id:

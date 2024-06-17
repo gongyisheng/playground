@@ -662,7 +662,9 @@ async def test_batch_ack_with_delete():
 
     # Trim the stream
     await asyncio.sleep(1)
-    delete_count, stream_length = await redis_stream.trim(0, approximate=False, force_delete=True)
+    delete_count, stream_length = await redis_stream.trim(
+        0, approximate=False, force_delete=True
+    )
     assert delete_count == get_message_count
     assert stream_length == 0
 
@@ -905,7 +907,9 @@ async def test_batch_claim_with_delete():
         assert put_messages[i] == get_messages[i][RedisStream.MESSAGE_DATA_KEY]
 
     # Trim the stream
-    delete_count, stream_length = await redis_stream.trim(0, approximate=False, force_delete=True)
+    delete_count, stream_length = await redis_stream.trim(
+        0, approximate=False, force_delete=True
+    )
     assert delete_count == put_message_count
     assert stream_length == 0
 
@@ -957,19 +961,27 @@ async def test_trim_succ():
     assert stream_length == put_message_count * 2
 
     delete_count, stream_length = await redis_stream.trim(
+        int(time.time()) - checkpoint_time, approximate=False, force_delete=False
+    )
+    assert delete_count == 0
+    assert stream_length == put_message_count * 2
+
+    delete_count, stream_length = await redis_stream.trim(
         int(time.time()) - checkpoint_time, approximate=False, force_delete=True
     )
     assert delete_count == put_message_count
     assert stream_length == put_message_count
 
-    delete_count, stream_length = await redis_stream.trim(0, approximate=False, force_delete=True)
+    delete_count, stream_length = await redis_stream.trim(
+        0, approximate=False, force_delete=True
+    )
     assert delete_count == put_message_count
     assert stream_length == 0
 
     assert monitor_task.done() is False
     monitor_task.cancel()
 
-    assert len(AUDIT_DATA_RETURN) == 3
+    assert len(AUDIT_DATA_RETURN) == 4
 
     await redis_stream._redis.close(close_connection_pool=True)
 
@@ -1129,7 +1141,9 @@ async def test_range_replay_empty_result():
     start_time = 0
     end_time = int(time.time()) - 3600
     replay_messages = await redis_stream.range_replay(
-        start_id=f"{start_time*1000}-0", end_id=f"{end_time*1000}-0", count=put_message_count
+        start_id=f"{start_time*1000}-0",
+        end_id=f"{end_time*1000}-0",
+        count=put_message_count,
     )
     assert len(replay_messages) == 0
 
