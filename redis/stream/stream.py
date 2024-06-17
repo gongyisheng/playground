@@ -320,6 +320,10 @@ class RedisStream:
         min_id = ensure_str(resp["min"])
         max_id = ensure_str(resp["max"])
 
+        if max_id is None or min_id is None:
+            logging.info("Monitor xpel - redis stream does not exist.")
+            return 0, -1
+
         min_time = -1
         try:
             min_time = int(min_id.split("-")[0]) // 1000
