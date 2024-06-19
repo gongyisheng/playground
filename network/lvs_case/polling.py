@@ -10,7 +10,7 @@ async def main():
     count = 0
     while True:
         print(f'start set key round {count}')
-        tasks = [asyncio.create_task(set_key(redis, f'key_{i}', f'value_{i}')) for i in range(500)]
+        tasks = [asyncio.create_task(set_key(redis, f'key_{i}', f'value_{i}')) for i in range(100)]
         await asyncio.gather(*tasks)
         print(f'done set key round {count}')
         count += 1
