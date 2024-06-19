@@ -38,6 +38,4 @@ TCP  127.0.0.1:8080 rr
 ```
 
 ## run script
-```
-
-```
+`tc qdisc add dev lo root netem delay 200ms`
