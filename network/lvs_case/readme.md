@@ -20,10 +20,6 @@ redis:7.2 --port 6380
 `sudo ipvsadm -a -t 127.0.0.1:8080 -r 127.0.0.1:6379 -m`
 `sudo ipvsadm -a -t 127.0.0.1:8080 -r 127.0.0.1:6380 -m`
 
-`sudo ipvsadm -A -t raspberrypi-1.local:8080 -s rr`
-`sudo ipvsadm -a -t raspberrypi-1.local:8080 -r raspberrypi-1.local:6379 -m`
-`sudo ipvsadm -a -t raspberrypi-1.local:8080 -r raspberrypi-1.local:6380 -m`
-
 ## check lvs status
 `sudo ipvsadm -L -n`
 
