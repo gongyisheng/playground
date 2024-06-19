@@ -9,6 +9,7 @@ async def main():
     redis = aioredis.Redis(connection_pool=connection_pool)
     count = 0
     while True:
+        print(f'start set key round {count}')
         tasks = [asyncio.create_task(set_key(redis, f'key_{i}', f'value_{i}')) for i in range(2<<10)]
         await asyncio.gather(*tasks)
         print(f'done set key round {count}')
