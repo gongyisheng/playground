@@ -3,7 +3,6 @@ from redis import asyncio as aioredis
 
 async def set_key(redis:aioredis.Redis, key, value):
     await redis.set(key, value)
-    print(f'set key {key}')
 
 async def main():
     connection_pool = aioredis.BlockingConnectionPool(host="127.0.0.1", port=8080, max_connections=200)
