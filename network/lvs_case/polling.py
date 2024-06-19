@@ -19,7 +19,7 @@ async def main():
         await asyncio.gather(*tasks)
         print(f'done set key round {count}')
         count += 1
-        await asyncio.sleep(3)
+        await asyncio.sleep(3.5)
 
 if __name__ == '__main__':
     asyncio.run(main())
