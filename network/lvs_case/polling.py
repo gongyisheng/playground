@@ -11,6 +11,7 @@ async def main():
     semaphore = asyncio.Semaphore(50)
     tasks = [asyncio.create_task(set_key(redis, semaphore, f'key_{i}', f'value_{i}')) for i in range(2<<20)]
     await asyncio.gather(*tasks)
+    print('done set key')
     await asyncio.sleep(600)
 
 if __name__ == '__main__':
