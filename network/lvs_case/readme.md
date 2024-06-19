@@ -27,7 +27,7 @@ TCP  127.0.0.1:8080 rr
 ```
 
 ## run script
-`sudo tc qdisc add dev wlp4s0 root netem delay 1000ms`
+`sudo tc qdisc add dev wlp4s0 root netem delay 2000ms`
 
 ## clean up
 `sudo ipvsadm -D -t 127.0.0.1:8080`
