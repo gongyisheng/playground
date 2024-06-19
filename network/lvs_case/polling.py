@@ -6,7 +6,7 @@ async def set_key(redis:aioredis.Redis, key, value):
     print(f'set key {key} with value {value}')
 
 async def main():
-    connection_pool = aioredis.BlockingConnectionPool(host="127.0.0.1", port=8080, max_connections=200)
+    connection_pool = aioredis.BlockingConnectionPool(host="1.2.3.4", max_connections=200)
     redis = aioredis.Redis(connection_pool=connection_pool)
     count = 0
     while True:
