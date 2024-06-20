@@ -1,7 +1,9 @@
 import asyncio
 from redis import asyncio as aioredis
+import random
 
 async def set_key(redis:aioredis.Redis, key, value):
+    await asyncio.sleep(random.random())
     while True:
         try:
             await redis.set(key, value)
