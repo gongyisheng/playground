@@ -25,7 +25,7 @@ yisheng@raspberrypi-1:~$ sudo ipvsadm -L -n
 IP Virtual Server version 1.2.1 (size=4096)
 Prot LocalAddress:Port Scheduler Flags
   -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
-TCP  1.2.3.4:8080 rr
+TCP  1.2.3.4:6379 rr
   -> 10.0.0.197:6379               Masq    1      0          0
   -> 10.0.0.142:6379               Masq    1      0          0
 ```
