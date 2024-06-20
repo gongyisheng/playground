@@ -28,6 +28,7 @@ TCP  1.2.3.4:8080 rr
 Here I use 10.0.0.197 as the instance to delay.
 
 ## set redis timeout
+Please set it on both redis servers.  
 `redis-cli config set timeout 5` ---> set redis timeout to 5s (idle connection will be closed after 5s)
 
 ## run python script
