@@ -46,7 +46,14 @@ The script uses a connection pool with size=200.
 It run polling on the redis server every 3s, with concurrency either = 195 or 200
 
 ## result
-Traffic becomes unbalanced. More traffic goes to the redis server with delay.
+Traffic becomes unbalanced. More traffic goes to the redis server with delay.  
+
+green=slow instance, red=fast instance   
+
+connected clients:  
+![image](./results/connected_clients.png)  
+qps:  
+![image](./results/qps.png)
 
 ## clean up
 `sudo ipvsadm -D -t 1.2.3.4:6379`  
