@@ -1,4 +1,11 @@
 # LVS case
+## setup grafana
+ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/   
+
+## setup prometheus
+ref: https://easycode.page/monitoring-on-raspberry-pi-with-node-exporter-prometheus-and-grafana/#steps-to-deploy-prometheus-on-docker  
+And configure prometheus to listen on redis-exporter  
+
 ## run redis in docker
 `sudo docker compose -f redis-docker-compose.yaml up -d`
 
