@@ -15,7 +15,7 @@ async def main():
     count = 0
     while True:
         for i in range(10):
-            concurrency = i*20
+            concurrency = 200-i*20
             print(f'start set key round {count}, concurrency {concurrency}')
             tasks = [asyncio.create_task(set_key(redis, f'key_{i}', f'value_{i}')) for i in range(concurrency)]
             await asyncio.gather(*tasks)
