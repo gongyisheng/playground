@@ -17,9 +17,9 @@ yisheng@raspberrypi-1:~$ sudo ipvsadm -L -n
 IP Virtual Server version 1.2.1 (size=4096)
 Prot LocalAddress:Port Scheduler Flags
   -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
-TCP  127.0.0.1:8080 rr
-  -> 127.0.0.1:6379               Masq    1      0          0
-  -> 127.0.0.1:6380               Masq    1      0          0
+TCP  1.2.3.4:8080 rr
+  -> 10.0.0.197:6379               Masq    1      0          0
+  -> 10.0.0.142:6379               Masq    1      0          0
 ```
 
 ## delay network
@@ -36,6 +36,9 @@ Here I use 10.0.0.197 as the instance to delay.
 The script uses a connection pool with size=200.
 It run polling on the redis server every 3s, with concurrency either = 195 or 200
 
+## result
+Traffic becomes unbalanced. More traffic goes to the redis server with delay.
+
 ## clean up
-`sudo ipvsadm -D -t 127.0.0.1:8080`  
+`sudo ipvsadm -D -t 1.2.3.4:6379`  
 `sudo tc qdisc del dev wlp4s0 root`  
