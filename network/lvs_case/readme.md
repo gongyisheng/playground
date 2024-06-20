@@ -4,10 +4,11 @@ ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 
 ## setup prometheus
 ref: https://easycode.page/monitoring-on-raspberry-pi-with-node-exporter-prometheus-and-grafana/#steps-to-deploy-prometheus-on-docker  
-And configure prometheus to listen on redis-exporter  
+And configure prometheus to listen on redis-exporter (port=9121)  
 
 ## run redis in docker
-`sudo docker compose -f redis-docker-compose.yaml up -d`
+redis-docker-compose.yaml is provided.  
+`sudo docker compose -f redis-docker-compose.yaml up -d`  
 
 ## set up lvs
 `sudo apt-get install ipvsadm`  
