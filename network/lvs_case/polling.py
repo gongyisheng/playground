@@ -15,7 +15,7 @@ async def main():
     redis = aioredis.Redis(connection_pool=connection_pool)
     count = 0
     while True:
-        concurrency = 200 - random.randint(0,1)*10
+        concurrency = 200 - random.randint(0,1)*5
         print(f'start set key round {count}, concurrency {concurrency}')
         tasks = [asyncio.create_task(set_key(redis, f'key_{i}', f'value_{i}')) for i in range(concurrency)]
         await asyncio.gather(*tasks)
