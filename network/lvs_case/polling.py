@@ -1,4 +1,6 @@
 import asyncio
+import os
+
 from redis import asyncio as aioredis
 import random
 
@@ -11,11 +13,13 @@ async def set_key(redis:aioredis.Redis, key, value):
             print(f'error set key {key} with value {value}: {e}')
 
 async def main():
-    connection_pool = aioredis.BlockingConnectionPool(host="1.2.3.4", max_connections=200)
+    host = os.getenv('REDIS_HOST', '1.2.3.4')
+    max_connections = os.getenv('MAX_CONNECTIONS', 200)
+    connection_pool = aioredis.BlockingConnectionPool(host=host, max_connections=max_connections)
     redis = aioredis.Redis(connection_pool=connection_pool)
     count = 0
     while True:
-        concurrency = 200 - random.randint(0,1)*5
+        concurrency = max_connections - random.randint(0,1)*5
         print(f'start set key round {count}, concurrency {concurrency}')
         tasks = [asyncio.create_task(set_key(redis, f'key_{i}', f'value_{i}')) for i in range(concurrency)]
         await asyncio.gather(*tasks)
