@@ -16,3 +16,5 @@
 `git reset --soft <hash>`
 - undo unsaved changes
 `git stash`
+- store credentials
+`git config --global credential.helper store`
