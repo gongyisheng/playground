@@ -55,6 +55,9 @@ ref: https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/in
 # setup docker
 ref: https://docs.docker.com/engine/install/ubuntu/
 
+# restart all running docker containers
+`sudo docker restart $(sudo docker ps -q)`
+
 # setup grafana
 ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 
