@@ -175,3 +175,8 @@ docker run -d \
 -p 5001:5001 \
 sigoden/dufs --config /etc/dufs/dufs.yaml
 ```
+
+# find .DS_Store and delete
+```
+find . -name ".DS_Store" -delete
+```
