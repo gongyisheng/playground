@@ -9,6 +9,11 @@ ref: https://docs.github.com/en/authentication/managing-commit-signature-verific
 gpg --list-secret-keys --keyid-format LONG
 ```
 
+# show gpg public key
+```
+gpg --armor --export <key>
+```
+
 # backup gpg key
 ```
 gpg --export --export-options backup --output public.gpg
