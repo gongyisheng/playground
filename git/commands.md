@@ -16,3 +16,9 @@
 `git reset --soft <hash>`
 - undo unsaved changes
 `git stash`
+- store credentials
+`git config --global credential.helper store`
+- sign commit
+`gpg --list-secret-keys --keyid-format=long`  
+`git config --global user.signingkey <key>`  
+ref: https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key  

@@ -18,8 +18,17 @@ def test_exists():
     val = bool(r.exists("test1"))
     print(val)
 
+# xinfo groups
+def test_xinfo_groups():
+    r = redis.Redis(host="localhost", port=6379, db=0)
+    #r.xgroup_create("test_stream", "test_group", id="$", mkstream=False)
+    val = r.xinfo_groups("test_stream")
+    for group in val:
+        print(group['last-delivered-id'])
+    #print(val)
 
 
 if __name__ == "__main__":
     #test_hkeys()
-    test_exists()
+    #test_exists()
+    test_xinfo_groups()

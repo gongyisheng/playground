@@ -3,7 +3,7 @@
 `sudo apt-get upgrade`  
 
 # install vim, tcpdump, perf, network tools
-`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip`  
+`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip redis-tools`  
 
 # setup mariadb
 download and install:  
@@ -54,6 +54,12 @@ ref: https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/in
 
 # setup docker
 ref: https://docs.docker.com/engine/install/ubuntu/
+
+# restart all running docker containers
+`sudo docker restart $(sudo docker ps -q)`
+
+# clean docker unused image
+`sudo docker image prune -a`
 
 # setup grafana
 ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
@@ -168,4 +174,9 @@ docker run -d \
 -v /media/usbdisk/codebase/user-key/dufs/book.yaml:/etc/dufs/dufs.yaml \
 -p 5001:5001 \
 sigoden/dufs --config /etc/dufs/dufs.yaml
+```
+
+# find .DS_Store and delete
+```
+find . -name ".DS_Store" -delete
 ```
