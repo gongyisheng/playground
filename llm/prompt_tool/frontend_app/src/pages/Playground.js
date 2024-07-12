@@ -12,7 +12,7 @@ const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 var userMessage = "";
 var conversation = [];
 var threadId = "";
-var model = "GPT-3.5";
+var model = "GPT-4";
 
 function Playground() {
   const navigate = useNavigate();
