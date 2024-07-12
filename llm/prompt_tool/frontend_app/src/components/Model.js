@@ -4,13 +4,13 @@ const modelIcons = {
   "GPT-3.5": "./static/gpt3.5.png",
   "GPT-4": "./static/gpt4.png",
   "Llama3": "./static/llama3.png",
-  "Claude3": "./static/claude3.png",
+  "Claude-3.5": "./static/claude.png",
 };
 
 const extraText = {}
 
 function Model({ onChange, cost, limit }) {
-  const [chosenModel, setChosenModel] = useState("GPT-3.5");
+  const [chosenModel, setChosenModel] = useState("GPT-4");
 
   function renderButtonStyle(model) {
     var baseStyle = "flex items-center w-full px-2 py-2 m-1";
@@ -61,7 +61,7 @@ function Model({ onChange, cost, limit }) {
         {renderModelBlock("GPT-3.5", onClick)}
         {renderModelBlock("GPT-4", onClick)}
         {renderModelBlock("Llama3", onClick)}
-        {renderModelBlock("Claude3", onClick)}
+        {renderModelBlock("Claude-3.5", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
         <span className="text-sm italic">Cost this month: ${cost}/${limit}</span>
