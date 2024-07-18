@@ -19,7 +19,7 @@ def init_price(db_conn: sqlite3.Connection):
         pricing_model.create_pricing("llama3-70b-8192", 0, 0, 0)
     if pricing_model.get_current_pricing_by_model("claude-3-5-sonnet-20240620") is None:
         pricing_model.create_pricing(
-            "claude-3-opus-20240229", 3 / 1000000, 15 / 1000000, 0
+            "claude-3-5-sonnet-20240620", 3 / 1000000, 15 / 1000000, 0
         )
 
 
