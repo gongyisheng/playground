@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 
 const modelIcons = {
-  "GPT-3.5": "./static/gpt3.5.png",
-  "GPT-4": "./static/gpt4.png",
+  "GPT4o-mini": "./static/gpt-weak.png",
+  "GPT4o": "./static/gpt-strong.png",
   "Llama3": "./static/llama3.png",
-  "Claude-3.5": "./static/claude.png",
+  "Claude3.5": "./static/claude.png",
 };
 
 const extraText = {}
 
 function Model({ onChange, cost, limit }) {
-  const [chosenModel, setChosenModel] = useState("GPT-4");
+  const [chosenModel, setChosenModel] = useState("GPT4o-mini");
 
   function renderButtonStyle(model) {
     var baseStyle = "flex items-center w-full px-2 py-2 m-1";
@@ -58,10 +58,10 @@ function Model({ onChange, cost, limit }) {
   return (
     <div>
       <div className="px-4 py-4 gap-2">
-        {renderModelBlock("GPT-3.5", onClick)}
-        {renderModelBlock("GPT-4", onClick)}
+        {renderModelBlock("GPT4o-mini", onClick)}
+        {renderModelBlock("GPT4o", onClick)}
         {renderModelBlock("Llama3", onClick)}
-        {renderModelBlock("Claude-3.5", onClick)}
+        {renderModelBlock("Claude3.5", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
         <span className="text-sm italic">Cost this month: ${cost}/${limit}</span>
