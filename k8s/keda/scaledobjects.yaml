@@ -45,7 +45,7 @@ spec:
         # Required fields:
         serverAddress: https://prometheus-dev.yellowday.day
         query: (1-avg(rate(node_cpu_seconds_total{mode="idle"}[1m])))*100 # Note: query must return a vector/scalar single element response
-        threshold: '25'
+        threshold: '20'
         activationThreshold: '0'
     - type: prometheus
       name: timestamp
