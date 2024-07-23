@@ -35,8 +35,8 @@ spec:
     scalingModifiers:                                           # Optional. Section to specify scaling modifiers
       target: "0.5"                                               # Mandatory. New target if metrics are anyhow composed together
       activationTarget: "0"                                     # Optional. New activation target if metrics are anyhow composed together
-      metricType:  "AverageValue"                               # Optional. Metric type to be used if metrics are anyhow composed together
-      formula: "timestamp >= 5 ? 0.75:0.25"                                               # Mandatory. Formula for calculation
+      metricType:  "Value"                               # Optional. Metric type to be used if metrics are anyhow composed together
+      formula: "cpu >= 20 ? 0.75:0.25"                                               # Mandatory. Formula for calculation
   triggers:
     - type: prometheus
       name: cpu
