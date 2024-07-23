@@ -1,0 +1,42 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: nginx-deployment
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion:    apps/v1                  # Optional. Default: apps/v1
+    kind:          Deployment               # Optional. Default: Deployment
+    name:          nginx-deployment         # Mandatory. Must be in the same namespace as the ScaledObject
+  pollingInterval:  5                       # Optional. Default: 5 seconds
+  cooldownPeriod:   0                       # Optional. Default: 300 seconds
+  minReplicaCount:  1                       # Optional. Default: 0
+  maxReplicaCount:  50                      # Optional. Default: 100
+  fallback:                                 # Optional. Section to specify fallback options
+    failureThreshold: 3                     # Mandatory if fallback section is included
+    replicas: 1                             # Mandatory if fallback section is included
+  advanced:                                 # Optional. Section to specify advanced options
+    restoreToOriginalReplicaCount: false    # Optional. Default: false
+    horizontalPodAutoscalerConfig:          # Optional. Section to specify HPA related options
+      name: keda-hpa-nginx                  # Optional. Default: keda-hpa-{scaled-object-name}
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 5
+        scaleDown:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 25
+              periodSeconds: 5
+  triggers:
+  - type: cron
+    metadata:
+      # Required
+      timezone: America/Los_Angeles  # The acceptable values would be a value from the IANA Time Zone Database.
+      start: 0 * * * *       # Every hour on the 30th minute
+      end: 59 * * * *         # Every hour on the 45th minute
+      desiredReplicas: "10"
