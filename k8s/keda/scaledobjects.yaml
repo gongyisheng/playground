@@ -1,15 +1,16 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: nginx-deployment-sacled-object
+  name: nginx-scaledobject
   namespace: default
 spec:
   scaleTargetRef:
     apiVersion:    apps/v1                  # Optional. Default: apps/v1
     kind:          Deployment               # Optional. Default: Deployment
     name:          nginx-deployment         # Mandatory. Must be in the same namespace as the ScaledObject
-  pollingInterval:  5                       # Optional. Default: 5 seconds
-  cooldownPeriod:   0                       # Optional. Default: 300 seconds
+  pollingInterval:  5                       # Optional. Default: 30 seconds
+  cooldownPeriod:   5                       # Optional. Default: 300 seconds
+  idleReplicaCount: 0                       # Optional. Default: ignored, must be less than minReplicaCount
   minReplicaCount:  1                       # Optional. Default: 0
   maxReplicaCount:  50                      # Optional. Default: 100
   fallback:                                 # Optional. Section to specify fallback options
@@ -18,7 +19,6 @@ spec:
   advanced:                                 # Optional. Section to specify advanced options
     restoreToOriginalReplicaCount: false    # Optional. Default: false
     horizontalPodAutoscalerConfig:          # Optional. Section to specify HPA related options
-      name: keda-hpa-nginx                  # Optional. Default: keda-hpa-{scaled-object-name}
       behavior:
         scaleUp:
           stabilizationWindowSeconds: 0
@@ -32,11 +32,27 @@ spec:
             - type: Percent
               value: 25
               periodSeconds: 5
+    scalingModifiers:                                           # Optional. Section to specify scaling modifiers
+      target: "0.5"                                               # Mandatory. New target if metrics are anyhow composed together
+      activationTarget: "0"                                     # Optional. New activation target if metrics are anyhow composed together
+      metricType:  "AverageValue"                               # Optional. Metric type to be used if metrics are anyhow composed together
+      formula: "timestamp >= 5 ? 0.75:0.25"                                               # Mandatory. Formula for calculation
   triggers:
-  - type: cron
-    metadata:
-      # Required
-      timezone: America/Los_Angeles  # The acceptable values would be a value from the IANA Time Zone Database.
-      start: 0 * * * *       # Every hour on the 30th minute
-      end: 59 * * * *         # Every hour on the 45th minute
-      desiredReplicas: "10"
+    - type: prometheus
+      name: cpu
+      metricType: "Value"
+      metadata:
+        # Required fields:
+        serverAddress: https://prometheus-dev.yellowday.day
+        query: (1-avg(rate(node_cpu_seconds_total{mode="idle"}[1m])))*100 # Note: query must return a vector/scalar single element response
+        threshold: '25'
+        activationThreshold: '0'
+    - type: prometheus
+      name: timestamp
+      metricType: "Value"
+      metadata:
+        # Required fields:
+        serverAddress: https://prometheus-dev.yellowday.day
+        query: round(node_time_seconds{}*100000) % 10 # Note: query must return a vector/scalar single element response
+        threshold: '0'
+        activationThreshold: '0'
