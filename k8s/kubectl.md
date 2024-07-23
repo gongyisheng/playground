@@ -19,6 +19,7 @@ notes:
 `kubectl get deployments`
 `kubectl get pods`
 
-## apply/delete yaml
+## apply/patch/delete yaml
 `kubectl apply -f nginx-deployment.yaml`
+`kubectl replace -f nginx-deployment.yaml`
 `kubectl delete -f scaledobject/<name>`
