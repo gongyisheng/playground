@@ -1,0 +1,2 @@
+If you want to delete a large amount of objects, you may consider to use lifecycle policy to delete objects in batches.  
+It's free to delete objects in S3, but you will be charged for the requests you made.
