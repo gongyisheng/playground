@@ -28,3 +28,6 @@
 5. **Backup**
    - Backup the system and data regularly.
    - S3 deep archive is a good choice of backup cloud storage.
+6. **High Availability**
+   - Use at least two Raspberry Pis to build a high availability system.
+   - Test running applications on backup server if running commands are complicated.
