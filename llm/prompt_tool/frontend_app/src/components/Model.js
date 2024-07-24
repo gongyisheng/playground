@@ -3,7 +3,7 @@ import React, { useState } from "react";
 const modelIcons = {
   "GPT4o-mini": "./static/gpt-weak.png",
   "GPT4o": "./static/gpt-strong.png",
-  "Llama3": "./static/llama3.png",
+  "Llama3.1": "./static/llama3.png",
   "Claude3.5": "./static/claude.png",
 };
 
@@ -60,7 +60,7 @@ function Model({ onChange, cost, limit }) {
       <div className="px-4 py-4 gap-2">
         {renderModelBlock("GPT4o-mini", onClick)}
         {renderModelBlock("GPT4o", onClick)}
-        {renderModelBlock("Llama3", onClick)}
+        {renderModelBlock("Llama3.1", onClick)}
         {renderModelBlock("Claude3.5", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
