@@ -36,7 +36,7 @@ spec:
       target: "0.5"                                               # Mandatory. New target if metrics are anyhow composed together
       activationTarget: "0"                                     # Optional. New activation target if metrics are anyhow composed together
       metricType:  "Value"                               # Optional. Metric type to be used if metrics are anyhow composed together
-      formula: "cpu >= 20 ? 0.75:0.25"                                               # Mandatory. Formula for calculation
+      formula: "cpu >= 25 ? 0.75:0.25"                                               # Mandatory. Formula for calculation
   triggers:
     - type: prometheus
       name: cpu
@@ -45,7 +45,7 @@ spec:
         # Required fields:
         serverAddress: https://prometheus-dev.yellowday.day
         query: (1-avg(rate(node_cpu_seconds_total{mode="idle"}[1m])))*100 # Note: query must return a vector/scalar single element response
-        threshold: '20'
+        threshold: '25'
         activationThreshold: '0'
     - type: prometheus
       name: timestamp
