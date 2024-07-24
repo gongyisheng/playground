@@ -20,7 +20,7 @@ session_cookie_domain: "localhost"
 model_mapping:
   gpt4o-mini: "gpt-4o-mini-2024-07-18"
   gpt4o: "gpt-4o-2024-05-13"
-  llama3: "llama3-70b-8192"
+  llama3.1: "llama-3.1-405b-reasoning"
   claude3.5: "claude-3-5-sonnet-20240620"
 
 # external api related 

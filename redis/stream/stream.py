@@ -335,6 +335,25 @@ class RedisStream:
 
         return length, min_time
 
+    async def lag(self) -> Optional[int]:
+        """
+        Get lag length for current <stream, group>
+        Lag is the number of entries in the range between the group's entries_read and the stream's entries_added
+        Lag may be None in some cases
+        ref: https://redis.io/docs/latest/commands/xinfo-groups/
+        :return: lag length
+        """
+        lag = None
+        resp = await self._redis.xinfo_groups(self._stream_name)
+        for group in resp:
+            if ensure_str(group["name"]) == self._group_name:
+                lag = group["lag"]
+                logging.info(
+                    f"Get lag length of stream [{self._stream_name}] group [{self._group_name}], Lag = {lag}"
+                )
+                break
+        return lag
+
     async def trim(
         self, ttl: int, approximate: bool = True, force_delete: bool = False
     ) -> Tuple[int, int]:
