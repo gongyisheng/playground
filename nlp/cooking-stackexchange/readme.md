@@ -34,36 +34,41 @@ Progress: 100.0% words/sec/thread:   89106 lr:  0.000000 avg.loss: 10.047649 ETA
 
 
 ## Text preprocessing
-`cat cooking.stackexchange.txt | sed -e "s/\([.\!?,'/()]\)/ \1 /g" | tr "[:upper:]" "[:lower:]" > cooking.preprocessed.txt`  
+```
+cat cooking.stackexchange.txt | sed -e "s/\([.\!?,'/()]\)/ \1 /g" | tr "[:upper:]" "[:lower:]" > cooking.preprocessed.txt
+head -n 12404 cooking.preprocessed.txt > cooking.train
+tail -n 3000 cooking.preprocessed.txt > cooking.valid
+```
+
 
 Before preprocessing:
 ```
 yisheng@deskmeetb600:~/playground/nlp/cooking-stackexchange$ python3 validate.py
-validate 1 result: (3000, 0.13733333333333334, 0.05939166786795445)
-validate 2 result: (3000, 0.1085, 0.09384460141271443)
-validate 3 result: (3000, 0.08511111111111111, 0.11042237278362405)
+validate 1 result: (3000, 0.13833333333333334, 0.0598241314689347)
+validate 2 result: (3000, 0.10666666666666667, 0.09225890154245352)
+validate 3 result: (3000, 0.08666666666666667, 0.11244053625486522)
 validate 4 result: (3000, 0.07183333333333333, 0.12426120801499208)
 validate 5 result: (3000, 0.06606666666666666, 0.14285714285714285)
-validate 6 result: (3000, 0.06316666666666666, 0.16390370477151506)
-validate 7 result: (3000, 0.056523809523809525, 0.17111143145451924)
-validate 8 result: (3000, 0.05325, 0.18422949401758684)
+validate 6 result: (3000, 0.063, 0.16347124117053483)
+validate 7 result: (3000, 0.05657142857142857, 0.17125558598817933)
+validate 8 result: (3000, 0.05354166666666667, 0.18523857575320743)
 validate 9 result: (3000, 0.04981481481481481, 0.19388784777281245)
-case1 result:  (('__label__baking', '__label__food-safety', '__label__bread', '__label__substitutions', '__label__equipment'), array([0.06983907, 0.06587588, 0.04016198, 0.03248651, 0.02998021]))
-case2 result:  (('__label__baking', '__label__food-safety', '__label__bread', '__label__substitutions', '__label__equipment'), array([0.05927461, 0.04008852, 0.03691193, 0.02872915, 0.02530007]))
+case1 result:  (('__label__baking', '__label__food-safety', '__label__bread', '__label__substitutions', '__label__equipment'), array([0.06803396, 0.06552208, 0.03904324, 0.03344319, 0.03047537]))
+case2 result:  (('__label__baking', '__label__food-safety', '__label__bread', '__label__substitutions', '__label__equipment'), array([0.05889857, 0.04035925, 0.03631106, 0.02937603, 0.02584211]))
 ```
 
 After preprocessing:
 ```
 yisheng@deskmeetb600:~/playground/nlp/cooking-stackexchange$ python3 validate.py
-validate 1 result: (3000, 0.16566666666666666, 0.07164480322906155)
-validate 2 result: (3000, 0.125, 0.10811590024506271)
-validate 3 result: (3000, 0.10077777777777777, 0.13074816202969583)
-validate 4 result: (3000, 0.08441666666666667, 0.1460285425976647)
-validate 5 result: (3000, 0.072, 0.1556868963528903)
-validate 6 result: (3000, 0.06583333333333333, 0.17082312238719907)
-validate 7 result: (3000, 0.059571428571428574, 0.1803373216087646)
-validate 8 result: (3000, 0.05491666666666667, 0.1899956753639902)
-validate 9 result: (3000, 0.050777777777777776, 0.19763586564797464)
-case1 result:  (('__label__food-safety', '__label__baking', '__label__equipment', '__label__substitutions', '__label__chicken'), array([0.0986348 , 0.06364692, 0.03571884, 0.03141278, 0.02665346]))
-case2 result:  (('__label__baking', '__label__bread', '__label__substitutions', '__label__food-safety', '__label__equipment'), array([0.09687459, 0.04882735, 0.03955015, 0.0356545 , 0.02949243]))
+validate 1 result: (3000, 0.164, 0.07092403056076113)
+validate 2 result: (3000, 0.12483333333333334, 0.10797174571140263)
+validate 3 result: (3000, 0.10044444444444445, 0.13031569842871557)
+validate 4 result: (3000, 0.08433333333333333, 0.1458843880640046)
+validate 5 result: (3000, 0.07213333333333333, 0.15597520542021046)
+validate 6 result: (3000, 0.06588888888888889, 0.17096727692085917)
+validate 7 result: (3000, 0.05952380952380952, 0.18019316707510452)
+validate 8 result: (3000, 0.05504166666666667, 0.19042813896497046)
+validate 9 result: (3000, 0.05085185185185185, 0.1979241747152948)
+case1 result:  (('__label__food-safety', '__label__baking', '__label__equipment', '__label__substitutions', '__label__chicken'), array([0.09797386, 0.06312738, 0.03583983, 0.0310504 , 0.02633232]))
+case2 result:  (('__label__baking', '__label__bread', '__label__substitutions', '__label__food-safety', '__label__equipment'), array([0.09635726, 0.04812203, 0.03949984, 0.03542671, 0.02944902]))
 ```
