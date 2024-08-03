@@ -1,6 +1,10 @@
 import fasttext
 
 model = fasttext.load_model("cooking_model.bin")
+
+result = model.test("cooking.valid", k=-1)
+print(f"validate {-1} result: {result}")
+
 for i in range(1, 10):
     result = model.test("cooking.valid", k=i)
     print(f"validate {i} result: {result}")
