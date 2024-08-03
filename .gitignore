@@ -26,5 +26,7 @@ secrets.toml
 # nohup
 nohup.out
 
-# model file
+# machine learning related
+*.train
+*.valid
 *.bin
