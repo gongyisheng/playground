@@ -25,3 +25,6 @@ secrets.toml
 
 # nohup
 nohup.out
+
+# model file
+*.bin
