@@ -1,7 +1,7 @@
 # Text classifier for cooking.stackexchange.com using FastText
 ## Pre-requisites
 - Build fasttext python module
-```bash
+```
 git clone https://github.com/facebookresearch/fastText.git
 cd fastText
 sudo pip install .
@@ -31,7 +31,11 @@ Progress: 100.0% words/sec/thread:   89106 lr:  0.000000 avg.loss: 10.047649 ETA
 
 ## Validate model
 `python3 validate.py`
-
+```
+(3000, 0.13833333333333334, 0.0598241314689347)
+The first number: precision
+The second number: recall
+```
 
 ## Text preprocessing
 ```
