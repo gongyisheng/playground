@@ -1,12 +1,12 @@
 # update and upgrade
-`sudo apt-get update`  
-`sudo apt-get upgrade`  
+`sudo apt update`  
+`sudo apt upgrade`  
 
 # install vim, tcpdump, perf, network tools
-`sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip redis-tools`  
+`sudo apt install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip redis-tools`  
 
 # setup ssh login
-`sudo apt-get install openssh-server`
+`sudo apt install openssh-server`
 `sudo systemctl enable ssh`
 `sudo systemctl start ssh`
 
