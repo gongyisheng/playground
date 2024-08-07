@@ -5,6 +5,22 @@
 # install vim, tcpdump, perf, network tools
 `sudo apt-get install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip redis-tools`  
 
+# setup ssh login
+`sudo apt-get install openssh-server`
+`sudo systemctl enable ssh`
+`sudo systemctl start ssh`
+
+use public key to login:
+```
+cd ~/.ssh
+touch authorized_keys
+<COPY YOUR PUB KEY TO authorized_keys>
+```
+disable password login:
+
+`sudo vim /etc/ssh/sshd_config`
+`PasswordAuthentication no`
+
 # setup mariadb
 download and install:  
 `sudo apt install mariadb-server`
