@@ -13,13 +13,14 @@
 use public key to login:
 ```
 cd ~/.ssh
-touch authorized_keys
+vim authorized_keys
 <COPY YOUR PUB KEY TO authorized_keys>
 ```
 disable password login:
 
 `sudo vim /etc/ssh/sshd_config`
 `PasswordAuthentication no`
+`sudo systemctl restart ssh`
 
 # setup mariadb
 download and install:  
