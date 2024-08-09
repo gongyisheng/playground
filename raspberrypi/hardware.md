@@ -59,3 +59,27 @@ TCP window size:  128 KByte (default)
 # wlan quality
 `iwconfig wlan0 | grep Quality`   
 `cat /proc/net/wireless`  
+
+# change wifi
+`sudo vim /etc/netplan/50-cloud-init.yaml`
+
+```
+# this file generated from information provided by the datasource. Changes
+# to it will not persist across an instance reboot. To disable cloud-init’s
+# network configuration capabilities, write a file 
+# /etc/cloud/cloud.cfg.d/99-disable-network-config-cfg with the following:
+# network:{config: disabled}
+network:
+    ethernets:
+        etho:
+            dhcp4: true
+            optional: true
+    version: 2
+    wifis:
+        wlan0:
+            access-points:
+                WIFI-NAME:
+                    password: WIFI-PASSWORD
+            dhcp4: true
+            optional: true
+```
