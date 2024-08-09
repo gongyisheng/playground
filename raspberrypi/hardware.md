@@ -83,3 +83,4 @@ network:
             dhcp4: true
             optional: true
 ```
+ref: https://raspberrypi.stackexchange.com/questions/111722/rpi-4-running-ubuntu-server-20-04-cant-connect-to-wifi
