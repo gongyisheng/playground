@@ -39,3 +39,12 @@ print(model.words)
 print(model.get_word_vector("the"))
 ```
 
+## Skipgram vs cbow
+- skipgram: predict a target word thanks to a nearby word (using a random close-by word, can be before or after)
+- cbow(continuous-bag-of-words): cbow model predicts the target word according to its context (using a surrounding window)
+```
+# train cbow model
+import fasttext
+model = fasttext.train_unsupervised('/home/yisheng/data/enwiki-clean', "cbow")
+```
+
