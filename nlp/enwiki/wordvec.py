@@ -41,5 +41,5 @@ if __name__ == "__main__":
         ("orange", "cat"),
         ("fat", "cat"),
         ("piggy", "cat"),
-        ("naughty", "cat")
+        ("naughty", "cat"),
     ])
