@@ -23,7 +23,7 @@ anarchism is a political philosophy and movement that is against all forms of a
 ## Train word vectors
 ```
 import fasttext
-model = fasttext.train_unsupervised('~/data/enwiki-clean')
+model = fasttext.train_unsupervised('/home/yisheng/data/enwiki-clean')
 model.save_model("enwiki.bin")
 ```
 
