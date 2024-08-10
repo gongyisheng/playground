@@ -111,3 +111,14 @@ model = fasttext.train_unsupervised('/home/yisheng/data/enwiki-clean', "cbow")
 ref: https://www.baeldung.com/cs/word-embeddings-cbow-vs-skip-gram
 
 ## Playing with the parameters
+- minn/maxn: substring size contained in a word, 3-6 is popular (eg, beautiful, beautifully may share same substring)
+- dim: size of the word embedding, 100-300 is popular
+- epoch: time to loop the dataset
+- lr: learning rate, [0.01, 1]
+- thread: core number to use
+```
+import fasttext
+model = fasttext.train_unsupervised('/home/yisheng/data/enwiki-clean', minn=3, maxn=6, dim=300, lr=0.05, epoch=10)
+```
+
+
