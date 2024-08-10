@@ -63,11 +63,51 @@ yisheng@pc:~/playground/nlp/enwiki$ python3 wordvec.py
 ```
 
 ## Skipgram vs cbow
-- skipgram: predict a target word thanks to a nearby word (using a random close-by word, can be before or after)
-- cbow(continuous-bag-of-words): cbow model predicts the target word according to its context (using a surrounding window)
+### skipgram: we try to predict the context words using the main word
+eg.  
+- sentence:   
+    the pink horse is eating  
+- word pair:  
+    (the, pink), (the, horse),  
+	(pink, the), (pink, horse), (pink, is),  
+    (horse, the), (horse, pink), (horse, is), (horse, eating),  
+    (is, pink), (is, horse), (is, eating),  
+    (eating, horse), (eating, is)  
+
+model structure:    
+1. V=number of words in vocabulary  
+2. E=desired size of word embeddings  
+
+- input: one-hot encoding word vector (1xV)  
+- weight vector1: transform word vector into hidden layer (VxE)  
+- hidden layer: new word embedding (1xE)  
+- weight vector2: transform word embedding into output layer (ExV)  
+- output layer: context words in one-hot encoding (several 1xV)  
+
+**The higher this size is, the more information the embeddings will capture, but the harder it will be to learn it**
+
+### cbow(continuous-bag-of-words): From the context words, we want our model to predict the main word
+model structure:
+1. V=number of words in vocabulary  
+2. E=desired size of word embeddings  
+
+- input: context words in one-hot encoding word vector (several 1xV)
+- weight vector1: transform word vector into hidden layer (VxE)
+- hidden layer: new word embedding (1xE)
+- weight vector2: transform word embedding into output layer (ExV)
+- output layer: main word in one-hot encoding (1xV)
+
 ```
 # train cbow model
 import fasttext
 model = fasttext.train_unsupervised('/home/yisheng/data/enwiki-clean', "cbow")
 ```
 
+### comparison
+- Skip-Gram works well with small datasets, and can better represent less frequent words
+- CBOW is found to train faster than Skip-Gram, and can better represent more frequent words
+- In practice, we observe that skipgram models works better with subword information than cbow (usually rare words are important)
+
+ref: https://www.baeldung.com/cs/word-embeddings-cbow-vs-skip-gram
+
+## Playing with the parameters
