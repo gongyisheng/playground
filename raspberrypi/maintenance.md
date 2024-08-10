@@ -7,7 +7,7 @@
     sudo apt-get upgrade
     ```
 2. **Clean up**:
-    - Remove the packages that are no longer required.
+    - Remove the packages that are no longer required. (This can also help with /boot full issue)
     ```bash
     sudo apt-get autoremove
     ```
