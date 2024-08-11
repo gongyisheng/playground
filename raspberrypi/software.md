@@ -110,3 +110,13 @@ download from background:
 screen -S bypy download <cloud path> <local path>
 ctrl + a + d
 ```
+
+# Disable tracker3 for ubuntu desktop
+`systemctl --user mask tracker-extract-3.service tracker-miner-fs-3.service tracker-miner-rss-3.service tracker-writeback-3.service tracker-xdg-portal-3.service tracker-miner-fs-control-3.service`  
+`tracker3 reset -s -r`  
+`vim ~/.config/autostart/tracker-miner-fs-3.desktop`  
+```
+[Desktop Entry]
+Hidden=true
+```
+ref: https://askubuntu.com/questions/1344050/how-to-disable-tracker-on-ubuntu-20-04
