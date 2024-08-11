@@ -127,4 +127,8 @@ import fasttext
 model = fasttext.train_unsupervised('/home/yisheng/data/enwiki-clean', minn=3, maxn=6, dim=300, lr=0.05, epoch=10)
 ```
 
-
+## Subword level information
+In fasttext, each word w is represented as a bag of character n-gram
+```
+where -> (wh, whe, her, ere, re)  (n=3)
+```
