@@ -1,5 +1,6 @@
 import fasttext
 model = fasttext.load_model("enwiki_small.bin")
+# model = fasttext.load_model("/home/yisheng/fasttext-models/fasttext-crawl-300d-2M-subword.bin")
 
 # It returns all words in the vocabulary, sorted by decreasing frequency.
 def inspect_words():
@@ -37,12 +38,12 @@ if __name__ == "__main__":
     # inspect_words()
     # inspect_wordvec("cat")
     # inspect_nn(["orange", "cat"])
-    inspect_similarity([
-        ("environment", "enviromental") # a misspell word
-    ])
     # inspect_similarity([
-    #     ("orange", "cat"),
-    #     ("fat", "cat"),
-    #     ("piggy", "cat"),
-    #     ("naughty", "cat"),
+    #     ("environment", "enviromental") # a misspell word
     # ])
+    inspect_similarity([
+        ("orange", "cat"),
+        ("fat", "cat"),
+        ("piggy", "cat"),
+        ("naughty", "cat"),
+    ])
