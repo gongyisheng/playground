@@ -61,6 +61,12 @@ yisheng@pc:~/playground/nlp/enwiki$ python3 wordvec.py
   0.2871939   0.30215597 -0.0070382   0.02623713 -0.43378437 -0.40853783
  -0.14576787 -0.22968893  0.25703436 -0.25776097]
 ```
+**A nice feature is that you can also query for words that did not appear in your data**
+**Words are represented by sum of substrings**
+```
+yisheng@pc:~/playground/nlp/enwiki$ python3 wordvec.py
+Similarity of (environment, envirobmental) is,  0.78040737
+```
 
 ## Skipgram vs cbow
 ### skipgram: we try to predict the context words using the main word

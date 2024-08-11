@@ -38,8 +38,11 @@ if __name__ == "__main__":
     # inspect_wordvec("cat")
     # inspect_nn(["orange", "cat"])
     inspect_similarity([
-        ("orange", "cat"),
-        ("fat", "cat"),
-        ("piggy", "cat"),
-        ("naughty", "cat"),
+        ("environment", "enviromental") # a misspell word
     ])
+    # inspect_similarity([
+    #     ("orange", "cat"),
+    #     ("fat", "cat"),
+    #     ("piggy", "cat"),
+    #     ("naughty", "cat"),
+    # ])
