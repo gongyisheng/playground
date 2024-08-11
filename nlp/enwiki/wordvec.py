@@ -1,5 +1,6 @@
 import fasttext
 model = fasttext.load_model("enwiki_small.bin")
+# model = fasttext.load_model("enwiki.bin")
 # model = fasttext.load_model("/home/yisheng/fasttext-models/fasttext-crawl-300d-2M-subword.bin")
 
 # It returns all words in the vocabulary, sorted by decreasing frequency.
