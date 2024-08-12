@@ -56,11 +56,11 @@ TCP window size:  128 KByte (default)
 [ ID] Interval       Transfer     Bandwidth
 [  1] 0.0000-12.5710 sec  3.97 MBytes  2.65 Mbits/sec
 ```
-IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affects wifi quality
 
 # wlan quality
 `iwconfig wlan0 | grep Quality`   
-`cat /proc/net/wireless`  
+`cat /proc/net/wireless` 
+IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affects wifi quality 
 
 # change wifi
 `sudo vim /etc/netplan/50-cloud-init.yaml`
