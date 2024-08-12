@@ -39,6 +39,7 @@ reboot
 `sudo mount /dev/sda# /media/usbdisk` mount disk  
 add following line to `/etc/fstab` to mount disk after boot  
 `UUID=XXXXXXX /media/usbdisk auto nosuid,nodev,nofail 0 0`
+unmount: IMPORTANT! dont use lazy umount if you cares driver can safely unplugged
 
 # network speed test
 `sudo apt-get install iperf`   
