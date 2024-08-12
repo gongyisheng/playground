@@ -1,5 +1,6 @@
 import fasttext
 model = fasttext.load_model("enwiki_small.bin")
+# model = fasttext.load_model("enwiki_small_optimized.bin")
 # model = fasttext.load_model("enwiki.bin")
 # model = fasttext.load_model("/home/yisheng/fasttext-models/fasttext-crawl-300d-2M-subword.bin")
 
@@ -36,12 +37,12 @@ def inspect_similarity(word_pairs):
         print(f"Similarity of ({w1}, {w2}) is, ", cosine_similarity(v1, v2))
 
 if __name__ == "__main__":
-    # inspect_words()
-    # inspect_wordvec("cat")
-    # inspect_nn(["orange", "cat"])
-    # inspect_similarity([
-    #     ("environment", "enviromental") # a misspell word
-    # ])
+    inspect_words()
+    inspect_wordvec("cat")
+    inspect_nn(["orange", "cat"])
+    inspect_similarity([
+        ("environment", "enviromental") # a misspell word
+    ])
     inspect_similarity([
         ("orange", "cat"),
         ("fat", "cat"),
