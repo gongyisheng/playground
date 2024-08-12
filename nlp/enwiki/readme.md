@@ -129,6 +129,7 @@ model = fasttext.train_unsupervised('/home/yisheng/data/enwiki-clean', minn=3, m
 
 ## Subword level information
 In fasttext, each word w is represented as a bag of character n-gram
+The model represents words by a sum of its character n-grams
 ```
 where -> (wh, whe, her, ere, re)  (n=3)
 ```
