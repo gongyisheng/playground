@@ -16,6 +16,9 @@
 `git reset --soft <hash>`
 - undo unsaved changes
 `git stash`
+- set username and email
+`git config --global user.name XXX`
+`git config --global user.email XXX`
 - store credentials
 `git config --global credential.helper store`
 - sign commit
