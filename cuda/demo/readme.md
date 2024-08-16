@@ -8,3 +8,4 @@ cuda compile: `nvcc <input.cu> -o <output>`
 3. Transfer input data from host to device memory
 4. Execute kernels
 5. Transfer output from device memory to host
+Note: You can't ask cuda code to write result directly to host memory
