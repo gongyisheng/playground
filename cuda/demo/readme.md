@@ -29,11 +29,11 @@ WARNING: vecadd_cu and any of its children processes will be profiled.
 
 Collecting data...
 Vector addition completed successfully
-Generating '/tmp/nsys-report-dba2.qdstrm'
-[1/7] [========================100%] report2.nsys-rep
-[2/7] [========================100%] report2.sqlite
+Generating '/tmp/nsys-report-dba1.qdstrm'
+[1/7] [========================100%] report1.nsys-rep
+[2/7] [========================100%] report1.sqlite
 [3/7] Executing 'nvtx_sum' stats report
-SKIPPED: /home/yisheng/playground/cuda/demo/report2.sqlite does not contain NV Tools Extension (NVTX) data.
+SKIPPED: /home/yisheng/playground/cuda/demo/report1.sqlite does not contain NV Tools Extension (NVTX) data.
 [4/7] Executing 'cuda_api_sum' stats report
 
  Time (%)  Total Time (ns)  Num Calls      Avg (ns)        Med (ns)      Min (ns)       Max (ns)       StdDev (ns)              Name         
