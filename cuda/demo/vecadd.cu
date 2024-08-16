@@ -1,14 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define N 10000000
+#define N 1000000000
 #define BLOCK_SIZE 256
 
-__global__ void vector_add(float *out, float *a, float *b, int n) {
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;
-
-    for (int i = index; i < n; i += stride) {
+__global__ void vector_add(float *out, float *a, float *b, long n) {
+    for(long i = 0; i < n; i ++){
         out[i] = a[i] + b[i];
     }
 }
@@ -23,7 +20,7 @@ int main() {
     out = (float *)malloc(sizeof(float) * N);
 
     // Initialize arrays
-    for (int i = 0; i < N; i++) {
+    for (long i = 0; i < N; i++) {
         a[i] = 1.0f;
         b[i] = 2.0f;
     }
@@ -40,20 +37,16 @@ int main() {
     cudaMemcpy(d_a, a, sizeof(float) * N, cudaMemcpyHostToDevice);
     cudaMemcpy(d_b, b, sizeof(float) * N, cudaMemcpyHostToDevice);
 
-    // Determine grid and block sizes
-    int blockSize = BLOCK_SIZE;
-    int numBlocks = (N + blockSize - 1) / blockSize;
-
     // Launch kernel
-    vector_add<<<numBlocks, blockSize>>>(d_out, d_a, d_b, N);
+    vector_add<<<1, 1>>>(d_out, d_a, d_b, N);
 
     // Transfer result back to host
     cudaMemcpy(out, d_out, sizeof(float) * N, cudaMemcpyDeviceToHost);
 
     // Verify the result
-    for (int i = 0; i < N; i++) {
+    for (long i = 0; i < N; i++) {
         if (out[i] != 3.0f) {
-            printf("Error: out[%d] = %f\n", i, out[i]);
+            printf("Error: out[%ld] = %f\n", i, out[i]);
             break;
         }
     }
