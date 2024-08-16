@@ -1,26 +1,69 @@
-#define N 10000000
+#include <stdio.h>
 #include <stdlib.h>
 
+#define N 10000000
+#define BLOCK_SIZE 256
+
 __global__ void vector_add(float *out, float *a, float *b, int n) {
-  for (int i = 0; i < n; i++) {
-    out[i] = a[i] + b[i];
-  }
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+
+    for (int i = index; i < n; i += stride) {
+        out[i] = a[i] + b[i];
+    }
 }
 
 int main() {
-  float *a, *b, *out;
+    float *a, *b, *out;
+    float *d_a, *d_b, *d_out;
 
-  // Allocate memory
-  a = (float *)malloc(sizeof(float) * N);
-  b = (float *)malloc(sizeof(float) * N);
-  out = (float *)malloc(sizeof(float) * N);
+    // Allocate host memory
+    a = (float *)malloc(sizeof(float) * N);
+    b = (float *)malloc(sizeof(float) * N);
+    out = (float *)malloc(sizeof(float) * N);
 
-  // Initialize array
-  for (int i = 0; i < N; i++) {
-    a[i] = 1.0f;
-    b[i] = 2.0f;
-  }
+    // Initialize arrays
+    for (int i = 0; i < N; i++) {
+        a[i] = 1.0f;
+        b[i] = 2.0f;
+    }
 
-  // Main function
-  vector_add<<<1,1>>>(out, a, b, N);
+    // Allocate device memory
+    cudaMalloc((void**)&d_a, sizeof(float) * N);
+    cudaMalloc((void**)&d_b, sizeof(float) * N);
+    cudaMalloc((void**)&d_out, sizeof(float) * N);
+
+    // Transfer data from host to device memory
+    cudaMemcpy(d_a, a, sizeof(float) * N, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, b, sizeof(float) * N, cudaMemcpyHostToDevice);
+
+    // Determine grid and block sizes
+    int blockSize = BLOCK_SIZE;
+    int numBlocks = (N + blockSize - 1) / blockSize;
+
+    // Launch kernel
+    vector_add<<<numBlocks, blockSize>>>(d_out, d_a, d_b, N);
+
+    // Transfer result back to host
+    cudaMemcpy(out, d_out, sizeof(float) * N, cudaMemcpyDeviceToHost);
+
+    // Verify the result
+    for (int i = 0; i < N; i++) {
+        if (out[i] != 3.0f) {
+            printf("Error: out[%d] = %f\n", i, out[i]);
+            break;
+        }
+    }
+
+    // Cleanup
+    free(a); 
+    free(b); 
+    free(out);
+    cudaFree(d_a); 
+    cudaFree(d_b); 
+    cudaFree(d_out);
+
+    printf("Vector addition completed successfully\n");
+
+    return 0;
 }
