@@ -29,6 +29,9 @@ int main() {
     }
 
     // Allocate device memory
+    // Note: The `cudaMalloc` function is defined to take a `void**` as its first argument. 
+    // This is because `cudaMalloc` can allocate memory for any data type, not just float. 
+    // Using `void**` makes the function more generic.
     cudaMalloc((void**)&d_a, sizeof(float) * N);
     cudaMalloc((void**)&d_b, sizeof(float) * N);
     cudaMalloc((void**)&d_out, sizeof(float) * N);
