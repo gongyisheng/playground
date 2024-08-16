@@ -20,7 +20,7 @@ real    1m5.709s
 user    1m2.626s
 sys     0m3.047s
 ```
-2. `sudo nsys profile <executable>`
+2. `sudo nsys nvprof <executable>`
 prerequisite: install nvidia nsight systems  
 ref: https://developer.nvidia.com/nsight-systems  
 ```
