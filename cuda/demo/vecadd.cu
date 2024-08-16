@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define N 1000000000
+#define N 1<<20
 #define BLOCK_SIZE 256
 
-__global__ void vector_add(float *out, float *a, float *b, long n) {
-    for(long i = 0; i < n; i ++){
+__global__ void vector_add(float *out, float *a, float *b, int n) {
+    for(int i = 0; i < n; i ++){
         out[i] = a[i] + b[i];
     }
 }
@@ -20,7 +20,7 @@ int main() {
     out = (float *)malloc(sizeof(float) * N);
 
     // Initialize arrays
-    for (long i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {
         a[i] = 1.0f;
         b[i] = 2.0f;
     }
@@ -44,7 +44,7 @@ int main() {
     cudaMemcpy(out, d_out, sizeof(float) * N, cudaMemcpyDeviceToHost);
 
     // Verify the result
-    for (long i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {
         if (out[i] != 3.0f) {
             printf("Error: out[%ld] = %f\n", i, out[i]);
             break;

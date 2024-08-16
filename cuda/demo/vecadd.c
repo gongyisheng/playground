@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define N 2000000000
+#define N 1<<20
 
-void vector_add(float *out, float *a, float *b, long n) {
-    for (long i = 0; i < n; i++) {
+void vector_add(float *out, float *a, float *b, int n) {
+    for (int i = 0; i < n; i++) {
         out[i] = a[i] + b[i];
     }
 }
@@ -23,7 +23,7 @@ int main() {
     }
 
     // Initialize arrays
-    for (long i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {
         a[i] = 1.0f;
         b[i] = 2.0f;
     }
@@ -32,7 +32,7 @@ int main() {
     vector_add(out, a, b, N);
 
     // Verify the result
-    for (long i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {
         if (out[i] != 3.0f) {
             printf("Error: out[%ld] = %f\n", i, out[i]);
             break;
