@@ -34,7 +34,7 @@ int main() {
     // Verify the result
     for (int i = 0; i < N; i++) {
         if (out[i] != 3.0f) {
-            printf("Error: out[%ld] = %f\n", i, out[i]);
+            printf("Error: out[%d] = %f\n", i, out[i]);
             break;
         }
     }

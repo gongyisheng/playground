@@ -10,6 +10,14 @@ cuda compile: `nvcc <input.cu> -o <output>`
 5. Transfer output from device memory to host
 Note: You can't ask cuda code to write result directly to host memory
 
+# Cuda action
+```
+<<< M , T >>>
+M = thread blocks per grid
+T = parallel thread per block
+```
+![image](grid_strike_loop.jpg)
+
 # Profiling
 1. `time <executable>`
 ```
@@ -67,4 +75,24 @@ SKIPPED: /home/yisheng/playground/cuda/demo/report1.sqlite does not contain NV T
 Generated:
     /home/yisheng/playground/cuda/demo/report1.nsys-rep
     /home/yisheng/playground/cuda/demo/report1.sqlite
+```
+
+# Play with cuda actions
+```
+sudo nsys nvprof bin/vecadd_1_1_cu
+
+ Time (%)  Total Time (ns)  Instances    Avg (ns)      Med (ns)     Min (ns)    Max (ns)   StdDev (ns)                     Name                   
+ --------  ---------------  ---------  ------------  ------------  ----------  ----------  -----------  ------------------------------------------
+    100.0       62,506,521          1  62,506,521.0  62,506,521.0  62,506,521  62,506,521          0.0  vector_add(float *, float *, float *, int)
+
+sudo nsys nvprof bin/vecadd_1_256_cu
+
+ Time (%)  Total Time (ns)  Instances   Avg (ns)     Med (ns)    Min (ns)   Max (ns)   StdDev (ns)                     Name                   
+ --------  ---------------  ---------  -----------  -----------  ---------  ---------  -----------  ------------------------------------------
+    100.0        1,250,775          1  1,250,775.0  1,250,775.0  1,250,775  1,250,775          0.0  vector_add(float *, float *, float *, int)
+
+sudo nsys nvprof bin/vecadd_4096_256_cu
+ Time (%)  Total Time (ns)  Instances  Avg (ns)  Med (ns)  Min (ns)  Max (ns)  StdDev (ns)                     Name                   
+ --------  ---------------  ---------  --------  --------  --------  --------  -----------  ------------------------------------------
+    100.0           39,905          1  39,905.0  39,905.0    39,905    39,905          0.0  vector_add(float *, float *, float *, int)
 ```

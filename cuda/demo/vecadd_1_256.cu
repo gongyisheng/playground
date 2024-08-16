@@ -6,7 +6,7 @@
 
 __global__ void vector_add(float *out, float *a, float *b, int n) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    int stride = blockDim.x * gridDim.x;    
+    int stride = blockDim.x;    
     for(int i = index; i < n; i += stride){
         out[i] = a[i] + b[i];
     }
@@ -37,9 +37,7 @@ int main() {
     cudaMemcpy(d_b, b, sizeof(float) * N, cudaMemcpyHostToDevice);
 
     // Launch kernel
-    int blockSize = BLOCK_SIZE;
-    int numBlocks = (N + blockSize - 1) / blockSize;
-    vector_add<<<numBlocks, blockSize>>>(d_out, d_a, d_b, N);
+    vector_add<<<1, BLOCK_SIZE>>>(d_out, d_a, d_b, N);
 
     // Transfer result back to host
     cudaMemcpy(out, d_out, sizeof(float) * N, cudaMemcpyDeviceToHost);
@@ -47,7 +45,7 @@ int main() {
     // Verify the result
     for (int i = 0; i < N; i++) {
         if (out[i] != 3.0f) {
-            printf("Error: out[%ld] = %f\n", i, out[i]);
+            printf("Error: out[%d] = %f\n", i, out[i]);
             break;
         }
     }
