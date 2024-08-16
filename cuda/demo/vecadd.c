@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define N 1000000000
+#define N 2000000000
 
 void vector_add(float *out, float *a, float *b, long n) {
     for (long i = 0; i < n; i++) {
