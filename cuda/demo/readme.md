@@ -5,6 +5,22 @@ https://developer.nvidia.com/blog/even-easier-introduction-cuda/
 https://developer.nvidia.com/blog/cuda-pro-tip-write-flexible-kernels-grid-stride-loops/
 ```
 
+# Prerequisite
+Need to download & install nvidia cuda toolkit
+ref: 
+```
+https://docs.nvidia.com/cuda/cuda-installation-guide-linux/
+https://developer.nvidia.com/cuda-downloads
+```
+eg. install on Linux Ubuntu 24.04 x86_64 through network
+```
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+sudo apt-get -y install cuda-toolkit-12-6
+```
+
+
 # Compile
 c compile: `gcc <input.c> -o <output>`  
 cuda compile: `nvcc <input.cu> -o <output>` 
