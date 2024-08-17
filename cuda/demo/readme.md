@@ -1,3 +1,10 @@
+# Tutorial Reference
+```
+https://cuda-tutorial.readthedocs.io/en/latest
+https://developer.nvidia.com/blog/even-easier-introduction-cuda/
+https://developer.nvidia.com/blog/cuda-pro-tip-write-flexible-kernels-grid-stride-loops/
+```
+
 # Compile
 c compile: `gcc <input.c> -o <output>`  
 cuda compile: `nvcc <input.cu> -o <output>` 
