@@ -21,6 +21,8 @@
 `git config --global user.email XXX`
 - store credentials
 `git config --global credential.helper store`
+- reset credentials
+`git config --global --unset credential.helper`
 - sign commit
 `gpg --list-secret-keys --keyid-format=long`  
 `git config --global user.signingkey <key>`  
