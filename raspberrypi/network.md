@@ -49,3 +49,13 @@ ref: https://www.duckdns.org/install.jsp
 
 # setup caddy for HTTPS
 ref: https://github.com/caddyserver/caddy
+
+# setup mDNS
+check hostname:
+`hostname`
+update hostname:
+`hostnamectl set-hostname server1.example.com`
+setup mDNS:
+- set `MulticastDNS=yes` in `/etc/systemd/resolved.conf`
+- enable mDNS for specific interface: `resolvectl mdns <interface> yes`
+- restart resolved: `sudo systemctl restart systemd-resolved`
