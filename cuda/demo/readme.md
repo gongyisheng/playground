@@ -20,7 +20,6 @@ sudo apt-get update
 sudo apt-get -y install cuda-toolkit-12-6
 ```
 
-
 # Compile
 c compile: `gcc <input.c> -o <output>`  
 cuda compile: `nvcc <input.cu> -o <output>` 
