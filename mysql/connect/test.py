@@ -36,7 +36,11 @@ async def tick():
 
 async def main():
     task = asyncio.create_task(tick())
-    db_conn = await connect()
+    try:
+        db_conn = await connect()
+    except Exception as e:
+        print('connect error:', e)
+    await task
 
 if __name__ == '__main__':
     asyncio.run(main())
