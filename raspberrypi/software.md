@@ -22,6 +22,11 @@ disable password login:
 `PasswordAuthentication no`
 `sudo systemctl restart ssh`
 
+# create user
+create user with home dir:`sudo useradd -m new_user`
+delete password:`sudo passwd -d new_user`
+use bash: `bash`
+
 # setup mariadb
 download and install:  
 `sudo apt install mariadb-server`
