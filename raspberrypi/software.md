@@ -23,9 +23,18 @@ disable password login:
 `sudo systemctl restart ssh`
 
 # create user
-create user with home dir:`sudo useradd -m new_user`
-delete password:`sudo passwd -d new_user`
+create user with home dir:`sudo useradd -m <user> --groups <group>`
+delete password:`sudo passwd -d <user>`
 use bash: `bash`
+add to sudoers(method 1):
+```
+visudo /etc/sudoers
+
+# Allow members of group sudo to execute any command
+%sudo   ALL=(ALL:ALL) ALL
+```
+add to sudoers(method 2, add to sudo group):
+`sudo adduser <user> sudo`
 
 # setup mariadb
 download and install:  
