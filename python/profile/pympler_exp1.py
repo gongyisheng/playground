@@ -3,6 +3,8 @@ from pympler import summary
 from pympler import refbrowser
 from recursive_getsizeof import total_size
 
+# NOT RECOMMEND TO USE DUE TO POOR PERFORMANCE
+# See memray_exp
 
 class TestClass(object):
     def __init__(self):
