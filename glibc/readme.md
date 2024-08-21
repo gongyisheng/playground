@@ -16,3 +16,8 @@ Histogram for block sizes:
    16-31              4  36% =================================
  1024-1039            1   9% ========
 ```
+explanation: You can see there are 11 malloc calls, 10 from our code, 1 from printf, and only 9 frees, so we have found a memory leak.  
+
+plot a memory usage chart:
+`memusage -d profile.dat bin/memory_leak`
+`memusagestat -o profile.png profile.dat`
