@@ -1,0 +1,1 @@
+source /media/hdddisk/pyvenv/playground/bin/activate
