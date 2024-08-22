@@ -115,7 +115,8 @@ find . -name ".DS_Store" -delete
 # run ffmpeg
 ```
 sudo apt install ffmpeg
-ffmpeg -i input.mp4 -vf "scale=1280:720" -c:v libx264 -crf 23 -c:a aac -b:a 128k -strict -2 output.mp4
+// extreme compress
+ffmpeg -i "input.mp4" -c:v libx264 -tag:v avc1 -movflags faststart -crf 30 -preset superfast "output.mp4"
 ```
 
 # run bypy (baiduyun python client)
