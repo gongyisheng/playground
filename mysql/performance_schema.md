@@ -111,5 +111,5 @@ show variables like 'innodb_buffer_pool%';
 # status
 show status like 'innodb_buffer_pool_read%';
 # hit rate
-innodb_buffer_pool_read_requests / (innodb_buffer_pool_read_requests + innodb_buffer_pool_reads ) * 100 as buffer_pool_hit_rate
+innodb_buffer_pool_read_requests / (innodb_buffer_pool_read_requests + innodb_buffer_pool_reads) * 100 as buffer_pool_hit_rate
 ```
