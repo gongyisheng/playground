@@ -11,6 +11,6 @@ class TestClass(object):
         return self.c
 
 if __name__ == "__main__":
-    with memray.Tracker("memoryprof.bin"):
+    with memray.Tracker("memoryprof.bin", file_format=memray.FileFormat.AGGREGATED_ALLOCATIONS):
         obj = TestClass()
         obj.func()
