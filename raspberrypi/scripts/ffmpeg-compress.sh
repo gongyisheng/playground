@@ -15,5 +15,8 @@ cd "$DIRECTORY"
 echo "Traversing directory: $DIRECTORY"
 for FILE in "$DIRECTORY"/*; do
     if [ -f "$FILE" ]; then
-        ffmpeg -i "$FILE" -c:v libx264 -tag:v avc1 -movflags faststart -crf 30 -preset superfast "$FILE-new.mp4"
+        FILE_NEW="${FILE%.mp4}-compressed.mp4"
+        echo "compressing $FILE"
+        ffmpeg -i "$FILE" -c:v libx264 -tag:v avc1 -movflags faststart -crf 30 -preset superfast "$FILE_NEW"
+    fi
 done
