@@ -117,6 +117,10 @@ find . -name ".DS_Store" -delete
 sudo apt install ffmpeg
 // extreme compress
 ffmpeg -i "input.mp4" -c:v libx264 -tag:v avc1 -movflags faststart -crf 30 -preset superfast "output.mp4"
+// add subtitle (hard subtitle)
+ffmpeg -i input.mkv -vf subtitles=subtitles.srt output.mkv
+// add subtitle (soft subtitle)
+ffmpeg -i input.mkv -i subtitles.srt -c copy output.mkv
 ```
 
 # run bypy (baiduyun python client)
