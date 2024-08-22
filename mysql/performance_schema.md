@@ -61,8 +61,45 @@ SELECT
   ROUND(SUM_NUMBER_OF_BYTES_WRITE/1024/1024,2) as SUM_WRITE_MB,
   ROUND(SUM_NUMBER_OF_BYTES_WRITE/COUNT_WRITE/1024/1024,2) as AVG_WRITE_MB
 FROM
-  file_summary_by_instance
+  performance_schema.file_summary_by_instance
 ORDER BY
   SUM_NUMBER_OF_BYTES_READ + SUM_NUMBER_OF_BYTES_WRITE DESC
 ```
 
+# memory usage by event
+```
+SELECT
+  EVENT_NAME,
+  CURRENT_COUNT_USED,
+  HIGH_COUNT_USED,
+  CURRENT_NUMBER_OF_BYTES_USED / 1024 / 1024 as CURRENT_USED_MB,
+  HIGH_NUMBER_OF_BYTES_USED / 1024 / 1024 as HIGH_USED_MB
+FROM
+  performance_schema.memory_summary_global_by_event_name
+ORDER BY
+  CURRENT_USED_MB DESC
+```
+
+```
+SELECT
+  event_name, 
+  current_alloc, 
+  high_alloc 
+FROM 
+  sys.memory_global_by_current_bytes 
+WHERE 
+  current_count > 0;
+```
+
+# high level memory usage
+```
+SELECT
+  substring_index(substring_index(event_name, '/', 2), '/', -1) as event_type,
+  round(sum(CURRENT_NUMBER_OF_BYTES_USED) / 1024 / 1024, 2) as MB_CURRENTLY_USED
+FROM
+  performance_schema.memory_summary_global_by_event_name
+GROUP BY
+  event_type
+HAVING
+  MB_CURRENTLY_USED > 0;
+```
