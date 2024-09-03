@@ -56,6 +56,9 @@ class Global:
     audit_model = None
     pricing_model = None
     config = None
+    openai_client = None
+    claude_client = None
+    llama_client = None
 
 
 # base handler for all requests, cors configs
@@ -171,7 +174,10 @@ class ChatHandler(AuthHandler):
         return num_tokens
 
     async def openai_text_stream(self, real_model, conversation):
-        client = AsyncOpenAI(api_key=Global.config["openai_api_key"])
+        if Global.openai_client is None:
+            Global.openai_client = AsyncOpenAI(api_key=Global.config["openai_api_key"])
+
+        client  = Global.openai_client
         stream = await client.chat.completions.create(
             model=real_model,
             messages=conversation,
@@ -182,10 +188,13 @@ class ChatHandler(AuthHandler):
             yield content
 
     async def llama_text_stream(self, real_model, conversation):
-        client = AsyncOpenAI(
-            api_key=Global.config["llama_api_key"],
-            base_url=Global.config["llama_base_url"],
-        )
+        if Global.llama_client is None:
+            Global.llama_client = AsyncOpenAI(
+                api_key=Global.config["llama_api_key"],
+                base_url=Global.config["llama_base_url"],
+            )
+        
+        client = Global.llama_client
         stream = await client.chat.completions.create(
             model=real_model,
             messages=conversation,
@@ -198,7 +207,11 @@ class ChatHandler(AuthHandler):
     async def claude_text_stream(self, real_model, conversation):
         system_message = conversation[0]["content"]
         conversation = conversation[1:]
-        client = anthropic.AsyncAnthropic(api_key=Global.config["claude_api_key"])
+
+        if Global.claude_client is None:
+            Global.claude_client = anthropic.AsyncAnthropic(api_key=Global.config["claude_api_key"])
+        
+        client = Global.claude_client
         async with client.messages.stream(
             max_tokens=1024,
             messages=conversation,
