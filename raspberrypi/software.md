@@ -22,6 +22,24 @@ disable password login:
 `PasswordAuthentication no`
 `sudo systemctl restart ssh`
 
+# create user
+create user with home dir:`sudo useradd -m <user> --groups <group>`
+delete password:`sudo passwd -d <user>`
+use bash: `bash`
+add to sudoers(method 1):
+```
+visudo /etc/sudoers
+
+# Allow members of group sudo to execute any command
+%sudo   ALL=(ALL:ALL) ALL
+```
+add to sudoers(method 2, add to sudo group):
+`sudo adduser <user> sudo`
+
+# folder info scan
+`ls -lah`: show all invisible folders and files
+`df -h . --max-depth=1` calculate folder size by check files inside it recursively
+
 # setup mariadb
 download and install:  
 `sudo apt install mariadb-server`
@@ -101,7 +119,12 @@ find . -name ".DS_Store" -delete
 # run ffmpeg
 ```
 sudo apt install ffmpeg
-ffmpeg -i input.mp4 -vf "scale=1280:720" -c:v libx264 -crf 23 -c:a aac -b:a 128k -strict -2 output.mp4
+// extreme compress
+ffmpeg -i "input.mp4" -c:v libx264 -tag:v avc1 -movflags faststart -crf 30 -preset superfast "output.mp4"
+// add subtitle (hard subtitle)
+ffmpeg -i input.mkv -vf subtitles=subtitles.srt output.mkv
+// add subtitle (soft subtitle)
+ffmpeg -i input.mkv -i subtitles.srt -c copy output.mkv
 ```
 
 # run bypy (baiduyun python client)

@@ -1,0 +1,6 @@
+numpy
+pandas
+scipy
+fasttext
+scikit-learn
+nltk

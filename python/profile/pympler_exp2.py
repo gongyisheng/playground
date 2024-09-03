@@ -1,6 +1,8 @@
 from pympler import classtracker, asizeof
 import time
 
+# NOT RECOMMEND TO USE DUE TO POOR PERFORMANCE
+# See memray_exp
 
 class TestClass(object):
     def __init__(self):
