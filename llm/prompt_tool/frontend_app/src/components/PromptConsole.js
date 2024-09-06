@@ -47,7 +47,7 @@ function PromptConsole({
           <a
             id={v.promptName}
             href="#"
-            className="block px-4 py-2 hover:bg-gray-100"
+            className="block px-4 py-2 hover:font-bold"
             onClick={handlePromptOptionClick}
           >
             {v.promptName}
@@ -127,7 +127,7 @@ function PromptConsole({
         <button
           id="dropdownButton"
           data-dropdown-toggle="dropdown"
-          className="px-4 py-2 rounded-lg border-2 border-black text-gray-500 text-center flex items-center focus:outline-none focus:ring-0 w-full"
+          className="px-4 py-2 rounded-lg border-2 border-black text-grey-500 text-center flex items-center focus:outline-none focus:ring-0 w-full"
           type="button"
           onClick={toggleDropdown}
         >
@@ -165,7 +165,7 @@ function PromptConsole({
         value={promptName}
         onChange={handlePromptNameChange}
         placeholder="default-prompt"
-        className="pl-4 pr-12 py-2 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full"
+        className="pl-4 pr-12 py-2 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full Input-class"
       />
       <div className="py-2">Prompt</div>
       <textarea
@@ -173,7 +173,7 @@ function PromptConsole({
         value={promptContent}
         onChange={handlePromptContentChange}
         placeholder="You're a helpful assistant."
-        className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full resize-none"
+        className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full resize-none Input-class"
         rows="6"
       />
       <div className="py-2">Note</div>
@@ -182,7 +182,7 @@ function PromptConsole({
         value={promptNote}
         onChange={handlePromptNoteChange}
         placeholder="Default prompt of ChatGPT."
-        className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full resize-none"
+        className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full resize-none Input-class"
         rows="7"
       />
       <div className="grid grid-cols-2 justify-items-center py-2">

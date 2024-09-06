@@ -1,7 +1,6 @@
 .App {
-  text-align: center;
-  color: #f0eadd;
-  background-color: #f0eadd;
+  background-color: #f6f2eb;
+  height: 100vh;
 }
 
 .App-logo {
@@ -37,4 +36,8 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.Input-class {
+  background-color: #f6f2eb;
 }
