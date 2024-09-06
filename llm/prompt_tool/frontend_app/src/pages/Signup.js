@@ -86,7 +86,7 @@ const SignUp = () => {
                 type="username"
                 autoComplete="username"
                 onChange={handleUsernameChange}
-                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6"
+                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6 Input-class"
               />
             </div>
           </div>
@@ -107,7 +107,7 @@ const SignUp = () => {
                 type="password"
                 autoComplete="current-password"
                 onChange={handlePasswordChange}
-                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 focus:border-black sm:text-sm sm:leading-6"
+                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 focus:border-black sm:text-sm sm:leading-6 Input-class"
               />
               <p className="text-gray-600 text-xs mt-1">
                 Recommend to contain 1 uppercase letter, 1 number, min. 8 characters.
@@ -131,7 +131,7 @@ const SignUp = () => {
                 type="invitation-code"
                 autoComplete="off"
                 onChange={handleInvitationCodeChange}
-                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6"
+                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6 Input-class"
               />
             </div>
           </div>
