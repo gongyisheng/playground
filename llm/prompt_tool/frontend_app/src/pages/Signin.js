@@ -117,7 +117,7 @@ const SignIn = () => {
                 type="username"
                 autoComplete="username"
                 onChange={handleUsernameChange}
-                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6"
+                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 sm:text-sm sm:leading-6 Input-class"
               />
             </div>
           </div>
@@ -138,7 +138,7 @@ const SignIn = () => {
                 type="password"
                 autoComplete="current-password"
                 onChange={handlePasswordChange}
-                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 focus:border-black sm:text-sm sm:leading-6"
+                className="block px-4 py-2 w-full rounded-md text-black border border-black focus:ring-0 focus:outline-none focus:border-2 focus:border-black sm:text-sm sm:leading-6 Input-class"
               />
             </div>
           </div>
