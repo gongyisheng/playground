@@ -11,7 +11,7 @@ def binary_search(sorted_array, target):
             right = mid - 1
     # return left-1 # return lower bound 
     # return left # return upper bound 
-    return -1
+    return -1 # return -1 if not exist
 
 def sqrt(x):
     left = 0
