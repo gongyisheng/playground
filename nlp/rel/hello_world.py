@@ -3,8 +3,8 @@ from REL.utils import process_results
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.ner import Cmns, load_flair_ner
 
-wiki_version = "wiki_2014"
-base_url = "C:/path/to/rel_data"
+wiki_version = "wiki_2019"
+base_url = "/media/hdddisk/rel-data"
 
 input_text = {
     "my_doc": ("Hello, world!", []),
