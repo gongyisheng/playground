@@ -4,7 +4,7 @@ from REL.entity_disambiguation import EntityDisambiguation
 from REL.ner import Cmns, load_flair_ner
 
 wiki_version = "wiki_2019"
-base_url = "/media/hdddisk/rel-data"
+base_url = "/media/hdddisk/entitylink-rel-data"
 
 input_text = {
     "my_doc": ("Hello, world!", []),
