@@ -1,3 +1,4 @@
+# State
 LISTEN - represents waiting for a connection request from any remote TCP and port.  
 SYN-SENT - represents waiting for a matching connection request after having sent a connection request.  
 SYN-RECEIVED - represents waiting for a confirming connection request acknowledgment after having both received and sent a connection request.  
@@ -8,3 +9,5 @@ TIME-WAIT - represents waiting for enough time to pass to be sure the remote TCP
 CLOSE-WAIT - represents waiting for a connection termination request from the local user.  
 CLOSING - represents waiting for a connection termination request acknowledgment from the remote TCP.  
 CLOSED - represents no connection state at all.  
+
+![image](tcp_state_diagram.jpg)
