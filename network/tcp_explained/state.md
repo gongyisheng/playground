@@ -11,3 +11,43 @@ CLOSING - represents waiting for a connection termination request acknowledgment
 CLOSED - represents no connection state at all.  
 
 ![image](tcp_state_diagram.jpg)
+
+## Steps to establish
+SYN, ACK, SYN  
+
+```
+Q1: Why need 3 way handshake?
+A1: If only 1 way handshake, the client do not know whether its message to server is received.
+    If only 2 way handshake, the server do not know whether its message to server is received.
+    3 way handshake is the minimum requirement for both client and server know that the connection can be established.
+    But in theory there're problems like, the client does not know the third SYN to server can be received, it's an engineering design. 
+```
+
+## Steps to close
+FIN, ACK, FIN, ACK  
+
+State
+proactively closed: FIN_WAIT_1, FIN_WAIT_2, TIME_WAIT  
+passively closed: CLOSE_WAIT, LAST_ACK  
+
+Note: the proactively closed client need to wait 2 MSL before close the connection. It's 2min by default on linux.  
+
+![image](tcp_close.png)
+
+```
+Q1: Why TIME_WAIT takes 2 MSL to close?
+A1: To make sure that the connection can be gracefully closed. 
+    1. There could still be delayed packets in the network that may arrive after the connection has been terminated after a connection is closed. If the connection is opened again, stale packets may cause confusions.
+    2. Make sure the last ack sent to server can be received. Otherwise it may cause new connection fail to establish.
+    Why 2 MSL? Because in the worst cause both the packet sent from client is delayed and the ack packet sent from server is delayed. So it's 2 MSL.
+    This limits the number that we can establish connections with one target ip (server). We can only establish about 28,232 connections in one minute to target ip. 
+
+Q2: Why 4 way close?
+A2: 
+
+Q3: Explain tcp_tw_reuse
+A3:
+
+Q4: Explain tcp_tw_recycle and why it's removed from linux.
+A4:
+```
