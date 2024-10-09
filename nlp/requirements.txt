@@ -4,3 +4,4 @@ scipy
 fasttext
 scikit-learn
 nltk
+mlflow
