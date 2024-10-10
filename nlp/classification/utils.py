@@ -1,5 +1,3 @@
-# Utility functions that are shared across modules and packages
-
 import datetime
 from pathlib import Path
 import pandas as pd

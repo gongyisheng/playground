@@ -1,5 +1,3 @@
-# Pytorch Metric Learning Loss
-
 import torch
 import torch.nn as nn
 from pytorch_metric_learning import losses, miners, distances, reducers

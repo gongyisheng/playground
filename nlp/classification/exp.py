@@ -1,6 +1,3 @@
-# Experiment wrapper around main pipeline function and experiment class
-# See https://yipitdata-product.cloud.databricks.com/?o=2498774132964769#notebook/3694380966908110/command/3694380966952827 for examples
-
 import re
 import pandas as pd
 from itertools import product

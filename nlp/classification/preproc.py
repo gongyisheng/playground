@@ -1,6 +1,3 @@
-# Data preprocessing functions
-# This is everything pre dataloader / datablock
-
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.model_selection import StratifiedKFold, StratifiedGroupKFold

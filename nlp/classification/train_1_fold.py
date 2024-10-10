@@ -1,5 +1,3 @@
-# Train 1 train/valid split - This is the heart of the pipeline
-
 from preproc import create_and_apply_num_scaler
 from dls import create_dataloaders
 from model import setup_model

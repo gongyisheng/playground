@@ -1,5 +1,3 @@
-# config class to set params for experiments; these defaults are usually superseded by the notebook CFG
-
 import json
 import mlflow
 from huggingface_hub import list_repo_files

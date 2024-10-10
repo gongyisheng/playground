@@ -1,6 +1,3 @@
-# Prepare dataloaders for HF models
-# Here we're using torch DataLoader but HF datasets Dataset; don't confuse those
-
 import pandas as pd
 from datasets import Dataset, DatasetDict
 from transformers import AutoTokenizer, DataCollatorWithPadding

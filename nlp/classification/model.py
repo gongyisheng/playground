@@ -1,5 +1,3 @@
-# Prepare HF model, optimizer, and lr_scheduler in the torch way
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

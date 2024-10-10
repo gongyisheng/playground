@@ -1,5 +1,3 @@
-# The model training loop; looping through epochs and batches
-
 import torch
 import pandas as pd
 import numpy as np

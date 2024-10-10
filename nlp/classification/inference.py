@@ -1,6 +1,3 @@
-# Run model inference on new data
-# This is the convenience module that we are giving to analysts to run in their inference notebooks
-
 import torch
 import json
 from pathlib import Path

@@ -1,5 +1,3 @@
-# End-to-end classification pipeline
-
 import datetime
 import pandas as pd
 from config import CFG, validate_and_transform_config

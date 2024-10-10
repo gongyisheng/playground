@@ -1,5 +1,3 @@
-# Utility functions for artifact storage: saving, loading, copying, and removing
-
 import shutil
 import torch
 import pickle
