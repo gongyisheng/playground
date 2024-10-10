@@ -42,12 +42,20 @@ A1: To make sure that the connection can be gracefully closed.
     Why 2 MSL? Because in the worst cause both the packet sent from client is delayed and the ack packet sent from server is delayed. So it's 2 MSL.
     This limits the number that we can establish connections with one target ip (server). We can only establish about 28,232 connections in one minute to target ip. 
 
-Q2: Why 4 way close?
-A2: 
+Q2: Ways to improve TIME_WAIT
+A2: 1. Set SO_LINGER to 0, and the connection will send RST to close the connection and abort all the data in the buffer instead.
+    2. Set net.ipv4.tcp_tw_reuse to 1, allow the kernel to reuse connection in TIME_WAIT status based on timestamp
+    3. Change net.ipv4.ip_local_port_range, allow kernel to use more ports.
 
-Q3: Explain tcp_tw_reuse
-A3:
+Q3: Why 4 way close?
+A3: 2 way for client to close connection. 2 way for server to close connection.
 
-Q4: Explain tcp_tw_recycle and why it's removed from linux.
-A4:
+Q4: Explain net.ipv4.tcp_tw_reuse
+A4: Allow kernal to reuse connections in TIME_WAIT status. It can be used only when both server and client enables timestamps. It only works for client (only client has TIME_WAIT status). It recycles connection in 1s, allowing the limitation of opening/closing short connections to 30k-60k per second.
+
+Q5: Explain timestamps in TCP
+A5: Timestamps are like sequence number and it's strict incremental. It allows server/client to deal with packets out of bind. New connection packets has bigger timestamps. It allows TIME_WAIT connection reuse without waiting 2 MSL.
+
+Q6: Explain tcp_tw_recycle and why it's removed from linux.
+A6: One significant problem emerged in environments utilizing Network Address Translation (NAT) or Load Balancing (LB). The feature's aggressive socket reusing led to non-monotonic TCP timestamps, causing disruptions in connections within such environments. As a result, the intended benefits of tcp_tw_recycle were overshadowed by its potential to break connections and create a less stable networking environment.
 ```
