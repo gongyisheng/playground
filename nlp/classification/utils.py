@@ -1,3 +1,5 @@
+# Utility functions that are shared across modules and packages
+
 import datetime
 from pathlib import Path
 import pandas as pd
@@ -5,26 +7,27 @@ import numpy as np
 import os
 import torch
 import random
-from config import Config
+from config import CFG
+from storage import make_proj_dir_tree, clear_temp
 
 
-def setup(config: Config = Config):
+def setup(CFG: CFG = CFG):
     # Time keeping
     run_start_dt = datetime.datetime.utcnow()
     # model ID
-    base_model_id = get_base_model_id(config, run_start_dt)
+    base_model_id = get_base_model_id(CFG, run_start_dt)
     # Set random seed
-    set_seed(config)
+    set_seed(CFG)
     # Print run details
-    if config.mlflow:
+    if CFG.mlflow:
         print(
             "------------------------------------\n"
             "MLFlow Experiment\n"
-            f"experiment name: {Path(config.experiment_path).name}\n"
-            f"experiment id: {config._experiment_id}\n"
+            f"experiment name: {Path(CFG.experiment_path).name}\n"
+            f"experiment id: {CFG._experiment_id}\n"
             f"base_model_id/run_name: {base_model_id}\n"
-            f"n_epochs: {config.n_epochs}\n"
-            f"n_val_folds: {config.val_folds}\n"
+            f"n_epochs: {CFG.n_epochs}\n"
+            f"n_val_folds: {CFG.val_folds}\n"
             f"dt: {str(run_start_dt)}\n"
             "------------------------------------"
         )
@@ -32,35 +35,38 @@ def setup(config: Config = Config):
         print(
             "------------------------------------\n"
             f"base_model_id: {base_model_id}\n"
-            f"n_epochs: {config.n_epochs}\n"
-            f"n_val_folds: {config.val_folds}\n"
+            f"n_epochs: {CFG.n_epochs}\n"
+            f"n_val_folds: {CFG.val_folds}\n"
             f"dt: {str(run_start_dt)}\n"
             "------------------------------------"
         )
+    # Create project directory
+    make_proj_dir_tree(CFG)
+    clear_temp(CFG)
 
     return base_model_id, run_start_dt
 
 
-def get_base_model_id(config: Config, run_start_dt: datetime.datetime):
+def get_base_model_id(CFG: CFG, run_start_dt: datetime.datetime):
     """Returns the ID of the experiment run, concatenating checkpoint name and datetime of the run"""
     name_parts = [
-        config.checkpoint.replace("/", "_"),
+        CFG.checkpoint.replace("/", "_"),
         run_start_dt.strftime("%Y_%m_%d_%H_%M"),
     ]
-    if config.model_name:
-        name_parts.insert(0, config.model_name)
+    if CFG.model_name:
+        name_parts.insert(0, CFG.model_name)
     return "__".join(name_parts)
 
 
-def set_seed(config: Config):
+def set_seed(CFG: CFG):
     """Set random seeds for reproducibility"""
-    if config.random_seed != None:
-        random.seed(config.random_seed)  # Python
-        np.random.seed(config.random_seed)  # cpu vars
-        torch.manual_seed(config.random_seed)  # cpu vars
+    if CFG.random_seed != None:
+        random.seed(CFG.random_seed)  # Python
+        np.random.seed(CFG.random_seed)  # cpu vars
+        torch.manual_seed(CFG.random_seed)  # cpu vars
         if torch.cuda.is_available():
-            torch.cuda.manual_seed(config.random_seed)
-            torch.cuda.manual_seed_all(config.random_seed)  # gpu vars
+            torch.cuda.manual_seed(CFG.random_seed)
+            torch.cuda.manual_seed_all(CFG.random_seed)  # gpu vars
         if torch.backends.cudnn.is_available:
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
@@ -112,42 +118,42 @@ def create_train_log_df(
     model_id: str,
     val_fold: int,
     auto_max_len: int,
-    config: Config,
+    CFG: CFG,
 ):
     """Initiate the training log file"""
     df = pd.DataFrame(train_results)
     df["model_id"] = model_id
     df["base_model_id"] = base_model_id
     df["fold"] = val_fold
-    df["max_len"] = config.max_len
-    df["auto_max_len"] = auto_max_len if config.max_len == "auto" else None
-    df["subset"] = config.subset
-    df["pool_mode"] = config.pool_mode
-    df["bs"] = config.bs
-    df["build_custom_model_type"] = config.build_custom_model_type
-    df["checkpoint"] = config.checkpoint
-    df["gradient_accumulation_steps"] = config.gradient_accumulation_steps
-    df["lr"] = config.lr
-    df["n_epochs"] = config.n_epochs
-    df["random_seed"] = config.random_seed
-    df["loss"] = config.loss
-    df["loss_distance"] = config.loss_distance
-    df["loss_reducer"] = config.loss_reducer
-    df["loss_optimizer"] = config.loss_optimizer
-    df["loss_lr"] = config.loss_lr
-    df["loss_margin"] = config.loss_margin
-    df["miner_type_of_triplets"] = config.miner_type_of_triplets
-    df["optimizer_name"] = config.optimizer_name
-    df["save_flag"] = config.save_flag
-    df["data_path"] = config.data_path
-    df["item_col_name"] = config.item_col_name
-    df["cat_col_name"] = config.cat_col_name
-    df["num_col_names"] = config.num_col_names
-    df["scale_num_cols"] = config.scale_num_cols
-    df["group_col_name"] = config.group_col_name
-    df["fold_col_name"] = config.group_col_name
-    df["mlflow"] = config.mlflow 
-    df["experiment_path"] = config.experiment_path
-    df["experiment_id"] = config._experiment_id 
-    df["run_description"] = config.run_description
+    df["max_len"] = CFG.max_len
+    df["auto_max_len"] = auto_max_len if CFG.max_len == "auto" else None
+    df["subset"] = CFG.subset
+    df["pool_mode"] = CFG.pool_mode
+    df["bs"] = CFG.bs
+    df["build_custom_model_type"] = CFG.build_custom_model_type
+    df["checkpoint"] = CFG.checkpoint
+    df["gradient_accumulation_steps"] = CFG.gradient_accumulation_steps
+    df["lr"] = CFG.lr
+    df["n_epochs"] = CFG.n_epochs
+    df["random_seed"] = CFG.random_seed
+    df["loss"] = CFG.loss
+    df["loss_distance"] = CFG.loss_distance
+    df["loss_reducer"] = CFG.loss_reducer
+    df["loss_optimizer"] = CFG.loss_optimizer
+    df["loss_lr"] = CFG.loss_lr
+    df["loss_margin"] = CFG.loss_margin
+    df["miner_type_of_triplets"] = CFG.miner_type_of_triplets
+    df["optimizer_name"] = CFG.optimizer_name
+    df["save_flag"] = CFG.save_flag
+    df["data_path"] = CFG.data_path
+    df["item_col_name"] = CFG.item_col_name
+    df["cat_col_name"] = CFG.cat_col_name
+    df["num_col_names"] = CFG.num_col_names
+    df["scale_num_cols"] = CFG.scale_num_cols
+    df["group_col_name"] = CFG.group_col_name
+    df["fold_col_name"] = CFG.group_col_name
+    df["mlflow"] = CFG.mlflow 
+    df["experiment_path"] = CFG.experiment_path
+    df["experiment_id"] = CFG._experiment_id 
+    df["run_description"] = CFG.run_description
     return df

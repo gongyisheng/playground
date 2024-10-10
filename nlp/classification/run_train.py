@@ -1,6 +1,6 @@
 import pandas as pd
 
-from config import Config as ml_CFG
+from config import CFG as ml_CFG
 from pipeline import run_training_pipeline
 
 
@@ -30,7 +30,6 @@ cfg.loss="arcface"
 cfg.mlflow = False
 cfg.fold_col_name = "fold"
 cfg.run_description = "test run"
-# cfg.experiment_path = "/Data Engineering/Project Vulcan/V3 Metric Learning/Full Model Training Pipeline"
 
 data = {
     'coalesced_vm_label': ['abc', 'def', 'abc'],

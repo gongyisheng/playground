@@ -1,3 +1,5 @@
+# config class to set params for experiments; these defaults are usually superseded by the notebook CFG
+
 import json
 import mlflow
 from huggingface_hub import list_repo_files
@@ -6,7 +8,7 @@ import pandas.api.types as ptypes
 import random
 from pathlib import Path
 
-class Config(object):
+class CFG(object):
     """
     Config class defining pipeline parameters. Must be instantiated before running pipeline.
 
@@ -267,9 +269,9 @@ class Config(object):
     def __setattr__(self, key: str, value):
         """If attr is not set in init or is not valid, throw error."""
         if not hasattr(self, key) and self._is_frozen:
-            raise TypeError(f"config does not support {key}")
+            raise TypeError(f"CFG does not support {key}")
         elif not self._validate(key, value):
-            raise ValueError(f"Illegal value for config.{key}")
+            raise ValueError(f"Illegal value for CFG.{key}")
         object.__setattr__(self, key, value)
 
     def _get_config_dictionary(self):
@@ -283,45 +285,44 @@ class Config(object):
         config = self._get_config_dictionary()
         return json.dumps(config, indent=4)
 
+def validate_and_transform_config(CFG:CFG, df:pd.DataFrame):
+    if CFG.fold_col_name:
+        validate_and_transform_config_for_custom_folds(CFG, df)
 
-def validate_and_transform_config(config:Config, df:pd.DataFrame):
-    if config.fold_col_name:
-        validate_and_transform_config_for_custom_folds(config, df)
+    if isinstance(CFG.val_folds, int): # We always want this to be an iterator
+        CFG.val_folds = list(range(CFG.val_folds)) 
 
-    if isinstance(config.val_folds, int): # We always want this to be an iterator
-        config.val_folds = list(range(config.val_folds)) 
+    if isinstance(CFG.num_col_names, str): # We always want this to be an iterator
+        CFG.num_col_names = [CFG.num_col_names]
 
-    if isinstance(config.num_col_names, str): # We always want this to be an iterator
-        config.num_col_names = [config.num_col_names]
+    if CFG.build_custom_model_type:
+        validate_and_transform_config_for_custom_build_type(CFG, df)
 
-    if config.build_custom_model_type:
-        validate_and_transform_config_for_custom_build_type(config, df)
+    assert CFG.item_col_name in df.columns # Make sure item col name exists in df
+    assert CFG.cat_col_name in df.columns # Make sure cat col name exists in df
+    assert CFG.item_col_name != CFG.cat_col_name # Make sure these are distinct
 
-    assert config.item_col_name in df.columns # Make sure item col name exists in df
-    assert config.cat_col_name in df.columns # Make sure cat col name exists in df
-    assert config.item_col_name != config.cat_col_name # Make sure these are distinct
+    if CFG.target_cat_list: # Make sure all cats exist in df
+        assert set(CFG.target_cat_list).issubset(set(df[CFG.cat_col_name]))
 
-    if config.target_cat_list: # Make sure all cats exist in df
-        assert set(config.target_cat_list).issubset(set(df[config.cat_col_name]))
-
-    assert list_repo_files(config.checkpoint) 
+    assert list_repo_files(CFG.checkpoint) 
 
 
-def validate_and_transform_config_for_custom_folds(config:Config, df:pd.DataFrame):
-    assert (config.fold_col_name in df.columns) and ptypes.is_numeric_dtype(df[config.fold_col_name])
-    config.n_folds = df[config.fold_col_name].nunique()
 
-    if isinstance(config.val_folds, int):
-        assert config.val_folds <= config.n_folds
-        config.val_folds = sorted(random.sample(df[config.fold_col_name].unique().tolist(), k=config.val_folds))
+def validate_and_transform_config_for_custom_folds(CFG:CFG, df:pd.DataFrame):
+    assert (CFG.fold_col_name in df.columns) and ptypes.is_numeric_dtype(df[CFG.fold_col_name])
+    CFG.n_folds = df[CFG.fold_col_name].nunique()
+
+    if isinstance(CFG.val_folds, int):
+        assert CFG.val_folds <= CFG.n_folds
+        CFG.val_folds = sorted(random.sample(df[CFG.fold_col_name].unique().tolist(), k=CFG.val_folds))
     else:
-        assert set(config.val_folds).issubset(set(df[config.fold_col_name]))
+        assert set(CFG.val_folds).issubset(set(df[CFG.fold_col_name]))
 
-    assert not config.group_col_name, "Can't do both GroupKFold and custom folds!"
+    assert not CFG.group_col_name, "Can't do both GroupKFold and custom folds!"
 
-
-def validate_and_transform_config_for_custom_build_type(config:Config, df:pd.DataFrame):
-    if config.build_custom_model_type == "num_metric":
-        assert config.num_col_names
-        for num_col_name in config.num_col_names:
+def validate_and_transform_config_for_custom_build_type(CFG:CFG, df:pd.DataFrame):
+    if CFG.build_custom_model_type == "num_metric":
+        assert CFG.num_col_names
+        for num_col_name in CFG.num_col_names:
             assert (num_col_name in df.columns) and ptypes.is_numeric_dtype(df[num_col_name])

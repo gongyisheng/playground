@@ -1,0 +1,13 @@
+datasets
+accelerate
+evaluate
+matplotlib
+numpy
+pandas
+projects
+scikit_learn
+seaborn
+torch
+transformers[sentencepiece]
+pytorch-metric-learning
+mlflow
