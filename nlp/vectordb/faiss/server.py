@@ -20,17 +20,19 @@ amount = 1000000 # 1M
 index_path = f"/media/hdddisk/vectordb-test-data/faiss_index_{amount}.index"
 save_index = None
 
+d = 512
+nlist = 100
+
 if not os.path.exists(index_path):
-    d = 512
-    cpu_index = faiss.IndexFlatL2(d)
+    cpu_quantizer = faiss.IndexFlatL2(d)
     print(f"Index created with dimension {d} at {index_path}")
     save_index = True
 else:
-    cpu_index = faiss.read_index(index_path)
+    cpu_quantizer = faiss.read_index(index_path)
     print(f"Index loaded from {index_path}")
     save_index = False
 
-cpu_index.parallel_mode = 1
+cpu_index = faiss.IndexIVFFlat(cpu_quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
 
 # gpu index creation
 res = faiss.StandardGpuResources()
