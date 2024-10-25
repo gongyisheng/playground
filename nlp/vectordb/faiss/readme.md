@@ -1,4 +1,10 @@
 # install
+
+# benchmark result
+```
+search: 
+
+```
 # refs
 ```
 https://medium.com/pythons-gurus/faiss-vector-database-for-production-llm-applications-90273c78fcbf
