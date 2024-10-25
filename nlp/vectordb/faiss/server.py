@@ -10,21 +10,34 @@ import uvicorn
 
 app = FastAPI()
 
+np.random.seed(1234) # Set seed for reproducibility
+faiss.omp_set_num_threads(4) # Set number of threads for Faiss
+
 # Assume dimensions of vectors
 # amount = 10000 # 10k
 # amount = 100000 # 100k
 amount = 1000000 # 1M
 index_path = f"/media/hdddisk/vectordb-test-data/faiss_index_{amount}.index"
 save_index = None
+
 if not os.path.exists(index_path):
     d = 512
-    index = faiss.IndexFlatL2(d)
+    cpu_index = faiss.IndexFlatL2(d)
     print(f"Index created with dimension {d} at {index_path}")
     save_index = True
 else:
-    index = faiss.read_index(index_path)
+    cpu_index = faiss.read_index(index_path)
     print(f"Index loaded from {index_path}")
     save_index = False
+
+cpu_index.parallel_mode = 1
+
+# gpu index creation
+res = faiss.StandardGpuResources()
+gpu_index = faiss.index_cpu_to_gpu(res, 0, cpu_index)
+
+# Set the index to be used
+index = cpu_index
 
 @app.get("/ping/")
 async def ping():
