@@ -17,7 +17,7 @@ faiss.omp_set_num_threads(4) # Set number of threads for Faiss
 # amount = 10000 # 10k
 # amount = 100000 # 100k
 amount = 1000000 # 1M
-index_path = f"/media/hdddisk/vectordb-test-data/faiss_index_{amount}.index"
+index_path = f"/media/hdddisk/vectordb-test-data/faiss_index_{amount}_trained.index"
 save_index = None
 
 d = 512
@@ -25,14 +25,13 @@ nlist = 100
 
 if not os.path.exists(index_path):
     cpu_quantizer = faiss.IndexFlatL2(d)
+    cpu_index = faiss.IndexIVFFlat(cpu_quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
     print(f"Index created with dimension {d} at {index_path}")
     save_index = True
 else:
-    cpu_quantizer = faiss.read_index(index_path)
+    cpu_index = faiss.read_index(index_path)
     print(f"Index loaded from {index_path}")
     save_index = False
-
-cpu_index = faiss.IndexIVFFlat(cpu_quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
 
 # gpu index creation
 res = faiss.StandardGpuResources()
