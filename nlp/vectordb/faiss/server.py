@@ -40,6 +40,7 @@ gpu_index = faiss.index_cpu_to_gpu(res, 0, cpu_index)
 
 # Set the index to be used
 index = cpu_index
+print(index.is_trained)
 
 @app.get("/ping/")
 async def ping():
