@@ -39,8 +39,8 @@ async def add_vector(texts, repeat=1, concurrency=1):
     print(f"Average time taken: {METRICS['add_time'] / METRICS['add_num'] * 1000} per 1k vectors")
 
 async def run_add_test(limit=100000, repeat=10, concurrency=1):
-    data_dir = "/media/hdddisk/spendhound-data"
-    with open(f"{data_dir}/llm_rag/match_phrase_rag_data.pkl", "rb") as f:
+    data_dir = "/Users/temp"
+    with open(f"{data_dir}/match_phrase_rag_data.pkl", "rb") as f:
         rag_data = pickle.load(f)
     
     texts = []
@@ -87,8 +87,8 @@ async def search_vector(texts, repeat=1, concurrency=1, topk=10):
     print(f"QPS: {METRICS['search_num'] / METRICS['search_time']}")
 
 async def run_search_test(limit=10, repeat=1, concurrency=1, topk=10):
-    data_dir = "/media/hdddisk/spendhound-data"
-    with open(f"{data_dir}/llm_rag/match_phrase_rag_data.pkl", "rb") as f:
+    data_dir = "/Users/temp/Downloads"
+    with open(f"{data_dir}/match_phrase_rag_data.pkl", "rb") as f:
         rag_data = pickle.load(f)
     
     texts = []
