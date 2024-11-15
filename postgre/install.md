@@ -16,7 +16,7 @@ port can be 5432, which is the default port
 `sudo systemctl enable postgresql`  
 
 ## create user and database
-`sudo -u postgres createuser -s <username> -password`  
+`sudo -u postgres createuser -s <username> --password`  
 `sudo -u postgres createdb <dbname>`  
 
 ## connect to database
@@ -29,6 +29,11 @@ port can be 5432, which is the default port
 ### connect using cloudflare tunnel (only for test usage)
 `cloudflared access tcp --hostname <your host> --url localhost:5432`
 `psql --user yisheng --host localhost --password --dbname test`
+
+### uninstall postgresql
+`sudo apt-get --purge remove postgresql postgresql-*`
+`dpkg -l | grep postgres` ---> for double check
+`sudo apt-get --purge remove postgresql postgresql-doc postgresql-common` ---> remove packages
 
 ## ref
 - https://ubuntu.com/server/docs/install-and-configure-postgresql

@@ -38,7 +38,7 @@ add to sudoers(method 2, add to sudo group):
 
 # folder info scan
 `ls -lah`: show all invisible folders and files
-`df -h . --max-depth=1` calculate folder size by check files inside it recursively
+`du -h . --max-depth=1` calculate folder size by check files inside it recursively
 
 # setup mariadb
 download and install:  

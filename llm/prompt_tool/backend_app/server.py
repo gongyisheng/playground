@@ -213,7 +213,7 @@ class ChatHandler(AuthHandler):
         
         client = Global.claude_client
         async with client.messages.stream(
-            max_tokens=1024,
+            max_tokens=8192,
             messages=conversation,
             model=real_model,
             system=system_message,

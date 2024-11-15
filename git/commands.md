@@ -26,6 +26,7 @@
 - sign commit
 `gpg --list-secret-keys --keyid-format=long`  
 `git config --global user.signingkey <key>`  
+`git config commit.gpgsign false`  
 ref: https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key  
 - upload big files
 `git config --global http.postBuffer 524288000`  
