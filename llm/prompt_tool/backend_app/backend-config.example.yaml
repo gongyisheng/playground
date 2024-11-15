@@ -19,9 +19,9 @@ session_cookie_domain: "localhost"
 # model name related
 model_mapping:
   gpt4o-mini: "gpt-4o-mini-2024-07-18"
-  gpt4o: "gpt-4o-2024-05-13"
-  llama3.1: "llama-3.1-405b-reasoning"
-  claude3.5: "claude-3-5-sonnet-20240620"
+  gpt4o: "gpt-4o-2024-08-06"
+  llama3.2: "llama-3.2-90b-vision-preview"
+  claude3.5: "claude-3-5-sonnet-20241022"
 
 # external api related 
 openai_api_key: "12345678901234567890123456789012"
