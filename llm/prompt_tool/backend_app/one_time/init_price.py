@@ -22,9 +22,9 @@ def init_price(db_conn: sqlite3.Connection):
             "claude-3-5-sonnet-20241022", 3 / 1000000, 15 / 1000000, 0
         )
     if pricing_model.get_current_pricing_by_model("o1-preview-2024-09-12") is None:
-        pricing_model.create_pricing("gpt-4o-2024-07-18", 15 / 1000000, 60 / 1000000, 0)
+        pricing_model.create_pricing("o1-preview-2024-09-12", 15 / 1000000, 60 / 1000000, 0)
     if pricing_model.get_current_pricing_by_model("o1-mini-2024-09-12") is None:
-        pricing_model.create_pricing("gpt-4o-2024-07-18", 3 / 1000000, 12 / 1000000, 0)
+        pricing_model.create_pricing("o1-mini-2024-09-12", 3 / 1000000, 12 / 1000000, 0)
 
 
 if __name__ == "__main__":
