@@ -127,6 +127,7 @@ class AuthHandler(BaseHandler):
 # handler for chat request (POST and GET)
 # POST: save prompt and context to memory storage, validation
 # GET:  send prompt to openai and transfer completion SSE stream to client, audit, save chat history
+DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant"
 class ChatHandler(AuthHandler):
     def validate_conversation(self, conversation):
         role = ["system", "user", "assistant"]
@@ -150,7 +151,7 @@ class ChatHandler(AuthHandler):
         conversation = body.get("conversation", [])
         if len(conversation) == 0:
             conversation.append(
-                {"role": "system", "content": "You are a helpful assistant"}
+                {"role": "system", "content": DEFAULT_SYSTEM_PROMPT}
             )
         if len(conversation) == 1:
             conversation.append(
@@ -283,6 +284,12 @@ class ChatHandler(AuthHandler):
             return
         else:
             del MESSAGE_STORAGE[thread_id]
+        
+        if real_model.startswith("o1"):
+            if conversation[0]["role"] == "system":
+                if conversation[0]["content"] != DEFAULT_SYSTEM_PROMPT:
+                    conversation[1]["content"] = conversation[0]["content"]+"\n"+conversation[1]["content"]
+                conversation = conversation[1:]
 
         billing_period = datetime.now().strftime("%Y-%m")
         user_cost = Global.audit_model.get_total_cost_by_user_id_billing_period(
@@ -303,6 +310,8 @@ class ChatHandler(AuthHandler):
         # create openai stream
         try:
             if model.lower().startswith("gpt"):
+                stream = self.openai_text_stream(real_model, conversation)
+            elif model.lower().startswith("o1"):
                 stream = self.openai_text_stream(real_model, conversation)
             elif model.lower().startswith("llama"):
                 stream = self.llama_text_stream(real_model, conversation)
