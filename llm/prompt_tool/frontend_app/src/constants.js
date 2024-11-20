@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:5600";
+const BASE_URL = "https://chatbackend.yellowday.day";
 
 const ENDPOINT_AUTH = BASE_URL + "/auth";
 const ENDPOINT_SIGNIN = BASE_URL + "/signin";
