@@ -182,10 +182,22 @@ class ChatHandler(AuthHandler):
             model=real_model,
             messages=conversation,
             stream=True,
+            stream_options={"include_usage": True}
         )
         async for chunk in stream:
-            content = chunk.choices[0].delta.content
-            yield content
+            if len(chunk.choices) == 0:
+                yield {
+                    "type": "usage", 
+                    "content": {
+                        "input_tokens": chunk.usage.prompt_tokens, 
+                        "output_tokens": chunk.usage.completion_tokens
+                        }
+                    }
+            else:
+                yield {
+                    "type": "text",
+                    "content": chunk.choices[0].delta.content
+                }
 
     async def llama_text_stream(self, real_model, conversation):
         if Global.llama_client is None:
@@ -199,10 +211,22 @@ class ChatHandler(AuthHandler):
             model=real_model,
             messages=conversation,
             stream=True,
+            stream_options={"include_usage": True}
         )
         async for chunk in stream:
-            content = chunk.choices[0].delta.content
-            yield content
+            if len(chunk.choices) == 0:
+                yield {
+                    "type": "usage", 
+                    "content": {
+                        "input_tokens": chunk.usage.prompt_tokens, 
+                        "output_tokens": chunk.usage.completion_tokens
+                        }
+                    }
+            else:
+                yield {
+                    "type": "text",
+                    "content": chunk.choices[0].delta.content
+                }
 
     async def claude_text_stream(self, real_model, conversation):
         system_message = conversation[0]["content"]
@@ -219,7 +243,10 @@ class ChatHandler(AuthHandler):
             system=system_message,
         ) as stream:
             async for text in stream.text_stream:
-                yield text
+                yield {
+                    "type": "text",
+                    "content": text
+                }
 
     async def get(self):
         global MESSAGE_STORAGE
@@ -285,11 +312,17 @@ class ChatHandler(AuthHandler):
             return
 
         assistant_message = ""
-        async for text in stream:
-            if text is not None:
+        input_token = 0
+        output_token = 0
+        async for resp in stream:
+            if resp["type"] == "text":
+                text = resp["content"]
                 assistant_message += text
                 self.write(self.build_sse_message(text))
                 self.flush()
+            elif resp["type"] == "usage":
+                input_token = resp["content"]["input_tokens"]
+                output_token = resp["content"]["output_tokens"]
 
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
@@ -298,14 +331,15 @@ class ChatHandler(AuthHandler):
         )
 
         # audit cost
-        input_token = 0
-        for i in range(len(conversation) - 1):
-            item = conversation[i]
-            input_token += self.get_token_num(item["content"])
+        if input_token == 0:
+            for i in range(len(conversation) - 1):
+                item = conversation[i]
+                input_token += self.get_token_num(item["content"])
         logging.info(f"input_token: {input_token}")
 
-        output_token = self.get_token_num(assistant_message)
-        logging.info(f"output_token: {output_token}")
+        if output_token == 0:
+            output_token = self.get_token_num(assistant_message)
+            logging.info(f"output_token: {output_token}")
 
         billing_period = datetime.now().strftime("%Y-%m")
         Global.audit_model.insert_audit_log(
