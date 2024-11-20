@@ -127,6 +127,7 @@ class AuthHandler(BaseHandler):
 # handler for chat request (POST and GET)
 # POST: save prompt and context to memory storage, validation
 # GET:  send prompt to openai and transfer completion SSE stream to client, audit, save chat history
+DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant"
 class ChatHandler(AuthHandler):
     def validate_conversation(self, conversation):
         role = ["system", "user", "assistant"]
@@ -150,7 +151,7 @@ class ChatHandler(AuthHandler):
         conversation = body.get("conversation", [])
         if len(conversation) == 0:
             conversation.append(
-                {"role": "system", "content": "You are a helpful assistant"}
+                {"role": "system", "content": DEFAULT_SYSTEM_PROMPT}
             )
         if len(conversation) == 1:
             conversation.append(
@@ -182,10 +183,22 @@ class ChatHandler(AuthHandler):
             model=real_model,
             messages=conversation,
             stream=True,
+            stream_options={"include_usage": True}
         )
         async for chunk in stream:
-            content = chunk.choices[0].delta.content
-            yield content
+            if len(chunk.choices) == 0:
+                yield {
+                    "type": "usage", 
+                    "content": {
+                        "input_tokens": chunk.usage.prompt_tokens, 
+                        "output_tokens": chunk.usage.completion_tokens
+                        }
+                    }
+            else:
+                yield {
+                    "type": "text",
+                    "content": chunk.choices[0].delta.content
+                }
 
     async def llama_text_stream(self, real_model, conversation):
         if Global.llama_client is None:
@@ -199,10 +212,22 @@ class ChatHandler(AuthHandler):
             model=real_model,
             messages=conversation,
             stream=True,
+            stream_options={"include_usage": True}
         )
         async for chunk in stream:
-            content = chunk.choices[0].delta.content
-            yield content
+            if len(chunk.choices) == 0:
+                yield {
+                    "type": "usage", 
+                    "content": {
+                        "input_tokens": chunk.usage.prompt_tokens, 
+                        "output_tokens": chunk.usage.completion_tokens
+                        }
+                    }
+            else:
+                yield {
+                    "type": "text",
+                    "content": chunk.choices[0].delta.content
+                }
 
     async def claude_text_stream(self, real_model, conversation):
         system_message = conversation[0]["content"]
@@ -219,7 +244,20 @@ class ChatHandler(AuthHandler):
             system=system_message,
         ) as stream:
             async for text in stream.text_stream:
-                yield text
+                yield {
+                    "type": "text",
+                    "content": text
+                }
+            # logging.info(stream._AsyncMessageStream__final_message_snapshot)
+            final_msg = await stream.get_final_message()
+            yield {
+                "type": "usage",
+                "content": {
+                    "input_tokens": final_msg.usage.input_tokens,
+                    "output_tokens": final_msg.usage.output_tokens,
+                }
+            }
+        
 
     async def get(self):
         global MESSAGE_STORAGE
@@ -246,6 +284,12 @@ class ChatHandler(AuthHandler):
             return
         else:
             del MESSAGE_STORAGE[thread_id]
+        
+        if real_model.startswith("o1"):
+            if conversation[0]["role"] == "system":
+                if conversation[0]["content"] != DEFAULT_SYSTEM_PROMPT:
+                    conversation[1]["content"] = conversation[0]["content"]+"\n"+conversation[1]["content"]
+                conversation = conversation[1:]
 
         billing_period = datetime.now().strftime("%Y-%m")
         user_cost = Global.audit_model.get_total_cost_by_user_id_billing_period(
@@ -267,6 +311,8 @@ class ChatHandler(AuthHandler):
         try:
             if model.lower().startswith("gpt"):
                 stream = self.openai_text_stream(real_model, conversation)
+            elif model.lower().startswith("o1"):
+                stream = self.openai_text_stream(real_model, conversation)
             elif model.lower().startswith("llama"):
                 stream = self.llama_text_stream(real_model, conversation)
             elif model.lower().startswith("claude"):
@@ -285,12 +331,18 @@ class ChatHandler(AuthHandler):
             return
 
         assistant_message = ""
-        async for text in stream:
-            if text is not None:
+        input_token = 0
+        output_token = 0
+        async for resp in stream:
+            if resp["type"] == "text" and resp["content"] is not None:
+                text = resp["content"]
                 assistant_message += text
                 self.write(self.build_sse_message(text))
                 self.flush()
-
+            elif resp["type"] == "usage":
+                input_token = resp["content"]["input_tokens"]
+                output_token = resp["content"]["output_tokens"]
+                logging.info(f"Get usage from API successfully")
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
         Global.chat_history_model.save_chat_history(
@@ -298,14 +350,14 @@ class ChatHandler(AuthHandler):
         )
 
         # audit cost
-        input_token = 0
-        for i in range(len(conversation) - 1):
-            item = conversation[i]
-            input_token += self.get_token_num(item["content"])
-        logging.info(f"input_token: {input_token}")
+        if input_token == 0:
+            for i in range(len(conversation) - 1):
+                item = conversation[i]
+                input_token += self.get_token_num(item["content"])
 
-        output_token = self.get_token_num(assistant_message)
-        logging.info(f"output_token: {output_token}")
+        if output_token == 0:
+            output_token = self.get_token_num(assistant_message)
+        logging.info(f"Input token: {input_token}, output_token: {output_token}")
 
         billing_period = datetime.now().strftime("%Y-%m")
         Global.audit_model.insert_audit_log(
