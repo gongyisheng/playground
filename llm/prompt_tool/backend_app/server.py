@@ -247,6 +247,16 @@ class ChatHandler(AuthHandler):
                     "type": "text",
                     "content": text
                 }
+            # logging.info(stream._AsyncMessageStream__final_message_snapshot)
+            final_msg = await stream.get_final_message()
+            yield {
+                "type": "usage",
+                "content": {
+                    "input_tokens": final_msg.usage.input_tokens,
+                    "output_tokens": final_msg.usage.output_tokens,
+                }
+            }
+        
 
     async def get(self):
         global MESSAGE_STORAGE
@@ -315,7 +325,7 @@ class ChatHandler(AuthHandler):
         input_token = 0
         output_token = 0
         async for resp in stream:
-            if resp["type"] == "text":
+            if resp["type"] == "text" and resp["content"] is not None:
                 text = resp["content"]
                 assistant_message += text
                 self.write(self.build_sse_message(text))
@@ -323,7 +333,7 @@ class ChatHandler(AuthHandler):
             elif resp["type"] == "usage":
                 input_token = resp["content"]["input_tokens"]
                 output_token = resp["content"]["output_tokens"]
-
+                logging.info(f"Get usage from API successfully")
         # save chat history
         conversation.append({"role": "assistant", "content": assistant_message})
         Global.chat_history_model.save_chat_history(
@@ -335,11 +345,10 @@ class ChatHandler(AuthHandler):
             for i in range(len(conversation) - 1):
                 item = conversation[i]
                 input_token += self.get_token_num(item["content"])
-        logging.info(f"input_token: {input_token}")
 
         if output_token == 0:
             output_token = self.get_token_num(assistant_message)
-            logging.info(f"output_token: {output_token}")
+        logging.info(f"Input token: {input_token}, output_token: {output_token}")
 
         billing_period = datetime.now().strftime("%Y-%m")
         Global.audit_model.insert_audit_log(
