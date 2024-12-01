@@ -2,9 +2,9 @@ import re
 import subprocess
 
 def build_commands(user, password, database, table_size, bench_name, threads):
-    prep_command = ["sysbench", "--db-driver=pgsql", "--pgsql-host=127.0.0.1", "--pgsql-port=5432", f"--pgsql-user={user}" f"--pgsql-password={password}" f"--pgsql-db={database}", bench_name, "prepare", f"--table-size={table_size}"]
-    run_command = ["sysbench", "--db-driver=pgsql", "--pgsql-host=127.0.0.1", "--pgsql-port=5432", f"--pgsql-user={user}" f"--pgsql-password={password}" f"--pgsql-db={database}", bench_name, "run", f"--threads={threads}"]
-    clean_command = ["sysbench", "--db-driver=pgsql", "--pgsql-host=127.0.0.1", "--pgsql-port=5432", f"--pgsql-user={user}" f"--pgsql-password={password}" f"--pgsql-db={database}", bench_name, "cleanup"]
+    prep_command = ["sysbench", "--db-driver=pgsql", "--pgsql-host=127.0.0.1", "--pgsql-port=5432", f"--pgsql-user={user}", f"--pgsql-password={password}", f"--pgsql-db={database}", bench_name, "prepare", f"--table-size={table_size}"]
+    run_command = ["sysbench", "--db-driver=pgsql", "--pgsql-host=127.0.0.1", "--pgsql-port=5432", f"--pgsql-user={user}", f"--pgsql-password={password}", f"--pgsql-db={database}", bench_name, "run", f"--threads={threads}"]
+    clean_command = ["sysbench", "--db-driver=pgsql", "--pgsql-host=127.0.0.1", "--pgsql-port=5432", f"--pgsql-user={user}", f"--pgsql-password={password}", f"--pgsql-db={database}", bench_name, "cleanup"]
     return prep_command, run_command, clean_command
 
 def display_results(results):
