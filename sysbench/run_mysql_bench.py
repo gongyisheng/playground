@@ -40,8 +40,10 @@ def run_sysbench(user, password, database):
             subprocess.run(clean_command, capture_output=True, text=True)
             if result.returncode != 0:
                 print(result.stderr)
+                print(result.stdout)
                 break
             else:
+                print(result.stderr)
                 print(result.stdout)
             break
         break
