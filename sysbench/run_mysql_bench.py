@@ -8,6 +8,9 @@ def build_commands(user, password, database, table_size, bench_name, threads):
     return prep_command, run_command, clean_command
 
 def run_sysbench(user, password, database, table_size):
+    
+    print(f"Running sysbench benchmarks: database={database}, table_size={table_size}")
+
     read_bench_set = [
         "oltp_point_select",
         "oltp_read_only",
