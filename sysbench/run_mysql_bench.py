@@ -74,5 +74,5 @@ if __name__ == "__main__":
     user = sys.argv[1]
     password = sys.argv[2]
     database = sys.argv[3] if len(sys.argv) > 3 else "sbtest"
-    table_size = sys.argv[4] if len(sys.argv) > 4 else 10,000,000
+    table_size = sys.argv[4] if len(sys.argv) > 4 else 10000000
     run_sysbench(user, password, database, table_size)
