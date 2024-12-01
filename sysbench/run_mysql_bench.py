@@ -38,7 +38,11 @@ def run_sysbench(user, password, database):
             subprocess.run(prep_command, capture_output=True, text=True)
             result = subprocess.run(run_command, capture_output=True, text=True)
             subprocess.run(clean_command, capture_output=True, text=True)
-            print(result.stderr)
+            if result.returncode != 0:
+                print(result.stderr)
+                break
+            else:
+                print(result.stdout)
             break
         break
 
