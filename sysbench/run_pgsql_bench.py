@@ -55,7 +55,7 @@ def run_sysbench(user, password, database, table_size):
             subprocess.run(clean_command, capture_output=True, text=True)
             if result.returncode != 0:
                 print("Error running sysbench")
-                print(result.stderr)
+                print(result.stdout)
                 continue
             output = result.stdout
             # Extracting the values
