@@ -67,8 +67,6 @@ def run_sysbench(user, password, database, table_size):
             print("Read QPS:", read/time)
             print("Write QPS:", write/time)
             print("Transaction QPS:", transaction/time)
-            break
-        break
 
 
 if __name__ == "__main__":
