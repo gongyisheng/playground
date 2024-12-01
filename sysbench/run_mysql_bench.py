@@ -1,13 +1,13 @@
 import re
 import subprocess
 
-def build_commands(user, password, database, bench_name, threads):
-    prep_command = ["sysbench", "--db-driver=mysql", "--mysql-host=127.0.0.1", "--mysql-port=3306", f"--mysql-user={user}", f"--mysql-password={password}", f"--mysql-db={database}", bench_name, "prepare"]
+def build_commands(user, password, database, table_size, bench_name, threads):
+    prep_command = ["sysbench", "--db-driver=mysql", "--mysql-host=127.0.0.1", "--mysql-port=3306", f"--mysql-user={user}", f"--mysql-password={password}", f"--mysql-db={database}", bench_name, "prepare", f"--table-size={table_size}"]
     run_command = ["sysbench", "--db-driver=mysql", "--mysql-host=127.0.0.1", "--mysql-port=3306", f"--mysql-user={user}", f"--mysql-password={password}", f"--mysql-db={database}", bench_name, "run", f"--threads={threads}"]
     clean_command = ["sysbench", "--db-driver=mysql", "--mysql-host=127.0.0.1", "--mysql-port=3306", f"--mysql-user={user}", f"--mysql-password={password}", f"--mysql-db={database}", bench_name, "cleanup"]
     return prep_command, run_command, clean_command
 
-def run_sysbench(user, password, database):
+def run_sysbench(user, password, database, table_size):
     read_bench_set = [
         "oltp_point_select",
         "oltp_read_only",
@@ -31,9 +31,9 @@ def run_sysbench(user, password, database):
     time_pattern = r'total time:\s+([\d.]+)s'
 
     threads = [1, 2, 4, 8, 16, 32, 64]
-    for bench_name in read_bench_set:
+    for bench_name in read_bench_set + write_bench_set:
         for thread in threads:
-            prep_command, run_command, clean_command = build_commands(user, password, database, bench_name, thread)
+            prep_command, run_command, clean_command = build_commands(user, password, database, table_size, bench_name, thread)
             print(f"Running {bench_name} with {thread} threads")
             subprocess.run(prep_command, capture_output=True, text=True)
             result = subprocess.run(run_command, capture_output=True, text=True)
@@ -56,4 +56,5 @@ if __name__ == "__main__":
     user = sys.argv[1]
     password = sys.argv[2]
     database = sys.argv[3] if len(sys.argv) > 3 else "sbtest"
-    run_sysbench(user, password, database)
+    table_size = sys.argv[4] if len(sys.argv) > 4 else 10,000,000
+    run_sysbench(user, password, database, table_size)
