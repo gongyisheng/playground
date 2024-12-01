@@ -24,20 +24,16 @@ def display_results(results):
             print(line)
 
 def run_sysbench(user, password, database, table_size):
-    read_bench_set = [
+    bench_set = [
+        "oltp_insert",
         "oltp_point_select",
-        "oltp_read_only",
         "select_random_points",
         "select_random_ranges",
-    ]
-    write_bench_set = [
-        "oltp_delete_insert",
-        "oltp_insert",
+        "oltp_read_only",
         "oltp_read_write",
+        "oltp_write_only",
         "oltp_update_index",
         "oltp_update_non_index",
-        "oltp_write_only",
-        "types_delete_insert",
     ]
 
     # Regular expressions to extract data
@@ -50,7 +46,7 @@ def run_sysbench(user, password, database, table_size):
     results = {}
 
     threads = [1, 2, 4, 8, 16, 32, 64]
-    for bench_name in read_bench_set + write_bench_set:
+    for bench_name in bench_set:
         for thread in threads:
             prep_command, run_command, clean_command = build_commands(user, password, database, table_size, bench_name, thread)
             print(f"Running {bench_name} with {thread} threads")
