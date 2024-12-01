@@ -107,7 +107,7 @@ sysbench 1.0.20
 Number of threads: 8
 ```
 
-benchmark result:
+benchmark result (on raspberrypi):
 | Method                | Read QPS | Write QPS | Transaction QPS |
 |-----------------------|----------|-----------|-----------------|
 | oltp_insert           | 0        | 162.71    | 162.71          |
@@ -132,7 +132,7 @@ benchmark config:
 sysbench 1.0.20
 ```
 
-benchmark result:
+benchmark result (on raspberrypi):
 | Method                | Read QPS | Write QPS | Transaction QPS |
 |-----------------------|----------|-----------|-----------------|
 | oltp_insert           | 0        | 1839.41   | 1839.41         |
