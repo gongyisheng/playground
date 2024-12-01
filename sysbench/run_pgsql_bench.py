@@ -53,6 +53,10 @@ def run_sysbench(user, password, database, table_size):
             subprocess.run(prep_command, capture_output=True, text=True)
             result = subprocess.run(run_command, capture_output=True, text=True)
             subprocess.run(clean_command, capture_output=True, text=True)
+            if result.returncode != 0:
+                print("Error running sysbench")
+                print(result.stderr)
+                continue
             output = result.stdout
             # Extracting the values
             read = int(re.search(read_pattern, output).group(1))
