@@ -8,17 +8,10 @@ def build_commands(user, password, database, bench_name, threads):
 
 def run_sysbench(user, password, database):
     read_bench_set = [
-        "covering_index_scan",
-        "index_join",
-        "index_join_scan",
         "oltp_point_select",
         "oltp_read_only",
         "select_random_points",
         "select_random_ranges",
-        "index_scan",
-        "groupby_scan",
-        "table_scan",
-        "types_table_scan"
     ]
     write_bench_set = [
         "oltp_delete_insert",
