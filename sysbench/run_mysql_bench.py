@@ -67,6 +67,15 @@ def run_sysbench(user, password, database, table_size):
             print("Read QPS:", read/time)
             print("Write QPS:", write/time)
             print("Transaction QPS:", transaction/time)
+            # Save the extracted values
+            if bench_name not in results:
+                results[bench_name] = {}
+            results[bench_name][thread] = {
+                "read": read/time,
+                "write": write/time,
+                "transaction": transaction/time
+            }
+    display_results(results)
 
 
 if __name__ == "__main__":
