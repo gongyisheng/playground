@@ -11,6 +11,13 @@
     ```bash
     sudo apt-get autoremove
     ```
+3. **Install 3p .deb package**
+   ```
+   # method 1
+   sudo dpkg -i package-name.deb
+   # method 2
+   sudo apt install ./package-name.deb
+   ```
 ## Hardware
 1. **Disk Choice**
    - SD card for booting and system software. Backup frequently and assume all the data on the SD card will be lost.
