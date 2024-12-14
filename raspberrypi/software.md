@@ -5,41 +5,6 @@
 # install vim, tcpdump, perf, network tools
 `sudo apt install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip redis-tools`  
 
-# setup ssh login
-`sudo apt install openssh-server`
-`sudo systemctl enable ssh`
-`sudo systemctl start ssh`
-
-use public key to login:
-```
-cd ~/.ssh
-vim authorized_keys
-<COPY YOUR PUB KEY TO authorized_keys>
-```
-disable password login:
-
-`sudo vim /etc/ssh/sshd_config`
-`PasswordAuthentication no`
-`sudo systemctl restart ssh`
-
-# create user
-create user with home dir:`sudo useradd -m <user> --groups <group>`
-delete password:`sudo passwd -d <user>`
-use bash: `bash`
-add to sudoers(method 1):
-```
-visudo /etc/sudoers
-
-# Allow members of group sudo to execute any command
-%sudo   ALL=(ALL:ALL) ALL
-```
-add to sudoers(method 2, add to sudo group):
-`sudo adduser <user> sudo`
-
-# folder info scan
-`ls -lah`: show all invisible folders and files
-`du -h . --max-depth=1` calculate folder size by check files inside it recursively
-
 # setup mariadb
 download and install:  
 `sudo apt install mariadb-server`
@@ -133,13 +98,3 @@ download from background:
 screen -S bypy download <cloud path> <local path>
 ctrl + a + d
 ```
-
-# Disable tracker3 for ubuntu desktop
-`systemctl --user mask tracker-extract-3.service tracker-miner-fs-3.service tracker-miner-rss-3.service tracker-writeback-3.service tracker-xdg-portal-3.service tracker-miner-fs-control-3.service`  
-`tracker3 reset -s -r`  
-`vim ~/.config/autostart/tracker-miner-fs-3.desktop`  
-```
-[Desktop Entry]
-Hidden=true
-```
-ref: https://askubuntu.com/questions/1344050/how-to-disable-tracker-on-ubuntu-20-04

@@ -1,41 +1,92 @@
 # Maintenance tips for Raspberry Pi
-## Software
-1. **Update and Upgrade**:
-    - Update the package list and upgrade the packages to the latest version.
-    ```bash
-    sudo apt-get update
-    sudo apt-get upgrade
-    ```
-2. **Clean up**:
-    - Remove the packages that are no longer required. (This can also help with /boot full issue)
-    ```bash
-    sudo apt-get autoremove
-    ```
-3. **Install 3p .deb package**
-   ```
-   # method 1
-   sudo dpkg -i package-name.deb
-   # method 2
-   sudo apt install ./package-name.deb
-   ```
-## Hardware
-1. **Disk Choice**
-   - SD card for booting and system software. Backup frequently and assume all the data on the SD card will be lost.
-   - SSD for data storage with hot data have read/write performance requirements. Backup regularly and assume all the data on the SSD will be lost after years of use.
-   - HDD for data storage with cold data which may not be touched frequently. Backup regularly and assume all the data on the HDD will be lost after years of use.
-   - Avoid SSD connected on USB for a long time, the current that goes into SSD may be high and USB is not always stable
-2. **Cooling**
-   - Install a cooling fan and heat sink to prevent the Raspberry Pi from overheating.
-   - The temperature of the Raspberry Pi should be kept below 80°C. Too much heat may cause SD card corruption.
-3. **Power Supply**
-   - The Raspberry Pi 5 requires a 5V 3A power supply.
-   - Assume there'll be power outages. In practice, every 2-3 weeks there will be a power outage, caused by human error, weather, or other reasons. Make sure the Raspberry Pi can boot up automatically after a power outage.
-4. **Network**
-   - If the Raspberry Pi is using a Wi-Fi connection, please use 5GHz Wi-Fi to get a better network connection.
-   - Use a static IP address for the Raspberry Pi if a DNS server is running on it. 
-5. **Backup**
-   - Backup the system and data regularly.
-   - S3 deep archive is a good choice of backup cloud storage.
-6. **High Availability**
-   - Use at least two Raspberry Pis to build a high availability system.
-   - Test running applications on backup server if running commands are complicated.
+## Package management
+```bash
+# install known packages
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get autoremove
+
+# install .deb packages
+# method 1
+sudo dpkg -i package-name.deb
+# method 2
+sudo apt install ./package-name.deb
+```
+
+# setup ssh login
+`sudo apt install openssh-server`
+`sudo systemctl enable ssh`
+`sudo systemctl start ssh`
+
+use public key to login:
+```
+cd ~/.ssh
+vim authorized_keys
+<COPY YOUR PUB KEY TO authorized_keys>
+```
+disable password login:
+
+`sudo vim /etc/ssh/sshd_config`
+`PasswordAuthentication no`
+`sudo systemctl restart ssh`
+
+## user related
+```bash
+# create user with home dir:
+sudo useradd -m <USER> --groups <GROUP>
+# delete password
+sudo passwd -d <USER>
+# use bash:
+bash
+
+# add to sudoers (method1)
+visudo /etc/sudoers
+# Allow members of group sudo to execute any command
+%sudo   ALL=(ALL:ALL) ALL
+
+# add to sudoers(method 2, add to sudo group):
+sudo adduser <USER> sudo
+
+# change password
+# change password of current user:  
+passwd  
+
+# create a new user:  
+sudo useradd -m <USERNAME> -G sudo  
+sudo passwd <USERNAME>
+# delete default pi user:  
+sudo deluser pi
+# delete user with its home folder  
+sudo deluser -remove-home pi
+``` 
+
+## Disable sleep mode
+```bash
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+```
+ref: https://askubuntu.com/questions/47311/how-do-i-disable-my-system-from-going-to-sleep
+
+## Disable tracker3 for ubuntu desktop
+`systemctl --user mask tracker-extract-3.service tracker-miner-fs-3.service tracker-miner-rss-3.service tracker-writeback-3.service tracker-xdg-portal-3.service tracker-miner-fs-control-3.service`  
+`tracker3 reset -s -r`  
+`vim ~/.config/autostart/tracker-miner-fs-3.desktop`  
+```
+[Desktop Entry]
+Hidden=true
+```
+ref: https://askubuntu.com/questions/1344050/how-to-disable-tracker-on-ubuntu-20-04
+
+## crontab usage
+```bash
+# list job
+crontab -l
+# add cronjob
+crontab -e -u <USER>
+* * * * * <COMMAND>` # (remember to save log if needed)
+# cronjob save log (not recommend)
+sudo vim /etc/rsyslog.d/50-default.conf
+# cronjob execution record
+grep CRON /var/log/syslog
+# chmod of file if run with root user
+chmod +x <FILE>
+```
