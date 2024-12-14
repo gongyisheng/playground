@@ -13,8 +13,8 @@ def init_price(db_conn: sqlite3.Connection):
         pricing_model.create_pricing(
             "gpt-4o-mini-2024-07-18", 0.15 / 1000000, 0.6 / 1000000, 0
         )
-    if pricing_model.get_current_pricing_by_model("gpt-4o-2024-08-06") is None:
-        pricing_model.create_pricing("gpt-4o-2024-08-06", 2.5 / 1000000, 10 / 1000000, 0)
+    if pricing_model.get_current_pricing_by_model("gpt-4o-2024-11-20") is None:
+        pricing_model.create_pricing("gpt-4o-2024-11-20", 2.5 / 1000000, 10 / 1000000, 0)
     if pricing_model.get_current_pricing_by_model("llama-3.2-90b-vision-preview") is None:
         pricing_model.create_pricing("llama-3.2-90b-vision-preview", 0, 0, 0)
     if pricing_model.get_current_pricing_by_model("claude-3-5-sonnet-20241022") is None:
@@ -22,9 +22,9 @@ def init_price(db_conn: sqlite3.Connection):
             "claude-3-5-sonnet-20241022", 3 / 1000000, 15 / 1000000, 0
         )
     if pricing_model.get_current_pricing_by_model("o1-preview-2024-09-12") is None:
-        pricing_model.create_pricing("gpt-4o-2024-07-18", 15 / 1000000, 60 / 1000000, 0)
+        pricing_model.create_pricing("o1-preview-2024-09-12", 15 / 1000000, 60 / 1000000, 0)
     if pricing_model.get_current_pricing_by_model("o1-mini-2024-09-12") is None:
-        pricing_model.create_pricing("gpt-4o-2024-07-18", 3 / 1000000, 12 / 1000000, 0)
+        pricing_model.create_pricing("o1-mini-2024-09-12", 3 / 1000000, 12 / 1000000, 0)
 
 
 if __name__ == "__main__":
