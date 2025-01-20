@@ -30,7 +30,7 @@ reboot
 `df -h`
 
 # disk health check
-`sudo badblocks -v /dev/sda`
+`sudo badblocks -s -v /dev/sda`
 
 # stress test
 `sudo apt-get install stress`
