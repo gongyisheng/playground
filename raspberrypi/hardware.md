@@ -29,6 +29,9 @@ reboot
 # disk info
 `df -h`
 
+# disk health check
+`sudo badblocks -s -v /dev/sda`
+
 # stress test
 `sudo apt-get install stress`
 `while true; do vcgencmd measure_clock arm; vcgencmd measure_temp; sleep 10; done& stress -c 4 -t 900s`
@@ -40,22 +43,6 @@ reboot
 add following line to `/etc/fstab` to mount disk after boot  
 `UUID=XXXXXXX /media/usbdisk auto nosuid,nodev,nofail 0 2`
 unmount: IMPORTANT! dont use lazy umount if you cares driver can safely unplugged
-
-# network speed test
-`sudo apt-get install iperf`   
-`iperf -s -p 8080` server side   
-`iperf -c <server_ip> -p 8080` client side   
-You will see result like this:   
-```
-yisheng@raspberrypi-5:~$ iperf -s -p 8080
-------------------------------------------------------------
-Server listening on TCP port 8080
-TCP window size:  128 KByte (default)
-------------------------------------------------------------
-[  1] local 10.0.0.142 port 8080 connected with 10.0.0.165 port 59707 (icwnd/mss/irtt=14/1448/9853)
-[ ID] Interval       Transfer     Bandwidth
-[  1] 0.0000-12.5710 sec  3.97 MBytes  2.65 Mbits/sec
-```
 
 # wlan quality
 `iwconfig wlan0 | grep Quality`   
