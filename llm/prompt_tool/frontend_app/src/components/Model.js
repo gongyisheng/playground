@@ -62,9 +62,9 @@ function Model({ onChange, cost, limit }) {
       <div className="px-4 py-4 gap-2">
         {renderModelBlock("GPT4o-mini", onClick)}
         {renderModelBlock("GPT4o", onClick)}
-        {renderModelBlock("o1-mini", onClick)}
-        {renderModelBlock("o1-preview", onClick)}
-        {renderModelBlock("Llama3.2", onClick)}
+        {renderModelBlock("o3-mini", onClick)}
+        {renderModelBlock("o1", onClick)}
+        {/* {renderModelBlock("Llama3.2", onClick)} */}
         {renderModelBlock("Claude3.5", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
