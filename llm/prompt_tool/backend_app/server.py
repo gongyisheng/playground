@@ -300,6 +300,8 @@ class ChatHandler(AuthHandler):
         # get uuid from url
         thread_id = self.get_argument("thread_id")
         model = self.get_argument("model")
+        logging.info(f"Get chat request: thread_id={thread_id}, model={model}")
+
         if thread_id is None or model is None:
             self.build_return(400, {"error": "thread_id or model is missing"})
             return
