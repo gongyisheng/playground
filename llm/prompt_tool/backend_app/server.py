@@ -310,7 +310,7 @@ class ChatHandler(AuthHandler):
         else:
             del MESSAGE_STORAGE[thread_id]
         
-        if real_model.startswith(("o1", "o3")):
+        if real_model.startswith(("o1", "o3", "deepseek-r1")):
             if conversation[0]["role"] == "system":
                 if conversation[0]["content"] != DEFAULT_SYSTEM_PROMPT:
                     conversation[1]["content"] = conversation[0]["content"]+"\n"+conversation[1]["content"]
