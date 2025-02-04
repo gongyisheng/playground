@@ -13,8 +13,6 @@ sys.path.append("../")
 from openai import AsyncOpenAI
 import anthropic
 import yaml
-import tiktoken
-import tiktoken_ext.openai_public
 import tornado.ioloop
 import tornado.web
 
@@ -35,7 +33,6 @@ from one_time.init_price import init_price
 from utils import setup_logger, encrypt_data, decrypt_data
 
 MESSAGE_STORAGE = {}
-ENC = tiktoken.core.Encoding(**tiktoken_ext.openai_public.cl100k_base())
 
 
 # read yaml config file
@@ -59,6 +56,7 @@ class Global:
     openai_client = None
     claude_client = None
     llama_client = None
+    deepseek_client = None
 
 
 # base handler for all requests, cors configs
@@ -257,6 +255,33 @@ class ChatHandler(AuthHandler):
                     "output_tokens": final_msg.usage.output_tokens,
                 }
             }
+    
+
+    async def deepseek_text_stream(self, real_model, conversation):
+        if Global.openai_client is None:
+            Global.openai_client = AsyncOpenAI(api_key=Global.config["deepseek_api_key"])
+
+        client  = Global.openai_client
+        stream = await client.chat.completions.create(
+            model=real_model,
+            messages=conversation,
+            stream=True,
+            stream_options={"include_usage": True}
+        )
+        async for chunk in stream:
+            if len(chunk.choices) == 0:
+                yield {
+                    "type": "usage", 
+                    "content": {
+                        "input_tokens": chunk.usage.prompt_tokens, 
+                        "output_tokens": chunk.usage.completion_tokens
+                        }
+                    }
+            else:
+                yield {
+                    "type": "text",
+                    "content": chunk.choices[0].delta.content
+                }
         
 
     async def get(self):
@@ -285,7 +310,7 @@ class ChatHandler(AuthHandler):
         else:
             del MESSAGE_STORAGE[thread_id]
         
-        if real_model.startswith("o1"):
+        if real_model.startswith(("o1", "o3", "deepseek-r1")):
             if conversation[0]["role"] == "system":
                 if conversation[0]["content"] != DEFAULT_SYSTEM_PROMPT:
                     conversation[1]["content"] = conversation[0]["content"]+"\n"+conversation[1]["content"]
@@ -311,17 +336,19 @@ class ChatHandler(AuthHandler):
         try:
             if model.lower().startswith("gpt"):
                 stream = self.openai_text_stream(real_model, conversation)
-            elif model.lower().startswith("o1"):
+            elif model.lower().startswith(("o1", "o3")):
                 stream = self.openai_text_stream(real_model, conversation)
             elif model.lower().startswith("llama"):
                 stream = self.llama_text_stream(real_model, conversation)
             elif model.lower().startswith("claude"):
                 stream = self.claude_text_stream(real_model, conversation)
+            elif model.lower().startswith("deepseek"):
+                stream = self.deepseek_text_stream(real_model, conversation)
             else:
                 self.build_return(400, {"error": "model is not supported"})
                 return
         except Exception as e:
-            logging.error(f"OPENAI API error: {e}")
+            logging.error(f"API error: {e}")
             self.write(
                 self.build_sse_message(
                     "Sorry, I'm unable to get back to you this time due to service outage.\nCould you kindly contact to my author?\nhttps://yishenggong.com/about-me"
