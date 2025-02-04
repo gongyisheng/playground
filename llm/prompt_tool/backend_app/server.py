@@ -254,13 +254,13 @@ class ChatHandler(AuthHandler):
     
 
     async def deepseek_text_stream(self, real_model, conversation):
-        if Global.openai_client is None:
-            Global.openai_client = AsyncOpenAI(
+        if Global.deepseek_client is None:
+            Global.deepseek_client = AsyncOpenAI(
                 api_key=Global.config["deepseek_api_key"], 
                 base_url=Global.config["deepseek_base_url"]
             )
 
-        client  = Global.openai_client
+        client  = Global.deepseek_client
         stream = await client.chat.completions.create(
             model=real_model,
             messages=conversation,
