@@ -279,11 +279,15 @@ class ChatHandler(AuthHandler):
                         }
                     }
             else:
+                content = chunk.choices[0].delta.content
                 if not start_flag:
-                    if len(chunk.choices[0].delta.content.strip()) == 0:
+                    if content is None:
                         continue
-                    else:
-                        start_flag = True
+                    if isinstance(content, str):
+                        if len(content.strip()) == 0:
+                            continue
+                        else:
+                            start_flag = True
                 yield {
                     "type": "text",
                     "content": chunk.choices[0].delta.content
