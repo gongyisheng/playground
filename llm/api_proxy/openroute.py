@@ -1,6 +1,9 @@
 import os
 from openai import OpenAI
 
+# Model choice:
+# https://openrouter.ai/models?order=pricing-low-to-high
+
 class Global:
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -29,4 +32,4 @@ if __name__ == "__main__":
             "content": "What is the capital of France"
         },
     ]
-    print(send_to_openroute("google/gemini-2.0-flash-001", message))
+    print(send_to_openroute("google/gemini-2.0-flash-lite-preview-02-05:free", message))
