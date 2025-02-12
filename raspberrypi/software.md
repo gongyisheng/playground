@@ -65,6 +65,9 @@ ref: https://docs.docker.com/engine/install/ubuntu/
 # clean docker system
 `sudo docker system prune -a`
 
+# enter docker container env
+`docker exec -it <container_name> bash`
+
 # setup grafana
 ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 
