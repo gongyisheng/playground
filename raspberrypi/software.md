@@ -93,6 +93,10 @@ ffmpeg -i "input.mp4" -c:v libx264 -tag:v avc1 -movflags faststart -crf 30 -pres
 ffmpeg -i input.mkv -vf subtitles=subtitles.srt output.mkv
 // add subtitle (soft subtitle)
 ffmpeg -i input.mkv -i subtitles.srt -c copy output.mkv
+// cut video from [start] to [end] (eg, 00:00:00 to 1:00:00)
+ffmpeg -ss [start] -to [end] -accurate_seek -i [in].mp4 -codec copy -avoid_negative_ts 1 -map_metadata -1 [out].mp4
+// delay subtitle by seconds
+ffmpeg -itsoffset [num] -i subtitles.srt -c copy subtitles_delayed.srt
 ```
 
 # run bypy (baiduyun python client)
