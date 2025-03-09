@@ -33,3 +33,24 @@ umount
 `sudo umount /merged`
 `sudo umount -l system-vol  # Lazy unmount (will unmount when not in use)`
 `sudo umount -f system-vol  # Force unmount (use with caution)`
+
+To check which processes are using the mount
+`lsof +D system-vol`
+```
+yisheng@rpi400:/media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground $ sudo lsof +D /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286
+lsof: WARNING: can't stat() fuse.gvfsd-fuse file system /run/user/1000/gvfs
+      Output information may be incomplete.
+lsof: WARNING: can't stat() fuse.portal file system /run/user/1000/doc
+      Output information may be incomplete.
+COMMAND   PID    USER   FD   TYPE DEVICE SIZE/OFF     NODE NAME
+bash     9107 yisheng  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+bash     9555 yisheng  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+bash     9718 yisheng  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+bash    10102 yisheng  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+code    11278 yisheng  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+code    11314 yisheng  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+sudo    12668    root  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+sudo    12669    root  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+lsof    12670    root  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+lsof    12671    root  cwd    DIR    8,0     4096 23199745 /media/yisheng/2243fe50-307e-43ec-b855-e15aa9be2286/playground
+```
