@@ -11,10 +11,20 @@ When you modify a file:
 - If the file already exists in the Upper Layer, it will be modified directly.
 
 ## Key Features
-- Lightweight: does not require copying the entire filesystem.
-- Copy-on-Write (CoW): Avoids modifying original data, preserving the integrity of the lower layer.
-- Multi-layer support: Technologies like Docker use multiple layers to build images, improving storage and management efficiency.
-- High performance: has a simpler structure and lower overhead, making it ideal for container environments.
+- Whiteout
+    A special character device file in the Upper Layer that hides a file from the Lower Layer. (for delete upper layer files)
+- Opaque Directories
+    A marker indicating that a directory in the Upper Layer completely overrides its counterpart in the Lower Layer. (for update upper layer files)
+- Copy on Write
+    When a user attempts to modify a file in the Lower Layer, the file is copied to the Upper Layer.
+    The user modifies the copied version in the Upper Layer, while the Lower Layer remains unchanged.
+<!-- - Multi-Layer Storage
+    OverlayFS supports multiple Lower Layers for layered storage architecture:
+    `lowerdir=base-layer:patch-layer:fix-layer`
+    base-layer → The bottom-most layer (read-only).
+    patch-layer → Provides additional patches (read-only).
+    fix-layer → Fixes and updates (read-only).
+    upperdir → The user-writable layer. -->
 
 
 ## Example
@@ -24,7 +34,7 @@ Assume you have two directories:
 - /merged: The final merged mount point.
 To create an OverlayFS mount:
 `sudo mount -t overlay -o lowerdir=/lowerdir,upperdir=/upperdir,workdir=/workdir overlay /merged`
-Note that workdir is a required working directory for OverlayFS. It must be an empty directory and on the same filesystem as upperdir.
+Note that workdir is a required working directory for OverlayFS (for cache). It must be an empty directory and on the same filesystem as upperdir.
 
 eg, mount a data-vol to system-vol
 `sudo mount -t overlay -o lowerdir=system-vol,upperdir=data-vol/data,workdir=data-vol/work overlay system-vol`
