@@ -168,10 +168,6 @@ class ChatHandler(AuthHandler):
         body = json.dumps({"content": data})
         return f"data: {body}\n\n"
 
-    def get_token_num(self, message):
-        num_tokens = len(ENC.encode(message))
-        return num_tokens
-
     async def openai_text_stream(self, real_model, conversation):
         if Global.openai_client is None:
             Global.openai_client = AsyncOpenAI(api_key=Global.config["openai_api_key"])
@@ -258,16 +254,21 @@ class ChatHandler(AuthHandler):
     
 
     async def deepseek_text_stream(self, real_model, conversation):
-        if Global.openai_client is None:
-            Global.openai_client = AsyncOpenAI(api_key=Global.config["deepseek_api_key"])
+        if Global.deepseek_client is None:
+            Global.deepseek_client = AsyncOpenAI(
+                api_key=Global.config["deepseek_api_key"], 
+                base_url=Global.config["deepseek_base_url"]
+            )
 
-        client  = Global.openai_client
+        client  = Global.deepseek_client
         stream = await client.chat.completions.create(
             model=real_model,
             messages=conversation,
             stream=True,
             stream_options={"include_usage": True}
         )
+        
+        start_flag = False
         async for chunk in stream:
             if len(chunk.choices) == 0:
                 yield {
@@ -278,6 +279,15 @@ class ChatHandler(AuthHandler):
                         }
                     }
             else:
+                content = chunk.choices[0].delta.content
+                if not start_flag:
+                    if content is None:
+                        continue
+                    if isinstance(content, str):
+                        if len(content.strip()) == 0:
+                            continue
+                        else:
+                            start_flag = True
                 yield {
                     "type": "text",
                     "content": chunk.choices[0].delta.content
@@ -294,6 +304,8 @@ class ChatHandler(AuthHandler):
         # get uuid from url
         thread_id = self.get_argument("thread_id")
         model = self.get_argument("model")
+        logging.info(f"Get chat request: thread_id={thread_id}, model={model}")
+
         if thread_id is None or model is None:
             self.build_return(400, {"error": "thread_id or model is missing"})
             return

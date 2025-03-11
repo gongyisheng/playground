@@ -65,6 +65,9 @@ ref: https://docs.docker.com/engine/install/ubuntu/
 # clean docker system
 `sudo docker system prune -a`
 
+# enter docker container env
+`docker exec -it <container_name> sh`
+
 # setup grafana
 ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 
@@ -90,6 +93,10 @@ ffmpeg -i "input.mp4" -c:v libx264 -tag:v avc1 -movflags faststart -crf 30 -pres
 ffmpeg -i input.mkv -vf subtitles=subtitles.srt output.mkv
 // add subtitle (soft subtitle)
 ffmpeg -i input.mkv -i subtitles.srt -c copy output.mkv
+// cut video from [start] to [end] (eg, 00:00:00 to 1:00:00)
+ffmpeg -ss [start] -to [end] -accurate_seek -i [in].mp4 -codec copy -avoid_negative_ts 1 -map_metadata -1 [out].mp4
+// delay subtitle by seconds
+ffmpeg -itsoffset [num] -i subtitles.srt -c copy subtitles_delayed.srt
 ```
 
 # run bypy (baiduyun python client)
@@ -98,3 +105,35 @@ download from background:
 screen -S bypy download <cloud path> <local path>
 ctrl + a + d
 ```
+
+# install pinyin on raspberrypi OS
+```
+# 1. add chinese locale (zh_CN.UTF-8)
+sudo dpkg-reconfigure locales
+
+# 2. install facitx
+sudo apt install fcitx fcitx-libpinyin
+
+# 3. config os
+Raspberry Pi Menu > Preferences > Input Method
+
+- First screen:
+Current confituration for the input method...
+click [OK]
+
+- Second screen:
+Do you explicetly select the user configuration?
+click [YES]
+
+- Third screen:
+Select: (*) fcitx activate Flexible Input Method Framework (fcitx) @
+click [OK]
+
+# 4. reboot
+
+# 5. facitx config
+- add "Pinyin (LibPinyin)"
+- select 'Pinyin (LibPinyin)'
+```
+ref: https://forums.raspberrypi.com/viewtopic.php?t=222801
+
