@@ -137,3 +137,14 @@ click [OK]
 ```
 ref: https://forums.raspberrypi.com/viewtopic.php?t=222801
 
+# install wechat linux
+```
+# download deb, install
+https://linux.weixin.qq.com/en
+
+# resolve libtiff.so.5 issue on ubuntu 22/24
+cd /usr/lib/x86_64-linux-gnu/
+sudo ln -s libtiff.so.6 libtiff.so.5
+```
+
+
