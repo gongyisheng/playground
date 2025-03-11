@@ -1,4 +1,4 @@
-anthropic==0.25.6
+anthropic==0.49.0 
 pycryptodome==3.11.0
 pyyaml==6.0
 openai==1.61.0
