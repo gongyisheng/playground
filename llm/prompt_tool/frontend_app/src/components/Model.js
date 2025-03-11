@@ -4,11 +4,9 @@ const modelIcons = {
   "GPT4o-mini": "./static/gpt-weak.png",
   "GPT4o": "./static/gpt-strong.png",
   "o3-mini": "./static/o3-mini.png",
-  "o1": "./static/o1.png",
   "Deepseek-v3": "./static/deepseek-v3.png",
   "Deepseek-r1": "./static/deepseek-r1.png",
-  "Llama3.2": "./static/llama3.png",
-  "Claude3.5": "./static/claude.png",
+  "Claude3.7": "./static/claude.png",
 };
 
 const extraText = {}
@@ -65,11 +63,9 @@ function Model({ onChange, cost, limit }) {
         {renderModelBlock("GPT4o-mini", onClick)}
         {renderModelBlock("GPT4o", onClick)}
         {renderModelBlock("Deepseek-v3", onClick)}
-        {renderModelBlock("o3-mini", onClick)}
-        {renderModelBlock("o1", onClick)}
         {renderModelBlock("Deepseek-r1", onClick)}
-        {/* {renderModelBlock("Llama3.2", onClick)} */}
-        {renderModelBlock("Claude3.5", onClick)}
+        {renderModelBlock("o3-mini", onClick)}
+        {renderModelBlock("Claude3.7", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
         <span className="text-sm italic">Cost this month: ${cost}/${limit}</span>
