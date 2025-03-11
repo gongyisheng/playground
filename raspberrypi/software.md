@@ -105,3 +105,35 @@ download from background:
 screen -S bypy download <cloud path> <local path>
 ctrl + a + d
 ```
+
+# install pinyin on raspberrypi OS
+```
+# 1. add chinese locale (zh_CN.UTF-8)
+sudo dpkg-reconfigure locales
+
+# 2. install facitx
+sudo apt install fcitx fcitx-libpinyin
+
+# 3. config os
+Raspberry Pi Menu > Preferences > Input Method
+
+- First screen:
+Current confituration for the input method...
+click [OK]
+
+- Second screen:
+Do you explicetly select the user configuration?
+click [YES]
+
+- Third screen:
+Select: (*) fcitx activate Flexible Input Method Framework (fcitx) @
+click [OK]
+
+# 4. reboot
+
+# 5. facitx config
+- add "Pinyin (LibPinyin)"
+- select 'Pinyin (LibPinyin)'
+```
+ref: https://forums.raspberrypi.com/viewtopic.php?t=222801
+

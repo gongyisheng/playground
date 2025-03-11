@@ -32,6 +32,49 @@ reboot
 # disk health check
 `sudo badblocks -s -v /dev/sda`
 
+# disk benchmark
+use fio as the benchmark tool
+```
+# io_depth: I/O depth refers to the number of I/O operations that can be in progress at the same time for each worker thread
+
+# install fio
+sudo apt install -y fio
+
+# create folder
+TEST_DIR=./fiotest
+sudo mkdir -p $TEST_DIR
+
+# write throughput: sequential writes, 10G*16, block_size=1M, io_depth=64
+sudo fio --name=write_throughput --directory=$TEST_DIR --numjobs=16 \
+--size=10G --time_based --runtime=5m --ramp_time=2s --ioengine=libaio \
+--direct=1 --verify=0 --bs=1M --iodepth=64 --rw=write \
+--group_reporting=1 --iodepth_batch_submit=64 \
+--iodepth_batch_complete_max=64
+
+# write iops: random writes, 10G*1, block_size=4kb, io_depth=256
+ sudo fio --name=write_iops --directory=$TEST_DIR --size=10G \
+--time_based --runtime=5m --ramp_time=2s --ioengine=libaio --direct=1 \
+--verify=0 --bs=4K --iodepth=256 --rw=randwrite --group_reporting=1  \
+--iodepth_batch_submit=256  --iodepth_batch_complete_max=256
+
+# read throughput: sequential reads, 10G*16, block_size=1M, io_depth=64
+sudo fio --name=read_throughput --directory=$TEST_DIR --numjobs=16 \
+--size=10G --time_based --runtime=5m --ramp_time=2s --ioengine=libaio \
+--direct=1 --verify=0 --bs=1M --iodepth=64 --rw=read \
+--group_reporting=1 \
+--iodepth_batch_submit=64 --iodepth_batch_complete_max=64
+
+# read iops: random reads, 10G*1, block_size=4kb, io_depth=256
+sudo fio --name=read_iops --directory=$TEST_DIR --size=10G \
+--time_based --runtime=5m --ramp_time=2s --ioengine=libaio --direct=1 \
+--verify=0 --bs=4K --iodepth=256 --rw=randread --group_reporting=1 \
+--iodepth_batch_submit=256  --iodepth_batch_complete_max=256
+
+# clean up
+sudo rm $TEST_DIR/write* $TEST_DIR/read*
+```
+reference: https://cloud.google.com/compute/docs/disks/benchmarking-pd-performance-linux
+
 # stress test
 `sudo apt-get install stress`
 `while true; do vcgencmd measure_clock arm; vcgencmd measure_temp; sleep 10; done& stress -c 4 -t 900s`
