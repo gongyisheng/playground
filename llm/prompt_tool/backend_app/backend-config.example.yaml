@@ -19,9 +19,11 @@ session_cookie_domain: "localhost"
 # model name related
 model_mapping:
   gpt4o-mini: "gpt-4o-mini-2024-07-18"
-  gpt4o: "gpt-4o-2024-08-06"
-  llama3.2: "llama-3.2-90b-vision-preview"
-  claude3.5: "claude-3-5-sonnet-20241022"
+  gpt4o: "gpt-4o-2024-11-20"
+  o3-mini: "o3-mini-2025-01-31"
+  deepseek-v3: "deepseek-ai/DeepSeek-V3"
+  deepseek-r1: "deepseek-ai/DeepSeek-R1"
+  claude3.7: "claude-3-7-sonnet-20250219"
 
 # external api related 
 openai_api_key: "12345678901234567890123456789012"
@@ -30,6 +32,9 @@ claude_api_key: "12345678901234567890123456789012"
 llama_base_url: "http://localhost:5000/v1"
 llama_api_key: "12345678901234567890123456789012"
 
+deepseek_base_url: "https://api.siliconflow.cn/v1"
+deepseek_api_key: "12345678901234567890123456789012" 
+
 # encrypt/decrypt related
 encrypt_key: "12345678901234567890123456789012"
 encrypt_salt: "1234123412341234" # must be 16 bytes
@@ -37,6 +42,9 @@ encrypt_salt: "1234123412341234" # must be 16 bytes
 # database file related
 app_data_db_name: "/var/data/app-data.db"
 key_db_name: "/var/data/key-data.db"
+
+# file upload related
+user_file_upload_dir: "/var/data/user-files"
 
 # log file related
 log_file_path: "/var/log/prompt_tool/backend-app.log"

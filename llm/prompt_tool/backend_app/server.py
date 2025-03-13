@@ -1,7 +1,9 @@
 # server for customized chatbot
+import base64
 from datetime import datetime
 import json
 import logging
+import os
 import random
 import sqlite3
 import string
@@ -19,6 +21,7 @@ import tornado.web
 from models.user_model import UserModel
 from models.session_model import SessionModel
 from models.chat_history_model import ChatHistoryModel
+from models.file_model import FileModel
 from models.prompt_model import PromptModel
 from models.audit_model import AuditModel
 from models.pricing_model import PricingModel
@@ -49,6 +52,7 @@ class Global:
     user_model = None
     session_model = None
     chat_history_model = None
+    file_model = None
     prompt_model = None
     audit_model = None
     pricing_model = None
@@ -120,6 +124,32 @@ class AuthHandler(BaseHandler):
 
     def get(self):
         self.build_return(200)
+
+# handler for file request (POST and GET)
+# POST: save file to database and local disk
+# GET:  get file list of a user from database
+class FileHandler(AuthHandler):
+    def post(self):
+        file_infos = self.request.files['files']
+
+        for file_info in file_infos:
+            file_name = file_info['filename']
+            file_body = file_info['body']
+            
+            base64_string = base64.b64encode(file_body).decode("utf-8")
+            file_size = len(base64_string) / 1024 / 1024 # MB
+
+            path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), file_name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as f:
+                f.write(file_body)
+
+            Global.file_model.create_file(self.user_id, file_name, file_size)
+        self.build_return(200)
+    
+    def get(self):
+        files = Global.file_model.get_file_names_by_user_id(self.user_id)
+        self.build_return(200, json.dumps(files))
 
 
 # handler for chat request (POST and GET)
@@ -632,6 +662,7 @@ def make_app():
         [
             (r"/ping", PingHandler),
             (r"/auth", AuthHandler),
+            (r"/file", FileHandler),
             (r"/chat", ChatHandler),
             (r"/prompt", PromptHandler),
             (r"/signin", SignInHandler),
@@ -672,6 +703,8 @@ if __name__ == "__main__":
     Global.session_model.create_tables()
     Global.chat_history_model = ChatHistoryModel(APP_DATA_DB_CONN)
     Global.chat_history_model.create_tables()
+    Global.file_model = FileModel(APP_DATA_DB_CONN)
+    Global.file_model.create_tables()
     Global.prompt_model = PromptModel(APP_DATA_DB_CONN)
     Global.prompt_model.create_tables()
     Global.audit_model = AuditModel(APP_DATA_DB_CONN)
