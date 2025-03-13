@@ -154,6 +154,19 @@ class FileHandler(AuthHandler):
             file_list.append(file[0])
         self.build_return(200, json.dumps(file_list))
 
+    def delete(self):
+        body = json.loads(self.request.body)
+        file_name = body.get("file_name")
+        
+        file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            Global.file_model.delete_file_by_user_id_file_name(self.user_id, file_name)
+            logging.info(f"Delete file: {file_name}, user_id: {self.user_id}")
+        else:
+            logging.info(f"File not found: {file_name}, user_id: {self.user_id}")
+        self.build_return(200)
+
 
 # handler for chat request (POST and GET)
 # POST: save prompt and context to memory storage, validation
