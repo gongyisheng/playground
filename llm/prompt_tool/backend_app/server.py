@@ -152,7 +152,7 @@ class FileHandler(AuthHandler):
         file_list = []
         for file in files:
             file_list.append(file[0])
-        self.build_return(200, json.dumps(files))
+        self.build_return(200, json.dumps(file_list))
 
 
 # handler for chat request (POST and GET)
