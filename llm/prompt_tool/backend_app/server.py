@@ -149,6 +149,9 @@ class FileHandler(AuthHandler):
     
     def get(self):
         files = Global.file_model.get_file_names_by_user_id(self.user_id)
+        file_list = []
+        for file in files:
+            file_list.append(file[0])
         self.build_return(200, json.dumps(files))
 
 
