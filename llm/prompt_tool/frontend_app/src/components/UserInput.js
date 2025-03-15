@@ -3,8 +3,15 @@ import React, { useEffect, useState, useRef } from "react";
 function UserInput({ onContextChange, onSubmit }) {
   const [input, setInput] = useState("");
   const textAreaRef = useRef(null);
+  const [files, setFiles] = useState([])
 
-  const handleChange = (e) => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(input);
+    setInput("");
+  };
+
+  const handleTextChange = (e) => {
     setInput(e.target.value);
     onContextChange(e.target.value);
   };
@@ -15,12 +22,6 @@ function UserInput({ onContextChange, onSubmit }) {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(input);
-    setInput("");
-  };
-
   useEffect(() => {
     textAreaRef.current.style.height = "auto"; // reset the height
     textAreaRef.current.style.height =
@@ -28,23 +29,24 @@ function UserInput({ onContextChange, onSubmit }) {
   }, [input]);
 
   return (
-    <form onSubmit={handleSubmit}>
+    <div>
       <div className="flex items-center">
         <textarea
           type="text"
           value={input}
-          onChange={handleChange}
+          onChange={handleTextChange}
           placeholder="Message ChatBot..."
           className="pl-4 pr-12 py-4 rounded-lg border-2 border-black focus:ring-0 focus:outline-none focus:border-current w-full size-fit resize-none Input-class"
           rows="1"
           onKeyDown={handleKeyDown}
           ref={textAreaRef}
         />
-        <button className="px-2" onClick={handleSubmit}>
-          <img src="./static/up-arrow.png" className="max-w-8 max-h-8" />
-        </button>
+        <label for="uploadFile1" className="px-2 cursor-pointer">
+          <img src="./static/attachment.png" className="max-w-10 max-h-10"/>
+          <input type="file" id='uploadFile1' class="hidden"/>
+        </label>
       </div>
-    </form>
+    </div>
   );
 }
 
