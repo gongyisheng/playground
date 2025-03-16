@@ -42,6 +42,8 @@ def generate_3(numRows):
         new_row = [1] + [last_row[j] + last_row[j + 1] for j in range(len(last_row) - 1)] + [1]
         last_row = new_row
     return last_row
+
+# todo: add lucas theorem
     
 
 if __name__ == '__main__':
