@@ -10,6 +10,7 @@ import { ENDPOINT_AUTH, ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT } from ".
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 
 var userMessage = "";
+var userFiles = [];
 var conversation = [];
 var threadId = "";
 var model = "GPT4o-mini";
@@ -32,8 +33,12 @@ function Playground() {
     model = _model;
   };
 
-  const handleUserInputChange = (message) => {
+  const handleUserMessageChange = (message) => {
     userMessage = message;
+  };
+
+  const handleUserFilesChange = (files) => {
+    userFiles = files;
   };
 
   const handlePromptNameChange = (name) => {
@@ -66,7 +71,27 @@ function Playground() {
     setRefreshFlag(!refreshFlag);
   };
 
-  const handleSave = async () => {
+  const handleFilesUpload = async (files) => {
+    const formData = new FormData();
+    for (let file of files) {
+      formData.append("files", file);
+    }
+    try {
+      const response = await fetch(ENDPOINT_UPLOAD, {
+        method: "POST",
+        credentials: "include", // <-- includes cookies in the request
+        body: formData,
+      });
+      if (response.status !== 200) {
+        alert("Upload files failed.");
+      }
+    } catch (error) {
+      console.error("Failed to upload files:", error);
+    }
+  };
+
+
+  const handleSavePrompt = async () => {
     try {
       const response = await fetch(ENDPOINT_PROMPT, {
         method: "POST",
@@ -182,7 +207,7 @@ function Playground() {
     }
   }, [SSEStatus]);
 
-  const handleUserMessageSubmit = (userMessage) => {
+  const handleUserSubmit = (userMessage) => {
     // skip empty message
     if (userMessage === "") return;
     // appened system message to chat display
@@ -292,8 +317,9 @@ function Playground() {
         </div>
         <div className="pb-4">
           <UserInput
-            onContextChange={handleUserInputChange}
-            onSubmit={handleUserMessageSubmit}
+            onMessageChange={handleUserMessageChange}
+            onFilesChange={handleUserFilesChange}
+            onSubmit={handleUserSubmit}
           />
         </div>
       </div>
@@ -303,7 +329,7 @@ function Playground() {
           onPromptNameChange={handlePromptNameChange}
           onPromptContentChange={handlePromptContentChange}
           onPromptNoteChange={handlePromptNoteChange}
-          onSave={handleSave}
+          onSave={handleSavePrompt}
           onRestore={handleRestore}
         />
       </div>
