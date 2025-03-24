@@ -1,6 +1,6 @@
 import heapq
 
-# time complexity: O((V + E) * log(V))
+# time complexity: O((V + E) * log(V)) ≈ O(E log V) 
 # space complexity: O(V)
 # V is the number of nodes and E is the number of edges
 
