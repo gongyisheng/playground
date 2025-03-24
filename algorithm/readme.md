@@ -1,3 +1,57 @@
+# python container operations
+1. deque
+```
+from collections import deque
+
+# Create a deque
+dq = deque([1, 2, 3])
+
+# Append elements to the right
+dq.append(4)
+
+# Append elements to the left
+dq.appendleft(0)
+
+# Pop elements from the right
+dq.pop()
+
+# Pop elements from the left
+dq.popleft()
+
+# Extend deque on the right
+dq.extend([5, 6])
+
+# Extend deque on the left
+dq.extendleft([-1, -2])
+```
+2. priority queue
+```
+import heapq
+
+# Option 1. use tuple in pq
+# first element is priority, second is object
+# lower score has higher priority
+pq = []
+
+# Push elements into the priority queue
+heapq.heappush(pq, (2, "task2"))
+
+# Pop elements from the priority queue
+priority, task = heapq.heappop(pq)
+
+# Option 2. use object with customized compare function in pq
+class Task:
+    def __init__(self, priority, description):
+        self.priority = priority
+        self.description = description
+
+    def __lt__(self, other):
+        return self.priority < other.priority  # Lower priority number has higher priority
+
+    def __repr__(self):
+        return f"({self.priority}, {self.description})"
+```
+
 # problem-solving strategies
 [LC82](https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii) while+while  
 [LC101](https://leetcode.com/problems/symmetric-tree) post-order traverse, recursive  
