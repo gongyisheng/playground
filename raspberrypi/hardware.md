@@ -26,6 +26,9 @@ edit `/etc/fstab` file, start swap after boot
 reboot
 `sudo reboot`
 
+# turn off swap
+`sudo dphys-swapfile swapoff` on raspberrypi os
+
 # disk info
 `df -h`
 
