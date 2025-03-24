@@ -1,5 +1,9 @@
 import heapq
 
+# time complexity: O((V + E) * log(V))
+# space complexity: O(V)
+# V is the number of nodes and E is the number of edges
+
 def dijkstra(graph, start):
     # Priority queue to store (dist, node) tuples
     pq = []
