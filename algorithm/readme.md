@@ -61,3 +61,4 @@ class Task:
 [LC55](https://leetcode.com/problems/jump-game) dfs/bfs --> state compress, greedy  
 [LC2379](https://leetcode.com/problems/minimum-recolors-to-get-k-consecutive-black-blocks) dfs? no, use sliding window  
 [LC1976](https://leetcode.com/problems/number-of-ways-to-arrive-at-destination) dfs/bfs? no, use dijkstra(find shortest route) + dp (count ways)
+[LC3169](https://leetcode.com/problems/count-days-without-meetings) sort + state compression, count segment
