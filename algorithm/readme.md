@@ -65,3 +65,4 @@ class Task:
 [LC3394](https://leetcode.com/problems/check-if-grid-can-be-cut-into-sections) sort + count segment * 2 times  
 [LC2003](https://leetcode.com/problems/minimum-operations-to-make-a-uni-value-grid) sort + medium, why medium? think about a group of dots on a line and you need to choose one point that sum of distance of all dots to that point is smallest. The point should be average (which is not possible in this problem) or medium  
 [LC2140](https://leetcode.com/problems/solving-questions-with-brainpower) reverse order dp, ascending order does not work  
+[LC2873](https://leetcode.com/problems/maximum-value-of-an-ordered-triplet-i) 3 loop is fine, but can be done with one loop by recording max value, max diff, and max result  
