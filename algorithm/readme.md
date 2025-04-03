@@ -67,3 +67,6 @@ class Task:
 [LC2140](https://leetcode.com/problems/solving-questions-with-brainpower) reverse order dp, ascending order does not work  
 [LC2873](https://leetcode.com/problems/maximum-value-of-an-ordered-triplet-i) 3 loop is fine, but can be done with one loop by recording max value, max diff, and max result  
 [LC79](https://leetcode.com/problems/word-search) typical grid dfs, tricks: a. do all validation before exploring b. change path value to # to mark it's visited.  
+[LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend
+[LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + path sum
+[LC117](https://leetcode.com/problems/populating-next-right-pointers-in-each-node-ii) bfs, level order
