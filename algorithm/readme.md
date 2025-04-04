@@ -69,4 +69,9 @@ class Task:
 [LC79](https://leetcode.com/problems/word-search) typical grid dfs, tricks: a. do all validation before exploring b. change path value to # to mark it's visited.  
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend
 [LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + path sum
-[LC117](https://leetcode.com/problems/populating-next-right-pointers-in-each-node-ii) bfs, level order
+[LC117](https://leetcode.com/problems/populating-next-right-pointers-in-each-node-ii) bfs, level order  
+[LC1123](https://leetcode.com/problems/lowest-common-ancestor-of-deepest-leaves) post order dfs, return ans_node and depth at the same time  
+[LC235](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree) dfs, return lca, use the property of BST  
+[LC236](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree) dfs, return lca, compare it with LC235  
+[LC130](https://leetcode.com/problems/surrounded-regions) dfs, avoid methods that may cause wrong updates (should update only if all return true, but make updates before get result and cannot rollback).  
+[LC310](https://leetcode.com/problems/minimum-height-trees) mht, cut leaves. 2 ways to get medium of a list: by index or cut leafs recursively  
