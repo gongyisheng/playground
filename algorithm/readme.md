@@ -75,3 +75,7 @@ class Task:
 [LC236](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree) dfs, return lca, compare it with LC235  
 [LC130](https://leetcode.com/problems/surrounded-regions) dfs, avoid methods that may cause wrong updates (should update only if all return true, but make updates before get result and cannot rollback).  
 [LC310](https://leetcode.com/problems/minimum-height-trees) mht, cut leaves. 2 ways to get medium of a list: by index or cut leafs recursively  
+[LC1863](https://leetcode.com/problems/sum-of-all-subset-xor-totals) dfs to traverse all subset, add xor sum  
+[LC23](https://leetcode.com/problems/merge-k-sorted-lists) merge and sort, be careful is len(lists) == 0  
+[LC215](https://leetcode.com/problems/kth-largest-element-in-an-array) mini heap, push then pop  
+[LC1054](https://leetcode.com/problems/distant-barcodes) heap, pick most frequent first  
