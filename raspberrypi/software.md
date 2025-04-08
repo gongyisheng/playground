@@ -97,6 +97,11 @@ ffmpeg -i input.mkv -i subtitles.srt -c copy output.mkv
 ffmpeg -ss [start] -to [end] -accurate_seek -i [in].mp4 -codec copy -avoid_negative_ts 1 -map_metadata -1 [out].mp4
 // delay subtitle by seconds
 ffmpeg -itsoffset [num] -i subtitles.srt -c copy subtitles_delayed.srt
+// solve 6 channel issue (Unsupported channel layout "6 channels")
+ffmpeg -y -i source.avi -acodec copy source.6.aac
+faad -d -o source.2.pcm source.6.aac
+ffmpeg -y -i source.avi -i source.2.pcm -map 0:0 -map 1:0 -vcodec copy -acodec copy output.avi
+ref: https://lzone.de/blog/ffmpeg-AAC-Can-not-resample-6-channels
 ```
 
 # run bypy (baiduyun python client)
