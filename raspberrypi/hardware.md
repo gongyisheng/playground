@@ -35,6 +35,10 @@ reboot
 # disk health check
 `sudo badblocks -s -v /dev/sda`
 
+# format a disk
+`sudo umount /dev/sdX`  
+`sudo mkfs.ext4 /dev/sda`  
+
 # disk benchmark
 use fio as the benchmark tool
 ```
@@ -79,7 +83,7 @@ sudo rm $TEST_DIR/write* $TEST_DIR/read*
 reference: https://cloud.google.com/compute/docs/disks/benchmarking-pd-performance-linux
 
 # stress test
-`sudo apt-get install stress`
+`sudo apt-get install stress`  
 `while true; do vcgencmd measure_clock arm; vcgencmd measure_temp; sleep 10; done& stress -c 4 -t 900s`
 
 # external disk mount
@@ -124,7 +128,7 @@ ref: https://wiki.geekworm.com/NVMe_SSD_boot_with_the_Raspberry_Pi_5
 
 # wlan quality
 `iwconfig wlan0 | grep Quality`   
-`cat /proc/net/wireless` 
+`cat /proc/net/wireless`   
 IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affects wifi quality 
 
 # change wifi
