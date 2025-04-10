@@ -28,6 +28,7 @@ reboot
 
 # turn off swap
 `sudo dphys-swapfile swapoff` on raspberrypi os
+`sudo systemctl disable swapfile.swap` on ubuntu
 
 # disk info
 `df -h`
