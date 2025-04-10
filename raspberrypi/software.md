@@ -1,8 +1,6 @@
-# update and upgrade
+# install vim, tcpdump, perf, network tools
 `sudo apt update`  
 `sudo apt upgrade`  
-
-# install vim, tcpdump, perf, network tools
 `sudo apt install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip redis-tools`  
 
 # setup mariadb

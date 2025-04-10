@@ -15,6 +15,10 @@ sudo apt install ./package-name.deb
 # hold a package, prevent upgrade
 sudo apt-mark hold code
 sudo apt-mark showhold
+
+# clean package cache
+sudo apt clean
+sudo apt autoclean
 ```
 
 # setup ssh login
