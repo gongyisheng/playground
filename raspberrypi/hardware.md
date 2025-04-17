@@ -42,6 +42,46 @@ reboot
 `sudo umount /dev/sdX`  
 `sudo mkfs.ext4 /dev/sda`  
 
+# disk iostat
+```
+iostat -d -x -m 1 30
+
+focus on:
+%util: io utility, limit by device
+await: read/write operation latency
+aqu-sz: io queue size, determine whether it's blocked
+areq-sz: average read/write request size, whether it's random I/O
+
+other:
+svctm: average service time (excluding queue time)
+rqm/s: combined request number per sec
+%rqm: rqm / (rw/s + rqm) * 100, combine efficiency (HDD: 70%-95%, SSD: 50%-80, NVMe: 0-30%)
+
+cases:
+1. high %util
+for HDD, >80% is a warning
+for SSD/NVMe, even ~100% is not an issue, focus on await and aqu-sz
+
+2. high await
+may caused by:
+- high backend latency (eg, using microSD, random I/O, RAID, write amplification)
+- frequently flush log
+
+3. high %util + high await + high aqu-sz
+device is the bottleneck
+consider using RAID, or change I/O scheduler (SSD/NVMe: noop/none, HDD: deadline/bfq)
+
+4. small areq-sz
+small read and write I/O operations
+considering use O_DIRECT
+
+5. low util%, high await
+invisible bottlenecks like
+- high backend latency (using microSD, RAID, virtual disk like NAS)
+- single thread block I/O
+- wrong storage configuration (cross NUMA)
+```
+
 # disk benchmark
 use fio as the benchmark tool
 ```
