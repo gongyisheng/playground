@@ -149,5 +149,12 @@ https://linux.weixin.qq.com/en
 cd /usr/lib/x86_64-linux-gnu/
 sudo ln -s libtiff.so.6 libtiff.so.5
 ```
+# take screenshot
+```
+# install package
+sudo apt install grim
+sudo apt install slurp
 
-
+# use grim to take screenshot
+grim -g "$(slurp)"
+```
