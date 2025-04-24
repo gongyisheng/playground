@@ -79,6 +79,12 @@ pair = d.pop("key2")
 
 # problem-solving strategies
 ## Tree
+[LC144](https://leetcode.com/problems/binary-tree-preorder-traversal/) basic preorder
+[LC94](https://leetcode.com/problems/binary-tree-inorder-traversal/) basic inorder
+[LC145](https://leetcode.com/problems/binary-tree-postorder-traversal/) basic postorder
+[LC589](https://leetcode.com/problems/n-ary-tree-preorder-traversal) basic preorder, n-ray
+[LC590](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) basic postorder, n-ray
+[LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic levelorder, n-ray
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend  
 [LC101](https://leetcode.com/problems/symmetric-tree) traverse with return, need a helper function to hold 2 nodes at the same time  
 [LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + path sum  
@@ -95,6 +101,7 @@ pair = d.pop("key2")
 [LC117](https://leetcode.com/problems/populating-next-right-pointers-in-each-node-ii) bfs, level order  
 [LC130](https://leetcode.com/problems/surrounded-regions) dfs, avoid methods that may cause wrong updates (should update only if all return true, but make updates before get result and cannot rollback).  
 [LC1863](https://leetcode.com/problems/sum-of-all-subset-xor-totals) dfs to traverse all subset, add xor sum  
+[LC2039](https://leetcode.com/problems/the-time-when-the-network-becomes-idle/) bfs, tricks: a. just do bfs one time from master to get the dist to every node. b. build model of calculating idle time, additional msg cnt * patience + dst + 1. c. be careful to calculate additional msg cnt.  
 
 ## Binary Search
 
