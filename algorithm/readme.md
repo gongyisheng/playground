@@ -52,6 +52,31 @@ class Task:
         return f"({self.priority}, {self.description})"
 ```
 
+3. ordered dict
+```
+from collections import OrderedDict
+
+d = OrderedDict()
+
+d["key1"] = "value1"
+d["key2"] = "value2"
+d["key3"] = "value3"
+
+print(d) # OrderedDict({'key1': 'value1', 'key2': 'value2', 'key3', 'value3'})
+
+# move to end
+d.move_to_end("key1")
+print(d) # OrderedDict({'key2': 'value2', 'key3': 'value3', 'key1': 'value1'})
+
+# pop head/tail item
+pair = d.popitem(last=False)
+print(d) # OrderedDict({'key2': 'value2', 'key3': 'value3'})
+print(p) # ('key1', 'value1')
+
+# pop a specific item
+pair = d.pop("key2")
+```
+
 # problem-solving strategies
 [LC82](https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii) while+while  
 [LC101](https://leetcode.com/problems/symmetric-tree) post-order traverse, recursive  
