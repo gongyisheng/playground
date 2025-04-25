@@ -6,6 +6,7 @@
 [LC589](https://leetcode.com/problems/n-ary-tree-preorder-traversal) basic preorder, n-ray  
 [LC590](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) basic postorder, n-ray  
 [LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic levelorder, n-ray   
+[LC1302](https://leetcode.com/problems/deepest-leaves-sum) traverse + status collect, find max
 [LC987](https://leetcode.com/problems/vertical-order-traversal-of-a-binary-tree) traverse + status collect, sort result  
 [LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + status collect  
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder dfs + status collect, check trend  
