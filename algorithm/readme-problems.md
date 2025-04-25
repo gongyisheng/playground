@@ -1,96 +1,18 @@
-# python container operations
-1. deque
-```
-from collections import deque
-
-# Create a deque
-dq = deque([1, 2, 3])
-
-# Append elements to the right
-dq.append(4)
-
-# Append elements to the left
-dq.appendleft(0)
-
-# Pop elements from the right
-dq.pop()
-
-# Pop elements from the left
-dq.popleft()
-
-# Extend deque on the right
-dq.extend([5, 6])
-
-# Extend deque on the left
-dq.extendleft([-1, -2])
-```
-2. priority queue
-```
-import heapq
-
-# Option 1. use tuple in pq
-# first element is priority, second is object
-# lower score has higher priority
-pq = []
-
-# Push elements into the priority queue
-heapq.heappush(pq, (2, "task2"))
-
-# Pop elements from the priority queue
-priority, task = heapq.heappop(pq)
-
-# Option 2. use object with customized compare function in pq
-class Task:
-    def __init__(self, priority, description):
-        self.priority = priority
-        self.description = description
-
-    def __lt__(self, other):
-        return self.priority < other.priority  # Lower priority number has higher priority
-
-    def __repr__(self):
-        return f"({self.priority}, {self.description})"
-```
-
-3. ordered dict
-```
-from collections import OrderedDict
-
-d = OrderedDict()
-
-d["key1"] = "value1"
-d["key2"] = "value2"
-d["key3"] = "value3"
-
-print(d) # OrderedDict({'key1': 'value1', 'key2': 'value2', 'key3', 'value3'})
-
-# move to end
-d.move_to_end("key1")
-print(d) # OrderedDict({'key2': 'value2', 'key3': 'value3', 'key1': 'value1'})
-
-# pop head/tail item
-pair = d.popitem(last=False)
-print(d) # OrderedDict({'key2': 'value2', 'key3': 'value3'})
-print(p) # ('key1', 'value1')
-
-# pop a specific item
-pair = d.pop("key2")
-```
-
 # problem-solving strategies
 ## Tree
-[LC144](https://leetcode.com/problems/binary-tree-preorder-traversal/) basic preorder
-[LC94](https://leetcode.com/problems/binary-tree-inorder-traversal/) basic inorder
-[LC145](https://leetcode.com/problems/binary-tree-postorder-traversal/) basic postorder
-[LC589](https://leetcode.com/problems/n-ary-tree-preorder-traversal) basic preorder, n-ray
-[LC590](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) basic postorder, n-ray
-[LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic levelorder, n-ray
-[LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend  
-[LC101](https://leetcode.com/problems/symmetric-tree) traverse with return, need a helper function to hold 2 nodes at the same time  
-[LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + path sum  
-[LC235](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree) dfs, return lca, use the property of BST  
-[LC236](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree) dfs, return lca, compare it with LC235  
-[LC1123](https://leetcode.com/problems/lowest-common-ancestor-of-deepest-leaves) post order dfs, return ans_node and depth at the same time  
+[LC144](https://leetcode.com/problems/binary-tree-preorder-traversal/) basic preorder  
+[LC94](https://leetcode.com/problems/binary-tree-inorder-traversal/) basic inorder  
+[LC145](https://leetcode.com/problems/binary-tree-postorder-traversal/) basic postorder  
+[LC589](https://leetcode.com/problems/n-ary-tree-preorder-traversal) basic preorder, n-ray  
+[LC590](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) basic postorder, n-ray  
+[LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic levelorder, n-ray   
+[LC987](https://leetcode.com/problems/vertical-order-traversal-of-a-binary-tree) traverse + status collect, sort result  
+[LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + status collect  
+[LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder dfs + status collect, check trend  
+[LC101](https://leetcode.com/problems/symmetric-tree) traverse + status passing  
+[LC235](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree) traverse + status passing, return lca, use the property of BST  
+[LC236](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree) traverse + status passing, return lca, compare it with LC235, trick is finding the way to pass status  
+[LC1123](https://leetcode.com/problems/lowest-common-ancestor-of-deepest-leaves) traverse + status passing, return ans_node and depth at the same time, compare with LC235 and LC236  
 
 ## BST
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend
