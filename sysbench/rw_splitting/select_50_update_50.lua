@@ -19,9 +19,9 @@ function event()
     local n2 = sysbench.rand.default(1, 4294967295)
     local n3 = sysbench.rand.default(1, 4294967295)
 
-    local p1 = random_string(256)
-    local p2 = random_string(256)
-    local p3 = random_string(256)
+    local p1 = random_string(255)
+    local p2 = random_string(255)
+    local p3 = random_string(255)
     local query = string.format(
         "UPDATE test SET number1=%d, number2=%d, number3=%d, payload1='%s', payload2='%s', payload3='%s' WHERE id=%d",
         n1, n2, n3, p1, p2, p3, id

@@ -18,9 +18,9 @@ function event()
     local n2 = sysbench.rand.default(1, 4294967295)
     local n3 = sysbench.rand.default(1, 4294967295)
 
-    local p1 = random_string(256)
-    local p2 = random_string(256)
-    local p3 = random_string(256)
+    local p1 = random_string(255)
+    local p2 = random_string(255)
+    local p3 = random_string(255)
     local query = string.format(
         "INSERT INTO test (number1, number2, number3, payload1, payload2, payload3) VALUES (%d, %d, %d, %s, %s, %s)",
         n1, n2, n3, p1, p2, p3

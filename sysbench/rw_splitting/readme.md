@@ -10,7 +10,7 @@ sysbench \
   --mysql-db=rw_splitting_test \
   --threads=8 \
   --time=60 \
-  custom_prepare.lua run
+  prepare.lua run
 ```
 
 ## result
