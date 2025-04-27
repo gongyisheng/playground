@@ -16,12 +16,13 @@ sudo apt install mariadb-server mariadb-client
 CREATE USER 'dev'@'%' IDENTIFIED BY 'dev';
 GRANT ALL PRIVILEGES ON *.* TO 'dev'@'%';
 ```
-## allow remote access
+## configuration
 ```
 vim /etc/mysql/my.cnf
 
 # add following lines
 
 [mysqld]
-bind-address = 0.0.0.0
+bind-address = 0.0.0.0  # allow remote access
+max_connections = 1025  # default is 151
 ```
