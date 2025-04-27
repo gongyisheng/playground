@@ -6,7 +6,7 @@ end
 function random_string(length)
   local res = ""
   for i = 1, length do
-    res = res .. string.char(sysbench.rand.default(32, 126))
+    res = res .. string.char(sysbench.rand.default(65, 90))
   end
   return "'" .. res .. "'"
 end
