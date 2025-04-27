@@ -25,4 +25,7 @@ vim /etc/mysql/my.cnf
 [mysqld]
 bind-address = 0.0.0.0  # allow remote access
 max_connections = 1025  # default is 151
+
+# innodb buffer pool related
+innodb_buffer_pool_size = 3072M # default is 128M, recommend 75% of total memory
 ```
