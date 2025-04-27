@@ -28,3 +28,14 @@ sysbench \
 ```
 
 ## result
+```
+# hardware
+raspberrypi 5 8GB
+SK Hynix PC601 1TB (PCIe 3.0)
+
+prepare stage: 
+128 thread reach max
+write QPS = 4000
+iops = 6000
+write throughput = 150MB/s
+```
