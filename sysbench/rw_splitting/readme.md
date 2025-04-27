@@ -2,10 +2,9 @@
 ## test commands
 ```
 # prepare
-## local
 sysbench \
   --db-driver=mysql \
-  --mysql-host=127.0.0.1 \
+  --mysql-host=cluster-n0.local \
   --mysql-user=dev \
   --mysql-password=dev \
   --mysql-db=rw_splitting_test \
@@ -14,7 +13,7 @@ sysbench \
   --events=1000000 \
   prepare.lua run
 
-## remote
+# run select_80_update_20
 sysbench \
   --db-driver=mysql \
   --mysql-host=cluster-n0.local \
