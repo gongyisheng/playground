@@ -13,6 +13,7 @@
 [LC100](https://leetcode.com/problems/same-tree/) traverse + status passing  
 [LC101](https://leetcode.com/problems/symmetric-tree) traverse + status passing, almost same as LC100  
 [LC572](https://leetcode.com/problems/subtree-of-another-tree) traverse + status passing, similar to LC100  
+[LC965](https://leetcode.com/problems/univalued-binary-tree) traverse + status passing, compare static value  
 [LC104](https://leetcode.com/problems/maximum-depth-of-binary-tree/) traverse + status passing, max depth  
 [LC110](https://leetcode.com/problems/balanced-binary-tree) traverse + status passing, depth + judgement logic  
 [LC111](https://leetcode.com/problems/minimum-depth-of-binary-tree) traverse + status passing, depth + judgement logic  
