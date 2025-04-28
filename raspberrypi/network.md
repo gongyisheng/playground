@@ -69,6 +69,13 @@ ref: https://www.duckdns.org/install.jsp
 ref: https://github.com/caddyserver/caddy
 
 # setup mDNS
+install avahi
+`sudo apt update`
+`sudo apt install avahi-daemon avahi-utils`
+check avahi service status
+`sudo systemctl status avahi-daemon`
+`sudo systemctl start avahi-daemon`
+`sudo systemctl enable avahi-daemon`
 check hostname:
 `hostname`
 update hostname:
