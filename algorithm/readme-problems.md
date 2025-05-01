@@ -5,8 +5,11 @@
 [LC145](https://leetcode.com/problems/binary-tree-postorder-traversal/) basic postorder  
 [LC589](https://leetcode.com/problems/n-ary-tree-preorder-traversal) basic preorder, n-ray  
 [LC590](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) basic postorder, n-ray  
+[LC102](https://leetcode.com/problems/binary-tree-level-order-traversal) basic levelorder, top down    
+[LC107](https://leetcode.com/problems/binary-tree-level-order-traversal-ii) basic levelorder, button up  
 [LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic levelorder, n-ray   
 [LC1302](https://leetcode.com/problems/deepest-leaves-sum) traverse + status collect, find max  
+[LC872](https://leetcode.com/problems/leaf-similar-trees/) traverse + status collect, compare result  
 [LC987](https://leetcode.com/problems/vertical-order-traversal-of-a-binary-tree) traverse + status collect, sort result  
 [LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + status collect  
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder dfs + status collect, check trend  
@@ -20,6 +23,7 @@
 [LC235](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree) traverse + status passing, return lca, use the property of BST  
 [LC236](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree) traverse + status passing, return lca, compare it with LC235, trick is finding the way to pass status  
 [LC1123](https://leetcode.com/problems/lowest-common-ancestor-of-deepest-leaves) traverse + status passing, return ans_node and depth at the same time, compare with LC235 and LC236  
+[LC814](https://leetcode.com/problems/binary-tree-pruning) traverse + status passing, postorder, trim, change left/right node based on return  
 
 ## BST
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend
