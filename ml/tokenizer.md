@@ -1,4 +1,4 @@
-# Transformer related knowledge
+# Tokenizer related
 ## function
 - normalization
 - subword tokenization
