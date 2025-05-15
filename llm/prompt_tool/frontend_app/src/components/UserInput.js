@@ -23,8 +23,8 @@ function UserInput({ onMessageChange, onFilesChange, onFilesUpload, onSubmit }) 
       return;
     }
     for (let file of e.target.files) {
-      if (file.size > 10485760) {
-        alert("Cannot upload file larger than 10MB: " + file.name);
+      if (file.size > 104857600) {
+        alert("Cannot upload file larger than 100MB: " + file.name);
         continue
       }
       // dedup
@@ -73,7 +73,7 @@ function UserInput({ onMessageChange, onFilesChange, onFilesUpload, onSubmit }) 
           />
       </div>
       <div className="flex items-center bottom-px px-2">
-        <div>
+        <div className="py-1">
         <label className="cursor-pointer">
           <img src="./static/attachment.png" className="max-w-6 max-h-6"/>
           <input type="file" multiple className="hidden" onChange={handleFilesAdd} />
