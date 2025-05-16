@@ -9,6 +9,16 @@ function UserInput({ threadId, onMessageChange, onFilesChange, onSubmit }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    for (let filename of files) {
+      if (filesUploadStatus[filename] === -1) {
+        alert("File " + filename + " failed to upload, please try again");
+        return;
+      }
+      if (filesUploadStatus[filename] < 100) {
+        alert("File " + filename + " is still uploading, please wait");
+        return;
+      }
+    }
     onSubmit(message, files);
     setMessage("");
     setFiles([]);
@@ -78,15 +88,17 @@ function UserInput({ threadId, onMessageChange, onFilesChange, onSubmit }) {
         if (xhr.status === 200) {
           setFilesUploadStatus((prev) => ({ ...prev, [file.name]: 100 }));
         } else {
-          setFilesUploadStatus((prev) => ({ ...prev, [file.name]: "fail" }));
-          alert("Upload file " + file.name + " failed.");
+          setFilesUploadStatus((prev) => ({ ...prev, [file.name]: -1 }));
         }
+      }
+
+      xhr.onerror = () => {
+        setFilesUploadStatus((prev) => ({ ...prev, [file.name]: -1 }));
       }
 
       xhr.send(formData);
     } catch (error) {
-      setFilesUploadStatus((prev) => ({ ...prev, [file.name]: "fail" }));
-      alert("Upload file " + file.name + " failed.");
+      setFilesUploadStatus((prev) => ({ ...prev, [file.name]: -1 }));
     }
   };
 
@@ -127,13 +139,13 @@ function UserInput({ threadId, onMessageChange, onFilesChange, onSubmit }) {
           {files.map((filename) => (
             <div key={filename} className="flex items-center">
               <div className="px-2">{filename}</div>
-              {filesUploadStatus[filename] === "fail" && (
-                <div className="text-red-500">Failed</div>
+              {filesUploadStatus[filename] === -1 && (
+                <div className="text-red-500">fail</div>
               )}
               {filesUploadStatus[filename] === 100 && (
                 <div className="text-green-500">100%</div>
               )}
-              {filesUploadStatus[filename] !== 100 && (
+              {filesUploadStatus[filename] > 0 && filesUploadStatus[filename] < 100 && (
                 <div className="text-green-500">{filesUploadStatus[filename]}%</div>
               )}
               <button onClick={handleFilesRemove}>

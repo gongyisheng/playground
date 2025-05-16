@@ -195,6 +195,7 @@ function Playground() {
   const handleUserSubmit = (userMessage) => {
     // skip empty message
     if (userMessage === "") return;
+    // skip if files are not uploaded
     // appened system message to chat display
     if (conversation.length === 0) {
       if (promptContent === "") {
