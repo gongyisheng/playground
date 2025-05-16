@@ -141,6 +141,7 @@ class FileHandler(AuthHandler):
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "wb") as f:
                 f.write(file_body)
+            logging.info(f"Upload file: {file_name}, user_id: {self.user_id}, size: {round(file_size, 2)} MB")
 
         self.build_return(200)
 
