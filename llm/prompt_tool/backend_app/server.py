@@ -164,7 +164,7 @@ class FileHandler(AuthHandler):
             Global.file_model.delete_file_by_user_id_file_name(self.user_id, file_name)
             logging.info(f"Delete file: {file_name}, user_id: {self.user_id}")
         else:
-            logging.info(f"File not found: {file_name}, user_id: {self.user_id}")
+            logging.info(f"Try to delete but file not found: {file_name}, user_id: {self.user_id}")
         self.build_return(200)
 
 
