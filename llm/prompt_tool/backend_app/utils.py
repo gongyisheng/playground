@@ -15,15 +15,15 @@ def setup_logger(file_path: str = "backend-app.log"):
 
     fh = logging.FileHandler(file_path)
     fh.setFormatter(formatter)
-    fh.setLevel(logging.DEBUG)
+    fh.setLevel(logging.INFO)
     logger.addHandler(fh)
 
     sh = logging.StreamHandler()
     sh.setFormatter(formatter)
-    sh.setLevel(logging.DEBUG)
+    sh.setLevel(logging.INFO)
     logger.addHandler(sh)
 
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
 
 # encrypt and decrypt utils functions

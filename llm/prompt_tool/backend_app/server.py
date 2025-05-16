@@ -204,15 +204,38 @@ class ChatHandler(AuthHandler):
             conversation.append(
                 {"role": "system", "content": DEFAULT_SYSTEM_PROMPT}
             )
-        if len(conversation) == 1:
-            conversation.append(
-                {"role": "user", "content": "Repeat after me: I'm a helpful assistant"}
-            )
         passed, error = self.validate_conversation(conversation, thread_id)
         if not passed:
             self.build_return(400, {"error": error})
             return
-        
+
+        for i in range(len(conversation)):
+            item = conversation[i]
+            text_content = item["content"]
+            if "files" in item:
+                new_content = []
+                for file_name in item["files"]:
+                    file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)
+                    with open(file_path, "rb") as f:
+                        file_content = f.read()
+                    base64_string = base64.b64encode(file_content).decode("utf-8")
+                    new_content.append({
+                        "type": "file",
+                        "file": {
+                            "filename": file_name,
+                            "file_data": f"data:application/pdf;base64,{base64_string}"
+                        }
+                    })
+                new_content.append({
+                    "type": "text",
+                    "text": text_content
+                })
+                conversation[i]["content"] = new_content
+                conversation[i].pop("files")
+            else:
+                pass
+
+        # save conversation to memory storage
         MESSAGE_STORAGE[thread_id] = conversation
         self.build_return(200, {"thread_id": thread_id})
         return
