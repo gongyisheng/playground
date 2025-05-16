@@ -174,7 +174,7 @@ class FileHandler(AuthHandler):
 # GET:  send prompt to openai and transfer completion SSE stream to client, audit, save chat history
 DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant"
 class ChatHandler(AuthHandler):
-    def validate_conversation(self, conversation):
+    def validate_conversation(self, conversation, thread_id):
         role = ["system", "user", "assistant"]
         for i in range(len(conversation)):
             item = conversation[i]
@@ -185,6 +185,10 @@ class ChatHandler(AuthHandler):
                 return False, "conversation role is not correct"
             if i == len(conversation) - 1 and item["role"] != "user":
                 return False, "last conversation role is not user"
+            if "files" in item:
+                for file_name in item["files"]:
+                    if not os.path.exists(os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)):
+                        return False, f"file {file_name} not found"
         return True, None
 
     def post(self):
@@ -204,7 +208,7 @@ class ChatHandler(AuthHandler):
             conversation.append(
                 {"role": "user", "content": "Repeat after me: I'm a helpful assistant"}
             )
-        passed, error = self.validate_conversation(conversation)
+        passed, error = self.validate_conversation(conversation, thread_id)
         if not passed:
             self.build_return(400, {"error": error})
             return
