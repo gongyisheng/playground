@@ -50,7 +50,7 @@ function UserInput({ threadId, onMessageChange, onFilesChange, onSubmit }) {
   const handleFilesRemove = (e) => {
     let newFiles = [...files];
     const fileName = e.target.parentElement.parentElement.children[0].textContent;
-    newFiles = newFiles.filter((f) => f.name !== fileName);
+    newFiles = newFiles.filter((filename) => filename !== fileName);
     setFiles(newFiles);
     onFilesChange(newFiles);
     setFilesUploadStatus((prev) => {
