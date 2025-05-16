@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from 'uuid';
 
 import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
@@ -12,7 +13,7 @@ const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 var userMessage = "";
 var userFiles = [];
 var conversation = [];
-var threadId = "";
+var threadId = uuidv4();
 var model = "GPT4o-mini";
 
 function Playground() {
@@ -66,7 +67,7 @@ function Playground() {
     conversation = [];
     setSSEStatus(false);
     setSSEData("");
-    threadId = "";
+    threadId = uuidv4();
     setMyPrompts({});
     setRefreshFlag(!refreshFlag);
   };

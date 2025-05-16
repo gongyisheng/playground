@@ -178,9 +178,11 @@ class ChatHandler(AuthHandler):
     def post(self):
         # get message from request body
         body = json.loads(self.request.body)
-        thread_id = body.get("thread_id", "")
-        if thread_id == "":
-            thread_id = str(uuid.uuid4())
+        thread_id = body.get("thread_id", None)
+        if thread_id is None or thread_id == "":
+            self.build_return(400, {"error": "thread_id is missing"})
+            return
+
         conversation = body.get("conversation", [])
         if len(conversation) == 0:
             conversation.append(
@@ -194,10 +196,10 @@ class ChatHandler(AuthHandler):
         if not passed:
             self.build_return(400, {"error": error})
             return
-        else:
-            MESSAGE_STORAGE[thread_id] = conversation
-            self.build_return(200, {"thread_id": thread_id})
-            return
+        
+        MESSAGE_STORAGE[thread_id] = conversation
+        self.build_return(200, {"thread_id": thread_id})
+        return
 
     def build_sse_message(self, data):
         body = json.dumps({"content": data})
