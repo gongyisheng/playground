@@ -40,6 +40,7 @@ function Playground() {
 
   const handleUserFilesChange = (files) => {
     userFiles = files;
+    console.log("userFiles", userFiles);
   };
 
   const handlePromptNameChange = (name) => {
@@ -72,26 +73,6 @@ function Playground() {
     setRefreshFlag(!refreshFlag);
   };
 
-  const handleFilesUpload = async (files) => {
-    const formData = new FormData();
-    for (let file of files) {
-      formData.append("files", file);
-    }
-    try {
-      const response = await fetch(ENDPOINT_UPLOAD, {
-        method: "POST",
-        credentials: "include", // <-- includes cookies in the request
-        body: formData,
-      });
-      if (response.status !== 200) {
-        alert("Upload files failed.");
-      }
-    } catch (error) {
-      console.error("Failed to upload files:", error);
-    }
-  };
-
-
   const handleSavePrompt = async () => {
     try {
       const response = await fetch(ENDPOINT_PROMPT, {
@@ -119,11 +100,15 @@ function Playground() {
     }
   };
 
-  const appendToConversation = (role, content) => {
-    conversation = conversation.concat({
+  const appendToConversation = (role, text, files = []) => {
+    var item = {
       role: role,
-      content: content,
-    });
+      content: text
+    }
+    if (files.length > 0) {
+      item.files = files;
+    }
+    conversation = conversation.concat(item);   
   };
 
   const handleSSEMessageUpdate = (token) => {
@@ -202,7 +187,7 @@ function Playground() {
         conversation.length > 0 &&
         conversation[conversation.length - 1].role === "user"
       ) {
-        appendToConversation("assistant", SSEData);
+        appendToConversation("assistant", SSEData, []);
         setSSEData("");
       }
     }
@@ -214,14 +199,14 @@ function Playground() {
     // appened system message to chat display
     if (conversation.length === 0) {
       if (promptContent === "") {
-        appendToConversation("system", DEFAULT_PROMPT_CONTENT);
+        appendToConversation("system", DEFAULT_PROMPT_CONTENT, []);
       } else {
-        appendToConversation("system", promptContent);
+        appendToConversation("system", promptContent, []);
       }
     }
     // append user message to chat display
     if (SSEStatus === false) {
-      appendToConversation("user", userMessage);
+      appendToConversation("user", userMessage, userFiles);
     }
     // send chat request to backend
     sendChatRequest();
@@ -318,6 +303,7 @@ function Playground() {
         </div>
         <div className="pb-4">
           <UserInput
+            threadId={threadId}
             onMessageChange={handleUserMessageChange}
             onFilesChange={handleUserFilesChange}
             onSubmit={handleUserSubmit}
