@@ -23,8 +23,8 @@ function UserInput({ onMessageChange, onFilesChange, onFilesUpload, onSubmit }) 
       return;
     }
     for (let file of e.target.files) {
-      if (file.size > 104857600) {
-        alert("Cannot upload file larger than 100MB: " + file.name);
+      if (file.size > 1048576*32) {
+        alert("Cannot upload file larger than 32MB: " + file.name);
         continue
       }
       // dedup
