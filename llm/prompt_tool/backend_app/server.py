@@ -128,6 +128,10 @@ class AuthHandler(BaseHandler):
 # GET:  get file list of a user from database
 class FileHandler(AuthHandler):
     def post(self):
+        thread_id = thread_id = self.get_argument("thread_id", None)
+        if thread_id is None or thread_id == "":
+            self.build_return(400, {"error": "thread_id is missing"})
+            return
         file_infos = self.request.files['files']
 
         for file_info in file_infos:
@@ -137,23 +141,31 @@ class FileHandler(AuthHandler):
             base64_string = base64.b64encode(file_body).decode("utf-8")
             file_size = len(base64_string) / 1024 / 1024 # MB
 
-            path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), file_name)
+            path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "wb") as f:
                 f.write(file_body)
-            logging.info(f"Upload file: {file_name}, user_id: {self.user_id}, size: {round(file_size, 2)} MB")
+            logging.info(f"Upload file: {file_name}, user_id: {self.user_id}, thread_id: {thread_id}, size: {round(file_size, 2)} MB")
 
         self.build_return(200)
 
     def delete(self):
         body = json.loads(self.request.body)
+        thread_id = body.get("thread_id", None)
+        if thread_id is None or thread_id == "":
+            self.build_return(400, {"error": "thread_id is missing"})
+            return
         file_name = body.get("file_name")
-        file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), file_name)
+        if file_name is None or file_name == "":
+            self.build_return(400, {"error": "file_name is missing"})
+            return
+        
+        file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)
         if os.path.exists(file_path):
             os.remove(file_path)
-            logging.info(f"Delete file: {file_name}, user_id: {self.user_id}")
+            logging.info(f"Delete file: {file_name}, user_id: {self.user_id}, thread_id: {thread_id}")
         else:
-            logging.info(f"Try to delete but file not found: {file_name}, user_id: {self.user_id}")
+            logging.info(f"Try to delete but file not found: {file_name}, user_id: {self.user_id}, thread_id: {thread_id}")
         self.build_return(200)
 
 
