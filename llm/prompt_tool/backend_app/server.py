@@ -148,7 +148,6 @@ class FileHandler(AuthHandler):
     def delete(self):
         body = json.loads(self.request.body)
         file_name = body.get("file_name")
-        
         file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), file_name)
         if os.path.exists(file_path):
             os.remove(file_path)
