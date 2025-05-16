@@ -209,6 +209,7 @@ function Playground() {
     }
     // send chat request to backend
     sendChatRequest();
+    handleUserFilesChange([]);
   };
 
   const refrestCostAndLimit = async () => {
