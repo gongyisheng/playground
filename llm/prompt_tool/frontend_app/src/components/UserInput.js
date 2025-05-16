@@ -40,7 +40,6 @@ function UserInput({ threadId, onMessageChange, onFilesChange, onSubmit }) {
       toUploadFiles.push(file);
       newFiles.push(file.name);
     }
-    console.log("newFiles", newFiles);
     setFiles(newFiles);
     onFilesChange(newFiles);
     for (let file of toUploadFiles) {

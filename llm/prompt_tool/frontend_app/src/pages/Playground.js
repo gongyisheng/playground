@@ -40,7 +40,6 @@ function Playground() {
 
   const handleUserFilesChange = (files) => {
     userFiles = files;
-    console.log("userFiles", userFiles);
   };
 
   const handlePromptNameChange = (name) => {
