@@ -7,8 +7,8 @@ ref: https://zhuanlan.zhihu.com/p/37761024
 
 # network speed test
 `sudo apt-get install iperf`   
-`iperf -s -p 8080` server side   
-`iperf -c <server_ip> -p 8080` client side   
+`iperf -s` server side   
+`iperf -c <server_ip>` client side   
 You will see result like this:   
 ```
 yisheng@raspberrypi-5:~$ iperf -s -p 8080
@@ -20,6 +20,8 @@ TCP window size:  128 KByte (default)
 [ ID] Interval       Transfer     Bandwidth
 [  1] 0.0000-12.5710 sec  3.97 MBytes  2.65 Mbits/sec
 ```
+client side configs
+`iperf -c <server_ip> -P 3 -t 30` set concurrency=3, time=30
 
 # static ip address
 update static ip address, router, dns:  
@@ -67,6 +69,13 @@ ref: https://www.duckdns.org/install.jsp
 ref: https://github.com/caddyserver/caddy
 
 # setup mDNS
+install avahi
+`sudo apt update`
+`sudo apt install avahi-daemon avahi-utils`
+check avahi service status
+`sudo systemctl status avahi-daemon`
+`sudo systemctl start avahi-daemon`
+`sudo systemctl enable avahi-daemon`
 check hostname:
 `hostname`
 update hostname:

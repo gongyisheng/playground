@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from 'uuid';
 
 import UserInput from "../components/UserInput";
 import ChatDisplay from "../components/ChatDisplay";
@@ -10,8 +11,9 @@ import { ENDPOINT_AUTH, ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT } from ".
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 
 var userMessage = "";
+var userFiles = [];
 var conversation = [];
-var threadId = "";
+var threadId = uuidv4();
 var model = "GPT4o-mini";
 
 function Playground() {
@@ -32,8 +34,13 @@ function Playground() {
     model = _model;
   };
 
-  const handleUserInputChange = (message) => {
+  const handleUserMessageChange = (message) => {
     userMessage = message;
+  };
+
+  const handleUserFilesChange = (files) => {
+    userFiles = files;
+    console.log("userFiles", userFiles);
   };
 
   const handlePromptNameChange = (name) => {
@@ -61,12 +68,12 @@ function Playground() {
     conversation = [];
     setSSEStatus(false);
     setSSEData("");
-    threadId = "";
+    threadId = uuidv4();
     setMyPrompts({});
     setRefreshFlag(!refreshFlag);
   };
 
-  const handleSave = async () => {
+  const handleSavePrompt = async () => {
     try {
       const response = await fetch(ENDPOINT_PROMPT, {
         method: "POST",
@@ -93,11 +100,15 @@ function Playground() {
     }
   };
 
-  const appendToConversation = (role, content) => {
-    conversation = conversation.concat({
+  const appendToConversation = (role, text, files = []) => {
+    var item = {
       role: role,
-      content: content,
-    });
+      content: text
+    }
+    if (files.length > 0) {
+      item.files = files;
+    }
+    conversation = conversation.concat(item);   
   };
 
   const handleSSEMessageUpdate = (token) => {
@@ -176,26 +187,26 @@ function Playground() {
         conversation.length > 0 &&
         conversation[conversation.length - 1].role === "user"
       ) {
-        appendToConversation("assistant", SSEData);
+        appendToConversation("assistant", SSEData, []);
         setSSEData("");
       }
     }
   }, [SSEStatus]);
 
-  const handleUserMessageSubmit = (userMessage) => {
+  const handleUserSubmit = (userMessage) => {
     // skip empty message
     if (userMessage === "") return;
     // appened system message to chat display
     if (conversation.length === 0) {
       if (promptContent === "") {
-        appendToConversation("system", DEFAULT_PROMPT_CONTENT);
+        appendToConversation("system", DEFAULT_PROMPT_CONTENT, []);
       } else {
-        appendToConversation("system", promptContent);
+        appendToConversation("system", promptContent, []);
       }
     }
     // append user message to chat display
     if (SSEStatus === false) {
-      appendToConversation("user", userMessage);
+      appendToConversation("user", userMessage, userFiles);
     }
     // send chat request to backend
     sendChatRequest();
@@ -292,8 +303,10 @@ function Playground() {
         </div>
         <div className="pb-4">
           <UserInput
-            onContextChange={handleUserInputChange}
-            onSubmit={handleUserMessageSubmit}
+            threadId={threadId}
+            onMessageChange={handleUserMessageChange}
+            onFilesChange={handleUserFilesChange}
+            onSubmit={handleUserSubmit}
           />
         </div>
       </div>
@@ -303,7 +316,7 @@ function Playground() {
           onPromptNameChange={handlePromptNameChange}
           onPromptContentChange={handlePromptContentChange}
           onPromptNoteChange={handlePromptNoteChange}
-          onSave={handleSave}
+          onSave={handleSavePrompt}
           onRestore={handleRestore}
         />
       </div>

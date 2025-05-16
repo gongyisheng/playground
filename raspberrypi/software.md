@@ -1,8 +1,6 @@
-# update and upgrade
+# install vim, tcpdump, perf, network tools
 `sudo apt update`  
 `sudo apt upgrade`  
-
-# install vim, tcpdump, perf, network tools
 `sudo apt install vim tcpdump linux-tools-common linux-tools-generic dnsutils net-tools wireless-tools build-essential python3-pip redis-tools`  
 
 # setup mariadb
@@ -97,6 +95,11 @@ ffmpeg -i input.mkv -i subtitles.srt -c copy output.mkv
 ffmpeg -ss [start] -to [end] -accurate_seek -i [in].mp4 -codec copy -avoid_negative_ts 1 -map_metadata -1 [out].mp4
 // delay subtitle by seconds
 ffmpeg -itsoffset [num] -i subtitles.srt -c copy subtitles_delayed.srt
+// solve 6 channel issue (Unsupported channel layout "6 channels")
+ffmpeg -y -i source.avi -acodec copy source.6.aac
+faad -d -o source.2.pcm source.6.aac
+ffmpeg -y -i source.avi -i source.2.pcm -map 0:0 -map 1:0 -vcodec copy -acodec copy output.avi
+ref: https://lzone.de/blog/ffmpeg-AAC-Can-not-resample-6-channels
 ```
 
 # run bypy (baiduyun python client)
@@ -137,3 +140,21 @@ click [OK]
 ```
 ref: https://forums.raspberrypi.com/viewtopic.php?t=222801
 
+# install wechat linux
+```
+# download deb, install
+https://linux.weixin.qq.com/en
+
+# resolve libtiff.so.5 issue on ubuntu 22/24
+cd /usr/lib/x86_64-linux-gnu/
+sudo ln -s libtiff.so.6 libtiff.so.5
+```
+# take screenshot
+```
+# install package
+sudo apt install grim
+sudo apt install slurp
+
+# use grim to take screenshot
+grim -g "$(slurp)"
+```

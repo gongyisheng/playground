@@ -1,7 +1,9 @@
 # server for customized chatbot
+import base64
 from datetime import datetime
 import json
 import logging
+import os
 import random
 import sqlite3
 import string
@@ -121,13 +123,58 @@ class AuthHandler(BaseHandler):
     def get(self):
         self.build_return(200)
 
+# handler for file request (POST and GET)
+# POST: save file to database and local disk
+# GET:  get file list of a user from database
+class FileHandler(AuthHandler):
+    def post(self):
+        thread_id = thread_id = self.get_argument("thread_id", None)
+        if thread_id is None or thread_id == "":
+            self.build_return(400, {"error": "thread_id is missing"})
+            return
+        file_infos = self.request.files['files']
+
+        for file_info in file_infos:
+            file_name = file_info['filename']
+            file_body = file_info['body']
+            
+            base64_string = base64.b64encode(file_body).decode("utf-8")
+            file_size = len(base64_string) / 1024 / 1024 # MB
+
+            path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as f:
+                f.write(file_body)
+            logging.info(f"Upload file: {file_name}, user_id: {self.user_id}, thread_id: {thread_id}, size: {round(file_size, 2)} MB")
+
+        self.build_return(200)
+
+    def delete(self):
+        body = json.loads(self.request.body)
+        thread_id = body.get("thread_id", None)
+        if thread_id is None or thread_id == "":
+            self.build_return(400, {"error": "thread_id is missing"})
+            return
+        file_name = body.get("file_name")
+        if file_name is None or file_name == "":
+            self.build_return(400, {"error": "file_name is missing"})
+            return
+        
+        file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logging.info(f"Delete file: {file_name}, user_id: {self.user_id}, thread_id: {thread_id}")
+        else:
+            logging.info(f"Try to delete but file not found: {file_name}, user_id: {self.user_id}, thread_id: {thread_id}")
+        self.build_return(200)
+
 
 # handler for chat request (POST and GET)
 # POST: save prompt and context to memory storage, validation
 # GET:  send prompt to openai and transfer completion SSE stream to client, audit, save chat history
 DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant"
 class ChatHandler(AuthHandler):
-    def validate_conversation(self, conversation):
+    def validate_conversation(self, conversation, thread_id):
         role = ["system", "user", "assistant"]
         for i in range(len(conversation)):
             item = conversation[i]
@@ -138,31 +185,60 @@ class ChatHandler(AuthHandler):
                 return False, "conversation role is not correct"
             if i == len(conversation) - 1 and item["role"] != "user":
                 return False, "last conversation role is not user"
+            if "files" in item:
+                for file_name in item["files"]:
+                    if not os.path.exists(os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)):
+                        return False, f"file {file_name} not found"
         return True, None
 
     def post(self):
         # get message from request body
         body = json.loads(self.request.body)
-        thread_id = body.get("thread_id", "")
-        if thread_id == "":
-            thread_id = str(uuid.uuid4())
+        thread_id = body.get("thread_id", None)
+        if thread_id is None or thread_id == "":
+            self.build_return(400, {"error": "thread_id is missing"})
+            return
+
         conversation = body.get("conversation", [])
         if len(conversation) == 0:
             conversation.append(
                 {"role": "system", "content": DEFAULT_SYSTEM_PROMPT}
             )
-        if len(conversation) == 1:
-            conversation.append(
-                {"role": "user", "content": "Repeat after me: I'm a helpful assistant"}
-            )
-        passed, error = self.validate_conversation(conversation)
+        passed, error = self.validate_conversation(conversation, thread_id)
         if not passed:
             self.build_return(400, {"error": error})
             return
-        else:
-            MESSAGE_STORAGE[thread_id] = conversation
-            self.build_return(200, {"thread_id": thread_id})
-            return
+
+        for i in range(len(conversation)):
+            item = conversation[i]
+            text_content = item["content"]
+            if "files" in item:
+                new_content = []
+                for file_name in item["files"]:
+                    file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), str(thread_id), file_name)
+                    with open(file_path, "rb") as f:
+                        file_content = f.read()
+                    base64_string = base64.b64encode(file_content).decode("utf-8")
+                    new_content.append({
+                        "type": "file",
+                        "file": {
+                            "filename": file_name,
+                            "file_data": f"data:application/pdf;base64,{base64_string}"
+                        }
+                    })
+                new_content.append({
+                    "type": "text",
+                    "text": text_content
+                })
+                conversation[i]["content"] = new_content
+                conversation[i].pop("files")
+            else:
+                pass
+
+        # save conversation to memory storage
+        MESSAGE_STORAGE[thread_id] = conversation
+        self.build_return(200, {"thread_id": thread_id})
+        return
 
     def build_sse_message(self, data):
         body = json.dumps({"content": data})
@@ -632,6 +708,7 @@ def make_app():
         [
             (r"/ping", PingHandler),
             (r"/auth", AuthHandler),
+            (r"/file", FileHandler),
             (r"/chat", ChatHandler),
             (r"/prompt", PromptHandler),
             (r"/signin", SignInHandler),

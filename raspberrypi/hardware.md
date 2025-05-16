@@ -26,11 +26,61 @@ edit `/etc/fstab` file, start swap after boot
 reboot
 `sudo reboot`
 
+# turn off swap
+`sudo dphys-swapfile swapoff` on raspberrypi os
+`sudo dphys-swapfile uninstall` on raspberrypi os, disable auto start after reboot
+`sudo update-rc.d dphys-swapfile remove` on raspberrypi os, disable upgrade
+`sudo systemctl disable swapfile.swap` on ubuntu
+
 # disk info
 `df -h`
 
 # disk health check
 `sudo badblocks -s -v /dev/sda`
+
+# format a disk
+`sudo umount /dev/sdX`  
+`sudo mkfs.ext4 /dev/sda`  
+
+# disk iostat
+```
+iostat -d -x -m 1 30
+
+focus on:
+%util: io utility, limit by device
+await: read/write operation latency
+aqu-sz: io queue size, determine whether it's blocked
+areq-sz: average read/write request size, whether it's random I/O
+
+other:
+svctm: average service time (excluding queue time)
+rqm/s: combined request number per sec
+%rqm: rqm / (rw/s + rqm) * 100, combine efficiency (HDD: 70%-95%, SSD: 50%-80, NVMe: 0-30%)
+
+cases:
+1. high %util
+for HDD, >80% is a warning
+for SSD/NVMe, even ~100% is not an issue, focus on await and aqu-sz
+
+2. high await
+may caused by:
+- high backend latency (eg, using microSD, random I/O, RAID, write amplification)
+- frequently flush log
+
+3. high %util + high await + high aqu-sz
+device is the bottleneck
+consider using RAID, or change I/O scheduler (SSD/NVMe: noop/none, HDD: deadline/bfq)
+
+4. small areq-sz
+small read and write I/O operations
+considering use O_DIRECT
+
+5. low util%, high await
+invisible bottlenecks like
+- high backend latency (using microSD, RAID, virtual disk like NAS)
+- single thread block I/O
+- wrong storage configuration (cross NUMA)
+```
 
 # disk benchmark
 use fio as the benchmark tool
@@ -76,7 +126,7 @@ sudo rm $TEST_DIR/write* $TEST_DIR/read*
 reference: https://cloud.google.com/compute/docs/disks/benchmarking-pd-performance-linux
 
 # stress test
-`sudo apt-get install stress`
+`sudo apt-get install stress`  
 `while true; do vcgencmd measure_clock arm; vcgencmd measure_temp; sleep 10; done& stress -c 4 -t 900s`
 
 # external disk mount
@@ -87,9 +137,41 @@ add following line to `/etc/fstab` to mount disk after boot
 `UUID=XXXXXXX /media/usbdisk auto nosuid,nodev,nofail 0 2`
 unmount: IMPORTANT! dont use lazy umount if you cares driver can safely unplugged
 
+# install nvme ssd
+```
+# Background
+This project aims at using m2.nvme ssd as boot disk instead of USB/SD card.
+
+USB has availability issues, it's not quite stable under moving/voltage change. I have experience that a usb-connected m2.nvme ssd dropped when a 2.5' HDD is plugged in through USB. The power supply does not have enough power to handle multiple external devices.
+
+SD card is terrible at random read and write. It's not suitable for a desktop computer's boot disk.
+
+# Method
+material: raspberrypi 5, m.2 hat, m.2 nvme ssd
+
+# 1. prepare image
+# change boot order
+sudo rpi-eeprom-config --edit
+chage following:
+BOOT_ORDER=0xf416
+PCIE_PROBE=1
+
+then reboot after these
+
+after reboot, use sd card copier to copy image to nvme ssd
+
+# 2. change config.txt
+mount boot partition, edit config.txt
+dtparam=pciex1
+dtparam=pciex1_gen=3 # if you want to use gen 3.0, not recommend
+
+# 3. remove sd card, install m2.nvme ssd/m2.pcie hat, reboot 
+```
+ref: https://wiki.geekworm.com/NVMe_SSD_boot_with_the_Raspberry_Pi_5
+
 # wlan quality
 `iwconfig wlan0 | grep Quality`   
-`cat /proc/net/wireless` 
+`cat /proc/net/wireless`   
 IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affects wifi quality 
 
 # change wifi

@@ -8,6 +8,7 @@ const ENDPOINT_FORGET_PASSWORD = BASE_URL + "/forget_password";
 const ENDPOINT_CHAT = BASE_URL + "/chat";
 const ENDPOINT_PROMPT = BASE_URL + "/prompt";
 const ENDPOINT_AUDIT = BASE_URL + "/audit";
+const ENDPOINT_FILE = BASE_URL + "/file";
 
 const SESSION_COOKIE_NAME = "_chat_session";
 
@@ -18,4 +19,5 @@ export { ENDPOINT_FORGET_PASSWORD };
 export { ENDPOINT_CHAT };
 export { ENDPOINT_PROMPT };
 export { ENDPOINT_AUDIT };
+export { ENDPOINT_FILE };
 export { SESSION_COOKIE_NAME }

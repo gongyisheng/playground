@@ -28,6 +28,16 @@ function ChatDisplay({ conversation, SSEData }) {
               <span>{displayedRole[item.role]}</span>
             </div>
             <div className="px-14">{item.content}</div>
+            {item.files && item.files.length > 0 && (
+              <div className="px-14">
+                <div>————————————————————</div>
+                <div>Files attached:</div>
+                {item.files.map((file) => (
+                  <div key={file} className="py-2">{file}</div>
+                ))}
+                <div>————————————————————</div>
+              </div>
+            )}
           </div>
         ))}
       </div>

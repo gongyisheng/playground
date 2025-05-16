@@ -1,60 +1,54 @@
-linux file system: 
-- /bin: contains the most important binaries for the system
-- /sbin: contains the most important binaries for the system
-- /dev: contains the device files
-- /etc: contains the configuration files
-- /home: contains the home directories of the users
-- /lib: contains the libraries
-- /media: contains the mount points for removable media
-- /mnt: contains the mount points for removable media
-- /opt: contains the optional software
-- /proc: contains the process information
-- /root: contains the home directory of the root user
-- /run: contains the runtime data
-- /srv: contains the data for services
-- /sys: contains the system information
-- /tmp: contains the temporary files
-- /usr: contains the user binaries, libraries and other data
-- /var: contains the variable data
+# linux file system:
 
-environment variables:
-- $HOME: the home directory of the current user
-- $PATH: the list of directories where the shell looks for commands  
-ls, pwd, cat, these are all executable files, and the shell looks for them in the directories listed in the PATH variable
+## permission
+`drwxr-xr-x` 
+1. d(1): file type, d=directory, -=file
+2. rwx(2-4): owner's permission
+3. r-x(5-7): user at same group's permission
+4. r-x(8-0): other's permission
 
-comman configuration files:
-- /etc/passwd: contains the user accounts
-- /etc/shadow: contains the encrypted passwords
-- /etc/group: contains the groups
-- /etc/hosts: contains the host names and their IP addresses
-- /etc/hostname: contains the host name
-- /etc/resolv.conf: contains the DNS servers
-- /etc/fstab: contains the mount points for the file systems
-- /etc/issue: contains the message that is displayed when the system boots
-- /etc/motd: contains the message that is displayed when the user logs in
-- /etc/profile: contains the configuration for the shell
-- /etc/bash.bashrc: contains the configuration for the bash shell
-- /etc/sudoers: contains the configuration for the sudo command
+## change permission
+`chgrp`: change group (name should be in `/etc/group`)   
+`chgrp -R <GROUP> <DIR>`   
+`chown`: change owner (name should be in `/etc/passwd`)    
+`chown -R <USER>:<GROUP> <DIR>`  
+`chmod`: change permission (r=4, w=2, x=1, sum it up)  
+`chmod -R 700 <DIR>`  
+700: executable file, only owner has permission  
+740: executable file, only user in group has permission, only owner can edit  
+664: normal file, user in group can read and edit, other read only  
+755: executable file, only owner can edit, other can read and execute  
+for directory, x means can be accessed using `cd`  
+BE CAREFUL TO GIVE W PERMISSION (can edit and delete)
 
-common device files:
-- /dev/null: Bottomless garbage can
-- /dev/fd: a special file that represents the first floppy disk drive
-- /dev/mem: a special file that represents the physical memory
-- /dev/hd: a special file that represents the first hard disk
-- /dev/mouse: a special file that represents the mouse
-- /dev/usb: a special file that represents the USB devices
-- /dev/par: a special file that represents the parallel port
-- /dev/radio: a special file that represents the radio
-- /dev/vedio: a special file that represents the video
+## file type
+- regular file (-): ascii file, executable file, data file
+- directory (d)
+- link (l)
+- device - block (b): block device, like disk, `/dev/sda`  
+- device - character (c): character device, like mouse, keyboard and monitor `/dev/video`
+- sockets (s): usually under `/run` or `/tmp` 
+- fifo pipe (p): used to solve he problem that a file be read by multiple programs
 
+## limitations
+length: file name / dir name should be less than 255 bytes (255 ascii char)    
+better to avoid some characters: `?><;&![]|\'"{}`  
+
+
+## FHS (Filesystem Hierarchy Standard)
+- /usr: static, sharable, dir to put software (unix software resource)
+- /etc: static, unsharable, dir to put configurations
+- /opt: static, sharable, dir to put 3p software
+- /boot: static, unsharable, boot related
+- /var/mail: variable, sharable, user email
+- /var/run: variable, unsharable, programs related
+`/var` is usually related with system runtime
+
+## tmp dir
 files in /tmp are managed by OS, can be deleted after reboot  
 files in /var/tmp are managed by user programs, cannot be deleted after reboot
 
-ls -l: list the files in the current directory, with the details  
-ls -a: list the files in the current directory, including the hidden files  
-ls -t: list the files in the current directory, sorted by the time of the last modification
-ls -r: list the files in the current directory, in reverse order
-
+## find
 find `<path>` -name `<pattern>`: find the files in the specified path that match the specified pattern  
 find `<path>` -type `<type>`: find the files in the specified path that match the specified type  
 find `<path>` -size `<size>`: find the files in the specified path that match the specified size  

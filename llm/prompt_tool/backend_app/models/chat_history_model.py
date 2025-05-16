@@ -51,6 +51,12 @@ class ChatHistoryModel(BaseModel):
     ) -> None:
         # insert chat history
         cursor = self.conn.cursor()
+        for item in conversation:
+            content = item["content"]
+            if isinstance(content, list):
+                for subcontent in content:
+                    if subcontent["type"] == "file":
+                        subcontent['file'].pop("file_data")
         str_conversation = json.dumps(conversation)
         now = int(time.time())
         self._execute_sql(
