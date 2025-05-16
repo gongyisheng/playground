@@ -21,7 +21,6 @@ import tornado.web
 from models.user_model import UserModel
 from models.session_model import SessionModel
 from models.chat_history_model import ChatHistoryModel
-from models.file_model import FileModel
 from models.prompt_model import PromptModel
 from models.audit_model import AuditModel
 from models.pricing_model import PricingModel
@@ -52,7 +51,6 @@ class Global:
     user_model = None
     session_model = None
     chat_history_model = None
-    file_model = None
     prompt_model = None
     audit_model = None
     pricing_model = None
@@ -144,15 +142,7 @@ class FileHandler(AuthHandler):
             with open(path, "wb") as f:
                 f.write(file_body)
 
-            Global.file_model.create_file(self.user_id, file_name, file_size)
         self.build_return(200)
-    
-    def get(self):
-        files = Global.file_model.get_file_names_by_user_id(self.user_id)
-        file_list = []
-        for file in files:
-            file_list.append(file[0])
-        self.build_return(200, json.dumps(file_list))
 
     def delete(self):
         body = json.loads(self.request.body)
@@ -161,7 +151,6 @@ class FileHandler(AuthHandler):
         file_path = os.path.join(Global.config['user_file_upload_dir'], str(self.user_id), file_name)
         if os.path.exists(file_path):
             os.remove(file_path)
-            Global.file_model.delete_file_by_user_id_file_name(self.user_id, file_name)
             logging.info(f"Delete file: {file_name}, user_id: {self.user_id}")
         else:
             logging.info(f"Try to delete but file not found: {file_name}, user_id: {self.user_id}")
@@ -719,8 +708,6 @@ if __name__ == "__main__":
     Global.session_model.create_tables()
     Global.chat_history_model = ChatHistoryModel(APP_DATA_DB_CONN)
     Global.chat_history_model.create_tables()
-    Global.file_model = FileModel(APP_DATA_DB_CONN)
-    Global.file_model.create_tables()
     Global.prompt_model = PromptModel(APP_DATA_DB_CONN)
     Global.prompt_model.create_tables()
     Global.audit_model = AuditModel(APP_DATA_DB_CONN)
