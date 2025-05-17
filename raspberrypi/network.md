@@ -84,3 +84,34 @@ setup mDNS:
 - set `MulticastDNS=yes` in `/etc/systemd/resolved.conf`
 - enable mDNS for specific interface: `resolvectl mdns <interface> yes`
 - restart resolved: `sudo systemctl restart systemd-resolved`
+
+# wlan quality
+`iwconfig wlan0 | grep Quality`   
+`cat /proc/net/wireless`   
+IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affects wifi quality 
+
+# change wifi
+`sudo vim /etc/netplan/50-cloud-init.yaml`
+
+```
+# this file generated from information provided by the datasource. Changes
+# to it will not persist across an instance reboot. To disable cloud-init’s
+# network configuration capabilities, write a file 
+# /etc/cloud/cloud.cfg.d/99-disable-network-config-cfg with the following:
+# network:{config: disabled}
+network:
+    ethernets:
+        eth0:
+            dhcp4: true
+            optional: true
+    version: 2
+    wifis:
+        wlan0:
+            access-points:
+                WIFI-NAME:
+                    password: WIFI-PASSWORD
+            dhcp4: true
+            optional: true
+```
+ref: https://raspberrypi.stackexchange.com/questions/111722/rpi-4-running-ubuntu-server-20-04-cant-connect-to-wifi
+Note: If want to connect to ethernet, just remove wifis
