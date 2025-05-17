@@ -185,7 +185,7 @@ IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affe
 # network:{config: disabled}
 network:
     ethernets:
-        etho:
+        eth0:
             dhcp4: true
             optional: true
     version: 2
@@ -198,3 +198,4 @@ network:
             optional: true
 ```
 ref: https://raspberrypi.stackexchange.com/questions/111722/rpi-4-running-ubuntu-server-20-04-cant-connect-to-wifi
+Note: If want to run only on ethernet, just remove wifis
