@@ -6,12 +6,12 @@ find raspberrypi ip:
 ref: https://zhuanlan.zhihu.com/p/37761024  
 
 # network speed test
-`sudo apt-get install iperf`   
-`iperf -s` server side   
-`iperf -c <server_ip>` client side   
+`sudo apt-get install iperf3`   
+`iperf3 -s` server side   
+`iperf3 -c <server_ip>` client side   
 You will see result like this:   
 ```
-yisheng@raspberrypi-5:~$ iperf -s -p 8080
+yisheng@raspberrypi-5:~$ iperf3 -s -p 8080
 ------------------------------------------------------------
 Server listening on TCP port 8080
 TCP window size:  128 KByte (default)
@@ -21,7 +21,7 @@ TCP window size:  128 KByte (default)
 [  1] 0.0000-12.5710 sec  3.97 MBytes  2.65 Mbits/sec
 ```
 client side configs
-`iperf -c <server_ip> -P 3 -t 30` set concurrency=3, time=30
+`iperf3 -c <server_ip> -P 3 -t 30` set concurrency=3, time=30
 
 # static ip address
 update static ip address, router, dns:  
