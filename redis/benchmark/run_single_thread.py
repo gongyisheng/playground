@@ -18,13 +18,13 @@ async def run_single_thread(redis_client: Redis):
     await redis_client.set(f'key_{id}', f'value_{id}', ex=EXPIRE)
     await redis_client.get(f'key_{id}')
 
-async def main(max_client, stage_interval):
-    connection_pool = BlockingConnectionPool(max_connections=max_client)
+async def main():
+    connection_pool = BlockingConnectionPool(max_connections=MAX_CLIENT)
     redis_client = Redis(host=HOST, port=PORT, connection_pool=connection_pool)
-    for i in range(max_client):
+    for i in range(MAX_CLIENT):
         st_time = time.time()
-        while time.time() - st_time < stage_interval / 1000:
-            tasks = [asyncio.create_task(run_single_thread(redis_client)) for j in range(max_client)]
+        while time.time() - st_time < STAGE_INTERVAL_MS / 1000:
+            tasks = [asyncio.create_task(run_single_thread(redis_client)) for j in range(MAX_CLIENT)]
             await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
