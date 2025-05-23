@@ -11,7 +11,7 @@ async def main(concurrency):
     connection_pool = BlockingConnectionPool(max_connections=concurrency)
     redis_client = Redis(host='localhost', port=6379, db=0, connection_pool=connection_pool)
     tasks = []
-    for i in range(1,000,000,000):
+    for i in range(1000000000):
         tasks.append(asyncio.create_task(run_single_thread(redis_client, i)))
         if len(tasks) >= concurrency:
             await asyncio.gather(*tasks)
