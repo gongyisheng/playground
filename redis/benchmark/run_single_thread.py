@@ -55,11 +55,12 @@ async def run_single_thread(redis_client: Redis, request_count: Counter, request
     et_time = time.time()
 
     request_latency.observe(et_time - st_time, {'cmd': 'set'})
-    request_count.inc()
+    request_count.inc({'cmd': 'set'})
 
     st_time = time.time()
     await redis_client.get(f'key_{id}')
     et_time = time.time()
+    request_count.inc({'cmd': 'get'})
     request_latency.observe(et_time - st_time, {'cmd': 'get'})
 
 async def main():
