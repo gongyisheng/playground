@@ -34,7 +34,7 @@ async def main():
     connection_pool = BlockingConnectionPool(max_connections=MAX_CLIENT)
     redis_client = Redis(host=HOST, port=PORT, connection_pool=connection_pool)
     request_count = Counter('redis_requests_total', 'Number of requests to Redis')
-    request_latency = Counter('redis_request_latency_seconds', 'Latency of requests to Redis')    
+    request_latency = Histogram('redis_request_latency_seconds', 'Latency of requests to Redis')    
 
     for i in range(MAX_CLIENT):
         st_time = time.time()
