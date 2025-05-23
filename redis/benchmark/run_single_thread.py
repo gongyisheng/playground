@@ -18,4 +18,3 @@ if __name__ == "__main__":
     parser.add_argument("--max-client", dest="max_client", type=int, default=1000, help="Number of max connections to Redis")
     args = parser.parse_args()
     asyncio.run(main(args.max_client))
-    asyncio.run(main())
