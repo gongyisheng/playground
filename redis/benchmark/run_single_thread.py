@@ -67,8 +67,8 @@ async def run_single_thread(redis_client: Redis, request_count: Counter, request
 async def main():
     connection_pool = BlockingConnectionPool(max_connections=MAX_CLIENT)
     redis_client = Redis(host=HOST, port=PORT, connection_pool=connection_pool)
-    request_count = Counter('redis_requests_total', 'Number of requests to Redis')
-    request_latency = Histogram('redis_request_latency_seconds', 'Latency of requests to Redis', buckets=BUCKETS)    
+    request_count = Counter('redis_requests_total', 'Number of requests to Redis', ["cmd"])
+    request_latency = Histogram('redis_request_latency_seconds', 'Latency of requests to Redis', ["cmd"], buckets=BUCKETS)    
 
     for i in range(MAX_CLIENT):
         st_time = time.time()
