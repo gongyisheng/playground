@@ -6,7 +6,7 @@ async def run_single_thread(redis_client, num):
     await redis_client.get(f'key_{num}')
 
 async def main():
-    redis_client = Redis(host='localhost', port=6379, db=0)
+    redis_client = Redis(host='cluster-n0.local', port=6379, db=0)
     for i in range(1000000000):
         await run_single_thread(redis_client, i)
         if i % 1000000 == 0:
