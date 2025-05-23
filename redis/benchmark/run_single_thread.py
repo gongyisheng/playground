@@ -24,7 +24,7 @@ async def main():
     for i in range(MAX_CLIENT):
         st_time = time.time()
         while time.time() - st_time < STAGE_INTERVAL_MS / 1000:
-            tasks = [asyncio.create_task(run_single_thread(redis_client)) for j in range(MAX_CLIENT)]
+            tasks = [asyncio.create_task(run_single_thread(redis_client)) for j in range(i)]
             await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
