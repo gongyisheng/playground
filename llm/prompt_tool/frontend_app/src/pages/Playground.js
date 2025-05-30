@@ -14,7 +14,7 @@ var userMessage = "";
 var userFiles = [];
 var conversation = [];
 var threadId = uuidv4();
-var model = "GPT4o-mini";
+var model = "GPT4.1-mini";
 
 function Playground() {
   const navigate = useNavigate();

@@ -21,8 +21,10 @@ def init_price(db_conn: sqlite3.Connection):
         pricing_model.create_pricing(
             "claude-sonnet-4-20250514", 3 / 1000000, 15 / 1000000, 0
         )
-    if pricing_model.get_current_pricing_by_model("o3-mini-2025-01-31") is None:
-        pricing_model.create_pricing("o3-mini-2025-01-31", 1.1 / 1000000, 4.4 / 1000000, 0)
+    if pricing_model.get_current_pricing_by_model("o4-mini-2025-04-16") is None:
+        pricing_model.create_pricing("o4-mini-2025-04-16", 0.55 / 1000000, 2.2 / 1000000, 0)
+    if pricing_model.get_current_pricing_by_model("o3-2025-04-16") is None:
+        pricing_model.create_pricing("o3-2025-04-16", 5 / 1000000, 20 / 1000000, 0)
     if pricing_model.get_current_pricing_by_model("deepseek-ai/DeepSeek-R1") is None:
         pricing_model.create_pricing("deepseek-ai/DeepSeek-R1", 4 / 7.25 / 1000000, 16 / 7.25 / 1000000, 0)
     if pricing_model.get_current_pricing_by_model("deepseek-ai/DeepSeek-V3") is None:

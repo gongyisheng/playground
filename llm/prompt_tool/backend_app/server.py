@@ -424,7 +424,7 @@ class ChatHandler(AuthHandler):
         try:
             if model.lower().startswith("gpt"):
                 stream = self.openai_text_stream(real_model, conversation)
-            elif model.lower().startswith(("o1", "o3")):
+            elif model.lower().startswith(("o1", "o3", "o4")):
                 stream = self.openai_text_stream(real_model, conversation)
             elif model.lower().startswith("llama"):
                 stream = self.llama_text_stream(real_model, conversation)
