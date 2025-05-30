@@ -168,33 +168,3 @@ dtparam=pciex1_gen=3 # if you want to use gen 3.0, not recommend
 # 3. remove sd card, install m2.nvme ssd/m2.pcie hat, reboot 
 ```
 ref: https://wiki.geekworm.com/NVMe_SSD_boot_with_the_Raspberry_Pi_5
-
-# wlan quality
-`iwconfig wlan0 | grep Quality`   
-`cat /proc/net/wireless`   
-IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affects wifi quality 
-
-# change wifi
-`sudo vim /etc/netplan/50-cloud-init.yaml`
-
-```
-# this file generated from information provided by the datasource. Changes
-# to it will not persist across an instance reboot. To disable cloud-init’s
-# network configuration capabilities, write a file 
-# /etc/cloud/cloud.cfg.d/99-disable-network-config-cfg with the following:
-# network:{config: disabled}
-network:
-    ethernets:
-        etho:
-            dhcp4: true
-            optional: true
-    version: 2
-    wifis:
-        wlan0:
-            access-points:
-                WIFI-NAME:
-                    password: WIFI-PASSWORD
-            dhcp4: true
-            optional: true
-```
-ref: https://raspberrypi.stackexchange.com/questions/111722/rpi-4-running-ubuntu-server-20-04-cant-connect-to-wifi

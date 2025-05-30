@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 
 const modelIcons = {
-  "GPT4o-mini": "./static/gpt-weak.png",
-  "GPT4o": "./static/gpt-strong.png",
+  "GPT4.1-mini": "./static/gpt-weak.png",
+  "GPT4.1": "./static/gpt-strong.png",
   "o3-mini": "./static/o3-mini.png",
-  "Deepseek-v3": "./static/deepseek-v3.png",
   "Deepseek-r1": "./static/deepseek-r1.png",
-  "Claude3.7": "./static/claude.png",
+  "Claude4": "./static/claude.png",
 };
 
 const extraText = {}
@@ -60,12 +59,11 @@ function Model({ onChange, cost, limit }) {
   return (
     <div>
       <div className="px-4 py-4 gap-2">
-        {renderModelBlock("GPT4o-mini", onClick)}
-        {renderModelBlock("GPT4o", onClick)}
-        {renderModelBlock("Deepseek-v3", onClick)}
-        {renderModelBlock("Deepseek-r1", onClick)}
+        {renderModelBlock("GPT4.1-mini", onClick)}
+        {renderModelBlock("GPT4.1", onClick)}
         {renderModelBlock("o3-mini", onClick)}
-        {renderModelBlock("Claude3.7", onClick)}
+        {renderModelBlock("Deepseek-r1", onClick)}
+        {renderModelBlock("Claude4", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
         <span className="text-sm italic">Cost this month: ${cost}/${limit}</span>

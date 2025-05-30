@@ -6,12 +6,12 @@ find raspberrypi ip:
 ref: https://zhuanlan.zhihu.com/p/37761024  
 
 # network speed test
-`sudo apt-get install iperf`   
-`iperf -s` server side   
-`iperf -c <server_ip>` client side   
+`sudo apt-get install iperf3`   
+`iperf3 -s` server side   
+`iperf3 -c <server_ip>` client side   
 You will see result like this:   
 ```
-yisheng@raspberrypi-5:~$ iperf -s -p 8080
+yisheng@raspberrypi-5:~$ iperf3 -s -p 8080
 ------------------------------------------------------------
 Server listening on TCP port 8080
 TCP window size:  128 KByte (default)
@@ -21,7 +21,7 @@ TCP window size:  128 KByte (default)
 [  1] 0.0000-12.5710 sec  3.97 MBytes  2.65 Mbits/sec
 ```
 client side configs
-`iperf -c <server_ip> -P 3 -t 30` set concurrency=3, time=30
+`iperf3 -c <server_ip> -P 3 -t 30` set concurrency=3, time=30
 
 # static ip address
 update static ip address, router, dns:  
@@ -84,3 +84,34 @@ setup mDNS:
 - set `MulticastDNS=yes` in `/etc/systemd/resolved.conf`
 - enable mDNS for specific interface: `resolvectl mdns <interface> yes`
 - restart resolved: `sudo systemctl restart systemd-resolved`
+
+# wlan quality
+`iwconfig wlan0 | grep Quality`   
+`cat /proc/net/wireless`   
+IMPORTANT: don't put HDD or metal thing too close to the board otherwise it affects wifi quality 
+
+# change wifi
+`sudo vim /etc/netplan/50-cloud-init.yaml`
+
+```
+# this file generated from information provided by the datasource. Changes
+# to it will not persist across an instance reboot. To disable cloud-init’s
+# network configuration capabilities, write a file 
+# /etc/cloud/cloud.cfg.d/99-disable-network-config-cfg with the following:
+# network:{config: disabled}
+network:
+    ethernets:
+        eth0:
+            dhcp4: true
+            optional: true
+    version: 2
+    wifis:
+        wlan0:
+            access-points:
+                WIFI-NAME:
+                    password: WIFI-PASSWORD
+            dhcp4: true
+            optional: true
+```
+ref: https://raspberrypi.stackexchange.com/questions/111722/rpi-4-running-ubuntu-server-20-04-cant-connect-to-wifi
+Note: If want to connect to ethernet, just remove wifis
