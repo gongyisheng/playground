@@ -17,9 +17,9 @@ def init_price(db_conn: sqlite3.Connection):
         pricing_model.create_pricing("gpt-4.1-2025-04-14", 2 / 1000000, 8 / 1000000, 0)
     # if pricing_model.get_current_pricing_by_model("llama-3.2-90b-vision-preview") is None:
     #     pricing_model.create_pricing("llama-3.2-90b-vision-preview", 0, 0, 0)
-    if pricing_model.get_current_pricing_by_model("claude-3-5-sonnet-20241022") is None:
+    if pricing_model.get_current_pricing_by_model("claude-sonnet-4-20250514") is None:
         pricing_model.create_pricing(
-            "claude-3-7-sonnet-20250219", 3 / 1000000, 15 / 1000000, 0
+            "claude-sonnet-4-20250514", 3 / 1000000, 15 / 1000000, 0
         )
     if pricing_model.get_current_pricing_by_model("o3-mini-2025-01-31") is None:
         pricing_model.create_pricing("o3-mini-2025-01-31", 1.1 / 1000000, 4.4 / 1000000, 0)
