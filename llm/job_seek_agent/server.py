@@ -7,19 +7,42 @@ from dotenv import load_dotenv
 import requests
 from datetime import datetime, timedelta
 import openai
+import yaml
+import logging
 
 # Load environment variables
 load_dotenv()
+
+# Load YAML configuration
+def load_config():
+    with open("backend-config.test.yaml", "r") as yamlfile:
+        config = yaml.load(yamlfile, Loader=yaml.FullLoader)
+        # Replace environment variables in config
+        for key, value in config.items():
+            if isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    if isinstance(subvalue, str) and subvalue.startswith("${") and subvalue.endswith("}"):
+                        env_var = subvalue[2:-1]
+                        value[subkey] = os.getenv(env_var)
+            elif isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+                env_var = value[2:-1]
+                config[key] = os.getenv(env_var)
+        return config
+
+config = load_config()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Job Seek Agent")
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=config["cors"]["allow_origins"],
+    allow_credentials=config["cors"]["allow_credentials"],
+    allow_methods=config["cors"]["allow_methods"],
+    allow_headers=config["cors"]["allow_headers"],
 )
 
 # Models
@@ -41,26 +64,23 @@ class JobPost(BaseModel):
     posted_date: str
     url: str
 
-# LinkedIn API configuration
-LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID")
-LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 # Initialize OpenAI
-openai.api_key = OPENAI_API_KEY
+openai.api_key = config["openai_api_key"]
 
 def get_linkedin_access_token():
     """Get LinkedIn access token using client credentials"""
-    url = "https://www.linkedin.com/oauth/v2/accessToken"
+    url = config["linkedin"]["auth_url"]
     data = {
         "grant_type": "client_credentials",
-        "client_id": LINKEDIN_CLIENT_ID,
-        "client_secret": LINKEDIN_CLIENT_SECRET
+        "client_id": config["linkedin"]["client_id"],
+        "client_secret": config["linkedin"]["client_secret"]
     }
     response = requests.post(url, data=data)
     if response.status_code == 200:
         return response.json()["access_token"]
-    raise HTTPException(status_code=401, detail="Failed to get LinkedIn access token")
+    else:
+        logging.error(f"Failed to get LinkedIn access token: {response.status_code} {response.text}")
+        raise HTTPException(status_code=401, detail="Failed to get LinkedIn access token")
 
 @app.post("/search-jobs")
 async def search_jobs(params: JobSearchParams):
@@ -80,7 +100,7 @@ async def search_jobs(params: JobSearchParams):
             raise HTTPException(status_code=400, detail="Invalid time range")
 
         # LinkedIn API endpoint for job search
-        url = "https://api.linkedin.com/v2/jobs"
+        url = f"{config['linkedin']['api_base_url']}/jobs"
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json"
@@ -101,6 +121,7 @@ async def search_jobs(params: JobSearchParams):
             raise HTTPException(status_code=response.status_code, detail="Failed to fetch jobs from LinkedIn")
             
     except Exception as e:
+        logging.error(f"Error in search_jobs: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze-job-match")
@@ -129,7 +150,7 @@ async def analyze_job_match(job: JobPost, user_profile: UserProfile):
         
         # Call OpenAI API
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4.1-2025-04-14",
             messages=[
                 {"role": "system", "content": "You are a job matching expert."},
                 {"role": "user", "content": prompt}
@@ -143,8 +164,13 @@ async def analyze_job_match(job: JobPost, user_profile: UserProfile):
         }
         
     except Exception as e:
+        logging.error(f"Error in analyze_job_match: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        app, 
+        host=config["server"]["host"], 
+        port=config["server"]["port"]
+    )
