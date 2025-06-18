@@ -25,6 +25,9 @@ target
 # secrets toml
 secrets.toml
 
+# node
+node_modules
+
 # nohup
 nohup.out
 
