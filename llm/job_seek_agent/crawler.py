@@ -207,6 +207,7 @@ async def run_crawler():
         return job_details
 
 if __name__ == "__main__":
+    import json
     job_details = asyncio.run(run_crawler())
-    for item in job_details:
-        print(item["job_detail_texts"])
+    with open("job_details.json", "w") as f:
+        json.dump(job_details, f)
