@@ -38,9 +38,14 @@ class LinkedInJobCrawler:
         Returns:
             Optional[str]: Response HTML if successful, None if failed
         """
+        params = {
+            "keywords": "software engineer",
+            "location": "San Francisco, CA",
+            "start": 0
+        }
         try:
             logging.info("Fetching jobs from LinkedIn API")
-            async with self.session.get(self.job_list_url, timeout=30) as response:
+            async with self.session.get(self.job_list_url, params=params, timeout=30) as response:
                 response.raise_for_status()
                 data = await response.text()
                 logging.info(f"Successfully fetched jobs")

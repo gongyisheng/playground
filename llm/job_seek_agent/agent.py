@@ -53,13 +53,10 @@ class JobAnalyzer:
             {job_description}
             
             Candidate Experience:
-            {candidate_experience}
-            
-            Candidate Skills:
-            {candidate_skills}""")
+            {candidate_experience}""")
         ])
 
-    async def analyze_job_match(self, job_description: str, candidate_experience: str, candidate_skills: List[str]) -> JobMatchResult:
+    async def analyze_job_match(self, job_description: str, candidate_experience: str) -> JobMatchResult:
         """
         Analyze if a job posting matches the candidate's experience and skills
         Args:
@@ -74,7 +71,6 @@ class JobAnalyzer:
             prompt = self.prompt_template.format_messages(
                 job_description=job_description,
                 candidate_experience=candidate_experience,
-                candidate_skills=", ".join(candidate_skills),
                 format_instructions=self.parser.get_format_instructions()
             )
             
@@ -91,13 +87,12 @@ class JobAnalyzer:
             logging.error(f"Error analyzing job match: {str(e)}", exc_info=True)
             raise
 
-async def run_analyze_job_posting(job_description: str, candidate_experience: str, candidate_skills: List[str]) -> JobMatchResult:
+async def run_analyze_job_posting(job_description: str, candidate_experience: str) -> JobMatchResult:
     """
     Convenience function to analyze a job posting
     Args:
         job_description: The job posting description
         candidate_experience: Candidate's work experience
-        candidate_skills: List of candidate's skills
     Returns:
         bool: True if job matches candidate's profile, False otherwise
     """
@@ -106,7 +101,6 @@ async def run_analyze_job_posting(job_description: str, candidate_experience: st
         result = await analyzer.analyze_job_match(
             job_description=job_description,
             candidate_experience=candidate_experience,
-            candidate_skills=candidate_skills
         )
         return result
     except Exception as e:
@@ -115,9 +109,7 @@ async def run_analyze_job_posting(job_description: str, candidate_experience: st
 
 if __name__ == "__main__":
     job_details = json.load(open("job_details.json"))
-    candidate_data = json.load(open("candidate_config.json"))
-    candidate_experience = candidate_data["candidate_experience"]
-    candidate_skills = candidate_data["candidate_skills"]
+    candidate_experience = open("candidate_experience.test.txt").read()
     for job in job_details:
-        result = asyncio.run(run_analyze_job_posting(job["job_detail_texts"], candidate_experience, candidate_skills))
+        result = asyncio.run(run_analyze_job_posting(job["job_detail_texts"], candidate_experience))
         print(result)

@@ -13,7 +13,7 @@ logging.basicConfig(
 )
 
 class JobAnalysisCronjob:
-    def __init__(self, config_path: str = "candidate_config.json"):
+    def __init__(self, config_path: str = "candidate_experience.txt"):
         """
         Initialize the cronjob with configuration file path
         Args:
