@@ -16,8 +16,12 @@ logging.basicConfig(
 
 class JobMatchResult(BaseModel):
     """Schema for job match result"""
+    company_name: str = Field(description="Company name extracted from the job posting")
+    position_name: str = Field(description="Position/title extracted from the job posting")
+    min_years_experience: str = Field(description="Minimum years of experience requirement extracted from the job posting")
     is_match: bool = Field(description="Whether the job matches the candidate's experience and skills")
     matched_skills: List[str] = Field(description="List of skills that the job matches the candidate's experience and skills")
+    miss_skills: List[str] = Field(description="List of skills mentioned in the job posting that don't match the candidate's experience")
     # matched_experience: List[str] = Field(description="List of experiences that the job matches the candidate's experience and skills")
 
 class JobAnalyzer:
@@ -40,14 +44,31 @@ class JobAnalyzer:
         self.parser = PydanticOutputParser(pydantic_object=JobMatchResult)
         
         self.prompt_template = ChatPromptTemplate.from_messages([
-            ("system", """You are a job matching expert. Your task is to determine if a job posting matches a candidate's experience and skills.
-            Consider the following:
+            ("system", """You are a job matching expert. Your task is to analyze a job posting and determine if it matches a candidate's experience and skills.
+
+            First, extract the following information from the job posting:
+            - Company name: The name of the company posting the job
+            - Position name: The job title/position being offered
+            - Minimum years of experience: The required years of experience mentioned in the posting
+
+            Then, analyze the match by considering:
             1. Required skills and experience in the job posting
             2. Candidate's past experience and skills
             3. Industry relevance
             4. Technical requirements
+            5. Years of experience requirement
             
-            Output only whether the job is a match (yes/no) and the matched skills.
+            For matched skills:
+            - List only the specific skills that directly match between the job requirements and candidate experience
+            - Keep skill names short and precise (e.g., "Python" instead of "Python programming language")
+            - Focus on technical skills, tools, and technologies rather than general descriptions
+            
+            For miss_skills:
+            - List skills mentioned in the job posting that the candidate doesn't have experience with
+            - Keep skill names short and precise (e.g., "React" instead of "React.js framework")
+            - Focus on technical skills, tools, and technologies that are clearly required but missing from candidate's background
+            
+            Output the extracted information (company name, position name, minimum years of experience), whether the job is a match (yes/no), matched skills, and miss_skills.
             {format_instructions}"""),
             ("human", """Job Description:
             {job_description}
@@ -62,9 +83,8 @@ class JobAnalyzer:
         Args:
             job_description: The job posting description
             candidate_experience: Candidate's work experience
-            candidate_skills: List of candidate's skills
         Returns:
-            JobMatchResult containing match decision and reason
+            JobMatchResult containing extracted job info, match decision and skills
         """
         try:
             # Format the prompt
@@ -94,7 +114,7 @@ async def run_analyze_job_posting(job_description: str, candidate_experience: st
         job_description: The job posting description
         candidate_experience: Candidate's work experience
     Returns:
-        bool: True if job matches candidate's profile, False otherwise
+        JobMatchResult: Analysis result containing extracted job info, match decision and skills
     """
     try:
         analyzer = JobAnalyzer()

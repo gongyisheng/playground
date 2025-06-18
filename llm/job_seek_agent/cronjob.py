@@ -61,8 +61,12 @@ class JobAnalysisJob:
                 analyze_results.append({
                     "job_id": item["job_id"],
                     "job_link": item["job_link"],
+                    "company_name": result.company_name,
+                    "position_name": result.position_name,
+                    "min_years_experience": result.min_years_experience,
                     "is_match": result.is_match,
-                    "matched_skills": result.matched_skills
+                    "matched_skills": result.matched_skills,
+                    "miss_skills": result.miss_skills
                 })
             
             # Save results to file
