@@ -81,6 +81,18 @@ class JobAnalysisJob:
         except Exception as e:
             raise Exception(f"Error loading candidate experience: {str(e)}")
 
+    async def run_crawler_batch(self, **kwargs):
+        """
+        Run crawler for a single batch with given parameters
+        """
+        return await run_crawler(**kwargs)
+    
+    async def run_analyze_job_posting(self, job_description: str, candidate_experience: str):
+        """
+        Run job analysis for a single job posting
+        """
+        return await run_analyze_job_posting(job_description, candidate_experience)
+
     async def analyze_jobs(self):
         """
         Run job analysis workflow
