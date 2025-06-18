@@ -12,60 +12,52 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-class JobAnalysisCronjob:
-    def __init__(self, config_path: str = "candidate_experience.txt"):
+class JobAnalysisJob:
+    def __init__(self, config_path: str = "candidate_experience.test.txt"):
         """
         Initialize the cronjob with configuration file path
         Args:
-            config_path: Path to the JSON configuration file
+            config_path: Path to the candidate experience text file
         """
         self.config_path = Path(config_path)
-        self.output_dir = Path("job_analysis_results")
+        self.output_dir = Path("results")
         self.output_dir.mkdir(exist_ok=True)
 
-    def load_candidate_config(self) -> dict:
+    def load_candidate_experience(self) -> str:
         """
-        Load candidate configuration from JSON file
+        Load candidate experience from text file
         Returns:
-            dict: Candidate configuration
+            str: Candidate experience text
         """
         try:
             if not self.config_path.exists():
-                raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+                raise FileNotFoundError(f"Candidate experience file not found: {self.config_path}")
             
-            with open(self.config_path, 'r') as f:
-                config = json.load(f)
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                candidate_experience = f.read()
             
-            # Validate required fields
-            required_fields = ["candidate_experience", "candidate_skills"]
-            missing_fields = [field for field in required_fields if field not in config]
+            if not candidate_experience.strip():
+                raise ValueError(f"Candidate experience file is empty: {self.config_path}")
             
-            if missing_fields:
-                raise ValueError(f"Missing required fields in config: {', '.join(missing_fields)}")
+            return candidate_experience
             
-            return config
-            
-        except json.JSONDecodeError:
-            raise ValueError(f"Invalid JSON in configuration file: {self.config_path}")
         except Exception as e:
-            raise Exception(f"Error loading configuration: {str(e)}")
+            raise Exception(f"Error loading candidate experience: {str(e)}")
 
     async def analyze_jobs(self):
         """
         Run job analysis workflow
         """
         try:
-            # Load candidate configuration
-            config = self.load_candidate_config()
-            candidate_experience = config["candidate_experience"]
-            candidate_skills = config["candidate_skills"]
+            # Load candidate experience
+            candidate_experience = self.load_candidate_experience()
             
             logging.info("Starting job crawler")
             job_details = await run_crawler()
 
             analyze_results = []
             for item in job_details:
-                result = await run_analyze_job_posting(item["job_detail_texts"], candidate_experience, candidate_skills)
+                result = await run_analyze_job_posting(item["job_detail_texts"], candidate_experience)
                 analyze_results.append({
                     "job_id": item["job_id"],
                     "job_link": item["job_link"],
@@ -89,7 +81,7 @@ async def main():
     """
     Main function to run the cronjob
     """
-    cronjob = JobAnalysisCronjob()
+    cronjob = JobAnalysisJob()
     await cronjob.analyze_jobs()
 
 if __name__ == "__main__":
