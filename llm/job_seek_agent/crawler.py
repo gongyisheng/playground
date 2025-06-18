@@ -32,19 +32,70 @@ class LinkedInJobCrawler:
         if self.session:
             await self.session.close()
 
-    async def fetch_jobs_list(self) -> Optional[str]:
+    async def fetch_jobs_list(self, 
+                             keywords: str = "software engineer",
+                             location: str = "San Francisco, CA",
+                             start: int = 0,
+                             f_AL: bool = False,
+                             f_E: Optional[int] = None,
+                             f_JT: Optional[str] = None,
+                             f_WT: Optional[int] = None,
+                             f_JIYN: bool = False,
+                             f_PP: Optional[str] = None,
+                             f_C: Optional[str] = None,
+                             f_TPR: Optional[str] = None) -> Optional[str]:
         """
-        Fetch jobs from LinkedIn API
+        Fetch jobs from LinkedIn API with comprehensive filtering options
+        
+        Args:
+            keywords: A word or phrase used as the main filter in the search
+            location: A country to narrow down the job search (use English terms, for Brazil use "Brazil")
+            start: Sets the starting job position for pagination (works in increments of 25: 0, 25, 50, etc.)
+            f_AL: Filter for jobs with simplified application (True to activate)
+            f_E: Filter by Experience Level (1=Intern, 2=Assistant, 3=Junior, 4=Mid-Senior, 5=Director, 6=Executive)
+            f_JT: Filter by Job Type (F=Full-time, P=Part-time, C=Contract, T=Temporary, V=Volunteer, I=Internship, O=Other)
+            f_WT: Filter by Work Schedule Model (1=On-site, 2=Remote, 3=Hybrid)
+            f_JIYN: Filter for jobs with fewer than 10 applicants (True to activate)
+            f_PP: Filter for jobs in a specific City (requires city ID)
+            f_C: Filter for jobs from a specific Company (requires company ID)
+            f_TPR: Filter by time posted (""=any time, "r86400"=past 24h, "r604800"=past week, "r2592000"=past month)
+            
         Returns:
             Optional[str]: Response HTML if successful, None if failed
         """
         params = {
-            "keywords": "software engineer",
-            "location": "San Francisco, CA",
-            "start": 0
+            "keywords": keywords,
+            "location": location,
+            "start": start
         }
+        
+        # Add optional filters only if they are provided
+        if f_AL:
+            params["f_AL"] = "true"
+        
+        if f_E is not None:
+            params["f_E"] = str(f_E)
+            
+        if f_JT is not None:
+            params["f_JT"] = f_JT
+            
+        if f_WT is not None:
+            params["f_WT"] = str(f_WT)
+            
+        if f_JIYN:
+            params["f_JIYN"] = "true"
+            
+        if f_PP is not None:
+            params["f_PP"] = f_PP
+            
+        if f_C is not None:
+            params["f_C"] = f_C
+            
+        if f_TPR is not None:
+            params["f_TPR"] = f_TPR
+        
         try:
-            logging.info("Fetching jobs from LinkedIn API")
+            logging.info(f"Fetching jobs from LinkedIn API with params: {params}")
             async with self.session.get(self.job_list_url, params=params, timeout=30) as response:
                 response.raise_for_status()
                 data = await response.text()
@@ -191,10 +242,51 @@ class LinkedInJobCrawler:
             logging.error(f"Failed to parse job details: {str(e)}", exc_info=True)
             return None
 
-async def run_crawler():
+async def run_crawler(keywords: str = "software engineer",
+                     location: str = "San Francisco, CA",
+                     start: int = 0,
+                     f_AL: bool = False,
+                     f_E: Optional[int] = None,
+                     f_JT: Optional[str] = None,
+                     f_WT: Optional[int] = None,
+                     f_JIYN: bool = False,
+                     f_PP: Optional[str] = None,
+                     f_C: Optional[str] = None,
+                     f_TPR: Optional[str] = None):
+    """
+    Run the LinkedIn job crawler with customizable search parameters
+    
+    Args:
+        keywords: A word or phrase used as the main filter in the search
+        location: A country to narrow down the job search
+        start: Sets the starting job position for pagination
+        f_AL: Filter for jobs with simplified application
+        f_E: Filter by Experience Level (1=Intern, 2=Assistant, 3=Junior, 4=Mid-Senior, 5=Director, 6=Executive)
+        f_JT: Filter by Job Type (F=Full-time, P=Part-time, C=Contract, T=Temporary, V=Volunteer, I=Internship, O=Other)
+        f_WT: Filter by Work Schedule Model (1=On-site, 2=Remote, 3=Hybrid)
+        f_JIYN: Filter for jobs with fewer than 10 applicants
+        f_PP: Filter for jobs in a specific City (requires city ID)
+        f_C: Filter for jobs from a specific Company (requires company ID)
+        f_TPR: Filter by time posted (""=any time, "r86400"=past 24h, "r604800"=past week, "r2592000"=past month)
+        
+    Returns:
+        List of job details
+    """
     async with LinkedInJobCrawler() as crawler:
-        # Fetch job listings
-        jobs_list_html = await crawler.fetch_jobs_list()
+        # Fetch job listings with custom parameters
+        jobs_list_html = await crawler.fetch_jobs_list(
+            keywords=keywords,
+            location=location,
+            start=start,
+            f_AL=f_AL,
+            f_E=f_E,
+            f_JT=f_JT,
+            f_WT=f_WT,
+            f_JIYN=f_JIYN,
+            f_PP=f_PP,
+            f_C=f_C,
+            f_TPR=f_TPR
+        )
         job_map = crawler.parse_jobs_list(jobs_list_html)
 
         job_details = []
