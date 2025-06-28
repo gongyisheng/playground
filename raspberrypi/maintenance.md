@@ -98,3 +98,16 @@ grep CRON /var/log/syslog
 # chmod of file if run with root user
 chmod +x <FILE>
 ```
+
+# log2ram
+mount /var/log to memory to avoid disk writes
+## install
+```
+echo "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ bookworm main" | sudo tee /etc/apt/sources.list.d/azlux.list
+sudo wget -O /usr/share/keyrings/azlux-archive-keyring.gpg  https://azlux.fr/repo.gpg
+sudo apt update
+sudo apt install log2ram
+```
+note: make sure /var/log size is smaller than size in conf. see https://github.com/azlux/log2ram/issues/90  
+
+ref: https://github.com/azlux/log2ram

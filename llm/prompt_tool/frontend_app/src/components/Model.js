@@ -4,7 +4,8 @@ const modelIcons = {
   "GPT4.1-mini": "./static/gpt-weak.png",
   "GPT4.1": "./static/gpt-strong.png",
   "o4-mini": "./static/o-mini.png",
-  "Claude4": "./static/claude.png",
+  "Claude-4": "./static/claude.png",
+  "Gemini-2.5-pro": "./static/gemini.png",
 };
 
 const extraText = {}
@@ -61,7 +62,8 @@ function Model({ onChange, cost, limit }) {
         {renderModelBlock("GPT4.1-mini", onClick)}
         {renderModelBlock("GPT4.1", onClick)}
         {renderModelBlock("o4-mini", onClick)}
-        {renderModelBlock("Claude4", onClick)}
+        {renderModelBlock("Gemini-2.5-pro", onClick)}
+        {renderModelBlock("Claude-4", onClick)}
       </div>
       <div className="px-4 py-4 justify-center">
         <span className="text-sm italic">Cost this month: ${cost}/${limit}</span>
