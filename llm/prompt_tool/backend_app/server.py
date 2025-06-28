@@ -270,11 +270,11 @@ class ChatHandler(AuthHandler):
                     "content": chunk.choices[0].delta.content
                 }
 
-    async def llama_text_stream(self, real_model, conversation):
+    async def gemini_text_stream(self, real_model, conversation):
         if Global.llama_client is None:
             Global.llama_client = AsyncOpenAI(
-                api_key=Global.config["llama_api_key"],
-                base_url=Global.config["llama_base_url"],
+                api_key=Global.config["gemini_api_key"],
+                base_url=Global.config["openroute_base_url"],
             )
         
         client = Global.llama_client
@@ -327,48 +327,7 @@ class ChatHandler(AuthHandler):
                     "output_tokens": final_msg.usage.output_tokens,
                 }
             }
-    
 
-    async def deepseek_text_stream(self, real_model, conversation):
-        if Global.deepseek_client is None:
-            Global.deepseek_client = AsyncOpenAI(
-                api_key=Global.config["deepseek_api_key"], 
-                base_url=Global.config["deepseek_base_url"]
-            )
-
-        client  = Global.deepseek_client
-        stream = await client.chat.completions.create(
-            model=real_model,
-            messages=conversation,
-            stream=True,
-            stream_options={"include_usage": True}
-        )
-        
-        start_flag = False
-        async for chunk in stream:
-            if len(chunk.choices) == 0:
-                yield {
-                    "type": "usage", 
-                    "content": {
-                        "input_tokens": chunk.usage.prompt_tokens, 
-                        "output_tokens": chunk.usage.completion_tokens
-                        }
-                    }
-            else:
-                content = chunk.choices[0].delta.content
-                if not start_flag:
-                    if content is None:
-                        continue
-                    if isinstance(content, str):
-                        if len(content.strip()) == 0:
-                            continue
-                        else:
-                            start_flag = True
-                yield {
-                    "type": "text",
-                    "content": chunk.choices[0].delta.content
-                }
-        
 
     async def get(self):
         global MESSAGE_STORAGE
