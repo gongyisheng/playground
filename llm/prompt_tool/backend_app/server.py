@@ -57,8 +57,7 @@ class Global:
     config = None
     openai_client = None
     claude_client = None
-    llama_client = None
-    deepseek_client = None
+    gemini_client = None
 
 
 # base handler for all requests, cors configs
@@ -271,21 +270,24 @@ class ChatHandler(AuthHandler):
                 }
 
     async def gemini_text_stream(self, real_model, conversation):
-        if Global.llama_client is None:
-            Global.llama_client = AsyncOpenAI(
+        if Global.gemini_client is None:
+            Global.gemini_client = AsyncOpenAI(
                 api_key=Global.config["gemini_api_key"],
-                base_url=Global.config["openroute_base_url"],
+                base_url=Global.config["gemini_base_url"],
             )
         
-        client = Global.llama_client
+        client = Global.gemini_client
         stream = await client.chat.completions.create(
             model=real_model,
             messages=conversation,
             stream=True,
-            stream_options={"include_usage": True}
+            stream_options={
+                "include_usage": True
+            }
         )
         async for chunk in stream:
-            if len(chunk.choices) == 0:
+            if hasattr(chunk, 'usage') and chunk.usage:
+                logging.info(chunk)
                 yield {
                     "type": "usage", 
                     "content": {
@@ -293,7 +295,7 @@ class ChatHandler(AuthHandler):
                         "output_tokens": chunk.usage.completion_tokens
                         }
                     }
-            else:
+            elif chunk.choices[0].delta.content:
                 yield {
                     "type": "text",
                     "content": chunk.choices[0].delta.content
@@ -385,12 +387,10 @@ class ChatHandler(AuthHandler):
                 stream = self.openai_text_stream(real_model, conversation)
             elif model.lower().startswith(("o1", "o3", "o4")):
                 stream = self.openai_text_stream(real_model, conversation)
-            elif model.lower().startswith("llama"):
-                stream = self.llama_text_stream(real_model, conversation)
+            elif model.lower().startswith("gemini"):
+                stream = self.gemini_text_stream(real_model, conversation)
             elif model.lower().startswith("claude"):
                 stream = self.claude_text_stream(real_model, conversation)
-            elif model.lower().startswith("deepseek"):
-                stream = self.deepseek_text_stream(real_model, conversation)
             else:
                 self.build_return(400, {"error": "model is not supported"})
                 return
