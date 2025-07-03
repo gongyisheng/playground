@@ -1,11 +1,21 @@
 # Chrome Extension
 
-## architecture
-- background.js
-- manifest.json
-- popup.html
-- popup.js
-- icon.png
+## structure
+my-extension/
+├── manifest.json
+├── background.js
+├── scripts/
+│   ├── content.js
+│   └── react.production.min.js
+├── popup/
+│   ├── popup.html
+│   ├── popup.js
+│   └── popup.css
+└── images/
+    ├── icon-16.png
+    ├── icon-32.png
+    ├── icon-48.png
+    └── icon-128.png
 
 ## terminology
 - manifest: metadata of resource / permission / identification
@@ -16,4 +26,5 @@
 - declarative net request: intercept / modify network requests 
 
 ## note
+- use typescript: npm package chrome-types can be used for auto-completion
 - accessing response body is not allowed
