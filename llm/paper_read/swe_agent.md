@@ -1,6 +1,6 @@
 # SWE Agent
-title: SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering
-url: https://arxiv.org/pdf/2405.15793?
+title: SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering  
+url: https://arxiv.org/pdf/2405.15793?  
 
 ## Key takeaways
 - LLM agent need a new interface. GUI is human friendly but bad for LLM
