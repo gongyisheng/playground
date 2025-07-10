@@ -99,6 +99,7 @@ docker info -f '{{ .DockerRootDir}}'
 sudo systemctl start docker
 ```
 ref: https://www.ibm.com/docs/en/z-logdata-analytics/5.1.0?topic=software-relocating-docker-root-directory
+note: some apps may fail after moving docker (eg, mlflow, monica)
 
 # find .DS_Store and delete
 ```
