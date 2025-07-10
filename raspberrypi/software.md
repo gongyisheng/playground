@@ -77,6 +77,29 @@ ref: https://easycode.page/monitoring-on-raspberry-pi-with-node-exporter-prometh
 docker compose -f docker-compose.yaml up -d
 ```
 
+# migrate docker root directory
+```
+1. stop docker service
+sudo systemctl stop docker
+sudo systemctl stop docker.socket
+sudo systemctl stop containerd
+
+2. move data to new dir
+sudo mv /var/lib/docker /new_dir_structure
+
+3. edit configuration file (/etc/docker/daemon.json)
+{
+    "data-root": "/new_dir_structure/docker",
+}
+
+4. validate new docker root location
+docker info -f '{{ .DockerRootDir}}'
+
+5. restart docker
+sudo systemctl start docker
+```
+ref: https://www.ibm.com/docs/en/z-logdata-analytics/5.1.0?topic=software-relocating-docker-root-directory
+
 # find .DS_Store and delete
 ```
 find . -name ".DS_Store" -delete
