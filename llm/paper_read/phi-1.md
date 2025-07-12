@@ -57,3 +57,4 @@ url: https://arxiv.org/abs/2306.11644
 1. If LLM is simply prompted, it only generates very homogeneous and redundant dataset. This is because LLMs tend to follow the most probable or common paths given their training data and their priors, and they lack the creativity or the incentive to explore alternative or novel ways of generating code.
 2. Ways to avoid #1: provide some constraints (topics, target audience, function names) of the generated textbook. 
 3. GPT-4 as grader: make eval focus on logic, not only the result, make it more like human interviews. prompt: evaluate a student’s solution first in a short verbal evaluation followed by grades from 0 to 10
+4. embedding + random forest as a lightweight classifier: similar code is close in space ---> similar vector representation ---> can use random forest to classify
