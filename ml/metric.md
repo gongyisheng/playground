@@ -1,4 +1,4 @@
-# TP/FP/TN/FN
+# (statistic) TP/FP/TN/FN
 ## terminology
 - True Positives: fact=pos, pred=pos
 - False Positives: fact=neg, pred=pos
@@ -21,7 +21,7 @@ correctness of model prediction
 3. f1-score: both precision and recall is important
 4. accuracy: both pos and neg are important
 
-# L1/L2/cosine similarity
+# (statistic) L1/L2/cosine similarity
 ## terminology
 - L1 distance: Σ(|ai-bi|)
 - L2 distance: straight-line distance between vectors in space (Σ(ai-bi)^2)^0.5
@@ -64,16 +64,37 @@ correctness of model prediction
     model trained with Cross-entropy / MLM / next-token prediction
     ```
 
-# Intersection over Union (IoU)
+# (string) n-gram overlap
+
+# (string) cosine similarity
+
+# (string) BELU
 ## terminology
-IoU: measures overlap between two regions
-IoU = area of overlap / area of union
+- n-BELU: n-gram precision, adjusted for brevity penalty.
+    ```
+    from nltk.translate.bleu_score import sentence_bleu
+
+    reference = [['the', 'cat', 'is', 'on', 'the', 'mat']]
+    candidate = ['the', 'cat', 'is', 'on', 'mat']
+
+    # 1-BLEU (unigram), high
+    bleu1 = sentence_bleu(reference, candidate, weights=(1, 0, 0, 0))
+
+    # 4-BLEU (up to 4-gram), low
+    bleu4 = sentence_bleu(reference, candidate, weights=(0.25, 0.25, 0.25, 0.25))
+
+    print(f"BLEU-1: {bleu1:.3f}, BLEU-4: {bleu4:.3f}")
+    ```
+
+# (set) Intersection over Union (IoU)
+## terminology
+- IoU: measures overlap between two regions. IoU = area of overlap / area of union
 
 ## Usage
 Use it for comparsing similarity of two sets   
 eg: object detection, SQL execution result  
 
-# Kendall’s τ (tau)
+# (list) Kendall’s τ (tau)
 ## Terminology
 - Kendall's tau: rank correlation between two lists  
 - Concordant pair (cp): order of 2 elements is same in 2 lists  
@@ -89,3 +110,9 @@ tau = -1: perfect disagreement
 ## Usage
 Use it for comparing two lists's ranking result  
 eg, eval ranking algo  
+
+# (code) pass@k 
+see @HumanEval
+
+# (code) match rate of AST Edit Distance
+see @Phi-1
