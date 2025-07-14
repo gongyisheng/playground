@@ -1,4 +1,4 @@
-# Metrics - part 1
+# TP/FP/TN/FN
 ## terminology
 - True Positives: fact=pos, pred=pos
 - False Positives: fact=neg, pred=pos
@@ -21,7 +21,7 @@ correctness of model prediction
 3. f1-score: both precision and recall is important
 4. accuracy: both pos and neg are important
 
-# Metrics - part 2
+# L1/L2/cosine similarity
 ## terminology
 - L1 distance: Σ(|ai-bi|)
 - L2 distance: straight-line distance between vectors in space (Σ(ai-bi)^2)^0.5
@@ -63,3 +63,29 @@ correctness of model prediction
     text embedding (BERT, GPT, etc)
     model trained with Cross-entropy / MLM / next-token prediction
     ```
+
+# Intersection over Union (IoU)
+## terminology
+IoU: measures overlap between two regions
+IoU = area of overlap / area of union
+
+## Usage
+Use it for comparsing similarity of two sets   
+eg: object detection, SQL execution result  
+
+# Kendall’s τ (tau)
+## Terminology
+- Kendall's tau: rank correlation between two lists  
+- Concordant pair (cp): order of 2 elements is same in 2 lists  
+- Disconcordant pair (dcp): order of 2 elements is different in 2 lists
+- tau = (cp - dcp) / (pair number) 
+
+```
+tau = 1: prefect agreement
+tau = 0: random order
+tau = -1: perfect disagreement
+```
+
+## Usage
+Use it for comparing two lists's ranking result  
+eg, eval ranking algo  
