@@ -49,6 +49,7 @@ class TestClient:
             async with self.session.post(
                 self.url,
                 json=payload,
+                timeout=aiohttp.ClientTimeout(total=1),
             ) as response:
                 status = response.status
                 result = await response.json()
