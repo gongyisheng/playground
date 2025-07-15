@@ -6,7 +6,7 @@ import string
 import random
 
 URL = "http://cluster-n0.local:8888/test"
-CONCURRENCY = 100
+CONCURRENCY = 1000
 
 class TestClient:
     def __init__(self):
