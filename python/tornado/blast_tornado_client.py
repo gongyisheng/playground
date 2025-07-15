@@ -66,7 +66,7 @@ class TestClient:
         stop_flag = False
 
         while not stop_flag:
-            tasks = [asyncio.create_task(self.send_request(i)) for i in range(min(total_requests, self.concurrent_requests))]
+            tasks = [asyncio.create_task(self.send_request(i)) for i in range(self.concurrent_requests)]
             if total_requests is not None:
                 total_requests -= self.concurrent_requests
                 if total_requests <= 0:
