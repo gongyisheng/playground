@@ -5,7 +5,7 @@ import time
 import string
 import random
 
-URL = "http://cluster-n0.local:8888"
+URL = "http://cluster-n0.local:8888/test"
 CONCURRENCY = 100
 
 class TestClient:
