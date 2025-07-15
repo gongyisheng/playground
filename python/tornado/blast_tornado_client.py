@@ -95,7 +95,7 @@ async def main():
     print(f"Total requests: {total_requests}")
     print(f"Payload size: ~1MB per request")
     
-    async with TestClient(server_url, concurrent_requests) as client:
+    async with TestClient() as client:
         await client.blast_requests(total_requests)
 
 
