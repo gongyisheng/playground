@@ -6,16 +6,17 @@ import tornado.web
 
 class TestHandler(tornado.web.RequestHandler):
     async def post(self):
-        try:
-            json_data = json.loads(self.request.body)
-        except json.JSONDecodeError:
-            json_data = {}
+        # try:
+        #     json_data = json.loads(self.request.body)
+        # except json.JSONDecodeError:
+        #     json_data = {}
         
-        # Proof of work - hash generation
-        self._hash_generation(json_data)
+        # # Proof of work - hash generation
+        # self._hash_generation(json_data)
         
-        self.set_status(200)
-        self.write({"status": "success"})
+        # self.set_status(200)
+        # self.write({"status": "success"})
+        self.write("Hello, world")
     
     def _hash_generation(self, json_data):
         # Generate multiple hashes as proof of work
