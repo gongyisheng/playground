@@ -6,7 +6,7 @@ import string
 import random
 
 URL = "http://cluster-n0.local:8888/test"
-CONCURRENCY = 1000
+CONCURRENCY = 20000
 
 class TestClient:
     def __init__(self):
@@ -93,9 +93,6 @@ async def main():
     server_url = "http://localhost:8888"
     
     print(f"Tornado Client - Blasting {server_url}")
-    print(f"Concurrent requests: {concurrent_requests}")
-    print(f"Total requests: {total_requests}")
-    print(f"Payload size: ~1MB per request")
     
     async with TestClient() as client:
         await client.blast_requests(total_requests)
