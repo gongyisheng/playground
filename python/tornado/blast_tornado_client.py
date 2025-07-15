@@ -61,6 +61,7 @@ class TestClient:
     async def blast_requests(self, total_requests=None):
         """Send multiple concurrent requests to the server"""
         print(f"Starting {total_requests} requests with {self.concurrent_requests} concurrent connections")
+        raw_total_requests = total_requests
         start_time = time.time()
         stop_flag = False
 
@@ -80,14 +81,14 @@ class TestClient:
         
         # Analyze results
         print(f"\nResults:")
-        print(f"Total requests: {total_requests}")
+        print(f"Total requests: {raw_total_requests}")
         print(f"Duration: {duration:.2f} seconds")
         print(f"Requests per second: {total_requests/duration:.2f}")
 
 async def main():
     # Configuration
-    concurrent_requests = 20
-    total_requests = 100
+    concurrent_requests = 100
+    total_requests = None
     server_url = "http://localhost:8888"
     
     print(f"Tornado Client - Blasting {server_url}")
