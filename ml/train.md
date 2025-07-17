@@ -12,6 +12,8 @@ maco parameter tuning
    ``` 
     3-10 cases: NER model, need to observe eval result  
     use early stop if your task aim is not clear
+
+    too many epoch will cause overfitting
     ```
 2. warmup: 5% to 10% of total steps  
     ```
