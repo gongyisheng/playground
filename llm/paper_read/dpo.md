@@ -38,3 +38,9 @@ where:
 - Actor-Critic algos are unstable (like PPO use KL-constraint), policy gradient may either have large variance or hard to optimize (contains sum up)
 - KL-constrained is implicitly solved by defining reward by preference comparisons, maximize a reward signal and constrain deviation from reference model
 ```
+
+3. limitation
+```
+- DPO has loss function to maximize the difference between chosen and rejected, it may cause both chosen and rejected proba is negative, but their difference is big.
+- DPO chosen answer is usually longer than rejected answer because using sum(log(token_prob)), may cause duplicated token generation in answer.
+```
