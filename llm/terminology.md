@@ -1,0 +1,2 @@
+- Causal Language Model: a model that generates text by predicting next token, one token at a time. "Causal" originates from its cause-effect relationship: the model treats earlier tokens as the cause of later tokens.  
+ 
