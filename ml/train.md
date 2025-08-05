@@ -19,3 +19,18 @@ maco parameter tuning
     ```
     to prevent gradient unstable
     ```
+
+## Unstable Traning
+- Loss explodes: learning rate is too high
+- Loss fluctuates wildly: too much gradient noise, overfitting, poor batch normalization
+- Loss does not decrease: underfitting, learning rate is too low
+- Training accuracy > validation accuracy: overfitting
+- Validation accuracy increase: overfitting
+
+## Noise in Dataset
+It will cause unstable training, several ways to improve:
+- remove very long / short examples
+- remove duplicated / conflict records
+- train on easy & high quality data then expand
+- use higher dropout
+- use label smoothing (CrossEntropyLoss(label_smoothing=0.1) for classification task)
