@@ -1,6 +1,7 @@
 # Chrome Extension
 
 ## structure
+```
 my-extension/
 ├── manifest.json
 ├── background.js
@@ -16,6 +17,7 @@ my-extension/
     ├── icon-32.png
     ├── icon-48.png
     └── icon-128.png
+```
 
 ## terminology
 - manifest: metadata of resource / permission / identification

@@ -1,0 +1,1 @@
+Best way to manage tasks (one finish, start another) is to use bash scripts
