@@ -22,6 +22,10 @@ base model: Qwen2.5-7B
 dataset: HotPotQA / Big-Math
 RL method: GRPO
 
+preprocess: 
+    HotPotQA: randomly remove 0/1/2 paragraph to create uncertainty (1/3 lack of key information)
+    Big-Math: only choose LLaMA-8B correct rate 0%-70% problems, only keep number answer, use math-verify to verify result
+
 prompt model to output both result and confidence
 ```
 
