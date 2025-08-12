@@ -1,4 +1,5 @@
 import gymnasium as gym
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -56,7 +57,8 @@ def train_ppo(env, policy_net, value_net, optimizer, epochs=10, epsilon=0.2):
         state = env.reset()
         done = False
         while not done:
-            state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
+            state_np = np.array(state)
+            state_tensor = torch.tensor(state_np, dtype=torch.float32).unsqueeze(0)
             action_probs = policy_net(state_tensor)
             action = torch.multinomial(action_probs, 1).item()
             next_state, reward, done, _ = env.step(action)
