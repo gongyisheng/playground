@@ -15,11 +15,11 @@ class PolicyNetwork(nn.Module):
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, action_dim)
 
-def forward(self, x):
-    x = torch.relu(self.fc1(x))
-    x = torch.relu(self.fc2(x))
-    x = torch.softmax(self.fc3(x), dim=-1)
-    return x
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.softmax(self.fc3(x), dim=-1)
+        return x
 
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
@@ -54,14 +54,14 @@ def compute_advantages(rewards, values, gamma=0.99, lambd=0.95):
 def train_ppo(env, policy_net, value_net, optimizer, epochs=10, epsilon=0.2):
     for epoch in range(epochs):
         states, actions, rewards, dones, values = [], [], [], [], []
-        state = env.reset()
+        state, _ = env.reset()
         done = False
         while not done:
             state_np = np.array(state)
             state_tensor = torch.tensor(state_np, dtype=torch.float32).unsqueeze(0)
             action_probs = policy_net(state_tensor)
             action = torch.multinomial(action_probs, 1).item()
-            next_state, reward, done, _ = env.step(action)
+            next_state, reward, done = list(env.step(action))[:3]
             value = value_net(state_tensor).item()
             states.append(state)
             actions.append(action)
@@ -94,4 +94,5 @@ def train_ppo(env, policy_net, value_net, optimizer, epochs=10, epsilon=0.2):
 
         print(f'Epoch {epoch + 1}, Loss: {loss.item()}')
 
-train_ppo(env, policy_net, value_net, optimizer)
+epoch = 100
+train_ppo(env, policy_net, value_net, optimizer, epochs=epoch)
