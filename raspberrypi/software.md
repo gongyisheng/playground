@@ -182,3 +182,21 @@ sudo apt install slurp
 # use grim to take screenshot
 grim -g "$(slurp)"
 ```
+
+# npm - fix global package install
+```
+error when install npm package globally: 
+EACCES: permission denied, access '/usr/local/lib/node_modules'
+
+fix:
+
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+vim ~/.bashrc 
+
+add: 
+export PATH=~/.npm-global/bin:$PATH
+
+source ~/.bashrc
+npm install -g <package-name>
+```
