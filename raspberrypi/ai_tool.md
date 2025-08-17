@@ -31,4 +31,13 @@ claude mcp add mcp-atlassian \
   -e JIRA_USERNAME \
   -e JIRA_API_TOKEN \
   ghcr.io/sooperset/mcp-atlassian:latest
+
+Add Github MCP server: (https://github.com/github/github-mcp-server)
+docker pull ghcr.io/github/github-mcp-server:latest
+claude mcp add mcp-github \
+  --scope user \
+  --env GITHUB_PERSONAL_ACCESS_TOKEN=
+  -- docker run -i --rm \
+  -e GITHUB_PERSONAL_ACCESS_TOKEN \
+  ghcr.io/github/github-mcp-server:latest
 ```
