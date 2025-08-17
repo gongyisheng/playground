@@ -40,4 +40,16 @@ claude mcp add mcp-github \
   -- docker run -i --rm \
   -e GITHUB_PERSONAL_ACCESS_TOKEN \
   ghcr.io/github/github-mcp-server:latest
+
+Add n8n MCP server: (https://github.com/czlonkowski/n8n-mcp)
+docker pull ghcr.io/czlonkowski/n8n-mcp:latest
+claude mcp add mcp-n8n \
+  --scope user \
+  -- docker run -i --rm \
+  -e MCP_MODE=stdio \
+  -e LOG_LEVEL=error \
+  -e DISABLE_CONSOLE_OUTPUT=true \
+  -e N8N_API_URL= \
+  -e N8N_API_KEY= \
+  ghcr.io/czlonkowski/n8n-mcp:latest 
 ```
