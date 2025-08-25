@@ -131,21 +131,21 @@ def train_model(config: Word2VecConfig) -> None:
         dataset,
         "train",
         tokenizer=tokenizer,
-        data_config=config,
+        config=config,
         model_name=model_name,
     )
     val_dataloader = get_split_dataloader(
         dataset,
         "validation",
         tokenizer=tokenizer,
-        data_config=config,
+        config=config,
         model_name=model_name,
     )
     test_dataloader = get_split_dataloader(
         dataset,
         "test",
         tokenizer=tokenizer,
-        data_config=config,
+        config=config,
         model_name=model_name,
     )
 
