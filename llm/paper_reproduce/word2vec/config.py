@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 
-BASE_DIR = "media/hdddisk/yisheng/replicate/word2vec"
+BASE_DIR = "/media/hdddisk/yisheng/replicate/word2vec"
 
 @dataclass
 class Word2VecConfig:

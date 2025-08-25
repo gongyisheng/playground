@@ -111,7 +111,7 @@ def train_tokenizer(config: Word2VecConfig) -> None:
     if not Path(config.tokenizer_path).exists():
         tokenizer = Word2VecTokenizer(config)
         dataset = get_dataset(config)
-        tokenizer.train(dataset["train"])  # type: ignore[unknown-argument]
+        tokenizer.train(dataset["train"])
     else:
         print(f"Tokenizer already exists at {config.tokenizer_path}")
 
