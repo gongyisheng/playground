@@ -16,9 +16,9 @@ class Word2VecTrainer:
         self.model_name = config.model_name
         self.model_path = config.model_path
         if self.model_name == "cbow":
-            self.model = CbowModel()
+            self.model = CbowModel(config)
         elif self.model_name == "skip_gram":
-            self.model = SkipGramModel()
+            self.model = SkipGramModel(config)
 
         self.config = config
         self.device = config.device
