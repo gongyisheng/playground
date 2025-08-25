@@ -22,6 +22,7 @@ class Word2VecTrainer:
 
         self.config = config
         self.device = config.device
+        print(f"Using device: {config.device}")
         self.model.to(self.device)
         self.optimizer = AdamW(
             self.model.parameters(),
