@@ -19,7 +19,7 @@ def collate_cbow_fn(
     config: Word2VecConfig,
 ) -> tuple[torch.Tensor, torch.Tensor]:
 
-    cbow_n_words = config.cbow_n_words
+    n_words = config.n_words
     batch_input = []
     batch_target = []
 
@@ -27,14 +27,14 @@ def collate_cbow_fn(
         token_ids = tokenizer.encode(line["text"]).ids
 
         # skip too short sentences
-        if len(token_ids) < cbow_n_words * 2 + 1:
+        if len(token_ids) < n_words * 2 + 1:
             continue
 
         # get context token, predict target token
-        for i in range(cbow_n_words, len(token_ids) - cbow_n_words):
+        for i in range(n_words, len(token_ids) - n_words):
             context = (
-                token_ids[i - cbow_n_words : i]
-                + token_ids[i + 1 : i + cbow_n_words + 1]
+                token_ids[i - n_words : i]
+                + token_ids[i + 1 : i + n_words + 1]
             )
             target = token_ids[i]
             batch_input.append(context)
@@ -55,7 +55,7 @@ def collate_skip_gram_fn(
     config: Word2VecConfig,
 ) -> tuple[torch.Tensor, torch.Tensor]:
 
-    skip_gram_n_words = config.skip_gram_n_words
+    n_words = config.n_words
     batch_input = []
     batch_target = []
 
@@ -63,14 +63,14 @@ def collate_skip_gram_fn(
         token_ids = tokenizer.encode(line["text"]).ids
 
         # skip too short sentences
-        if len(token_ids) < skip_gram_n_words * 2 + 1:
+        if len(token_ids) < n_words * 2 + 1:
             continue
 
         # get input word, predict target context words
-        for i in range(skip_gram_n_words, len(token_ids) - skip_gram_n_words):
+        for i in range(n_words, len(token_ids) - n_words):
             context_words = (
-                token_ids[i - skip_gram_n_words : i]
-                + token_ids[i + 1 : i + skip_gram_n_words + 1]
+                token_ids[i - n_words : i]
+                + token_ids[i + 1 : i + n_words + 1]
             )
             input_word = token_ids[i]
             for context in context_words:

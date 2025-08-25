@@ -1,5 +1,6 @@
 from typing import Literal, Any
 
+BASE_DIR = "media/hdddisk/yisheng/replicate/word2vec"
 
 class Word2VecConfig:
     # model selection
@@ -14,11 +15,10 @@ class Word2VecConfig:
     min_freq: int = 50
     embedding_dim: int = 256
 
-    cbow_n_words: int = 4
-    skip_gram_n_words: int = 4
+    n_words: int = 4
 
-    model_path: str = ""
-    tokenizer_path: str = ""
+    model_path: str = f"{BASE_DIR}/{model_name}_dim={embedding_dim}_nwords={n_words}"
+    tokenizer_path: str = f"{BASE_DIR}/tokenizer"
 
     # training configs
     device: str = "auto"
