@@ -188,4 +188,4 @@ def train_skip_gram():
 
 if __name__ == "__main__":
     train_cbow()
-    train_skip_gram()
+    # train_skip_gram()
