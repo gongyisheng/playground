@@ -1,7 +1,9 @@
-from typing import Literal, Any
+from dataclasses import dataclass
+from typing import Literal
 
 BASE_DIR = "media/hdddisk/yisheng/replicate/word2vec"
 
+@dataclass
 class Word2VecConfig:
     # model selection
     model_name: Literal["cbow", "skip_gram"] = "cbow"
@@ -30,5 +32,5 @@ class Word2VecConfig:
     weight_decay: float = 0.01
 
     # wandb configs
-    wandb_name: str | None = "paper_reproduce"
-    wandb_project: str = "word2vec"
+    wandb_name: str | None = f"word2vec_{model_name}_dim={embedding_dim}_nwords={n_words}"
+    wandb_project: str = "paper_reproduce"
