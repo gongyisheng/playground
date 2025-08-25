@@ -56,12 +56,12 @@ class Word2VecTrainer:
             # log metrics to wandb
             wandb.log(
                 {
-                    "TrainLoss": train_loss,
-                    "ValLoss": val_loss,
-                    "TestLoss": test_loss,
-                    "TrainPerplexity": torch.exp(torch.tensor(train_loss)),
-                    "ValPerplexity": torch.exp(torch.tensor(val_loss)),
-                    "TestPerplexity": torch.exp(torch.tensor(test_loss)),
+                    "Loss_train": train_loss,
+                    "loss_val": val_loss,
+                    "loss_test": test_loss,
+                    "perplexity_train": torch.exp(torch.tensor(train_loss)),
+                    "perplexity_val": torch.exp(torch.tensor(val_loss)),
+                    "perplexity_test": torch.exp(torch.tensor(test_loss)),
                 },
             )
     
@@ -159,9 +159,9 @@ def train_cbow():
         model_name="cbow",
         dataset_path="Salesforce/wikitext",
         dataset_name="wikitext-103-raw-v1",
-        embedding_dim=100,
+        embedding_dim=256,
         learning_rate=0.01,
-        batch_size=512,
+        batch_size=256,
         num_workers=8,
         epochs=10,
     )
