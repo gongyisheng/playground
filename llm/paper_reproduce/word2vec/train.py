@@ -159,9 +159,9 @@ def train_cbow():
         model_name="cbow",
         dataset_path="Salesforce/wikitext",
         dataset_name="wikitext-103-raw-v1",
-        embedding_dim=256,
-        learning_rate=0.01,
-        batch_size=256,
+        embedding_dim=512,
+        learning_rate=1e-3,
+        batch_size=128,
         num_workers=8,
         epochs=10,
     )
