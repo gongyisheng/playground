@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from pathlib import Path
+from tqdm import tqdm
 
 import torch
 from torch.optim import AdamW
@@ -68,7 +69,7 @@ class Word2VecTrainer:
         self.model.train()
         total_loss = 0.0
         total_samples = 0
-        for input_batch, target_batch in train_dataloader:
+        for input_batch, target_batch in tqdm(train_dataloader):
             self.optimizer.zero_grad()
             input_batch_device, target_batch_device = (
                 input_batch.to(self.device),
@@ -97,7 +98,7 @@ class Word2VecTrainer:
     def calc_loss_loader(self, data_loader: DataLoader) -> float:
         total_loss = 0.0
         total_samples = 0  # Track total samples
-        for input_batch, target_batch in data_loader:
+        for input_batch, target_batch in tqdm(data_loader):
             input_batch_device, target_batch_device = (
                 input_batch.to(self.device),
                 target_batch.to(self.device),
