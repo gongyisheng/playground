@@ -4,14 +4,10 @@ from config import Word2VecConfig
 
 
 class CbowModel(nn.Module):
-    def __init__(
-        self,
-        vocab_size: int = Word2VecConfig.vocab_size,
-        embedding_dim: int = Word2VecConfig.embedding_dim,
-    ):
+    def __init__(self, config: Word2VecConfig):
         super(CbowModel, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.linear = nn.Linear(embedding_dim, vocab_size)
+        self.embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
+        self.linear = nn.Linear(config.embedding_dim, config.vocab_size)
 
     def forward(self, context_idxs: Tensor):
         embeds = self.embedding(
@@ -23,14 +19,10 @@ class CbowModel(nn.Module):
 
 
 class SkipGramModel(nn.Module):
-    def __init__(
-        self,
-        vocab_size: int = Word2VecConfig.vocab_size,
-        embedding_dim: int = Word2VecConfig.embedding_dim,
-    ):
+    def __init__(self, config: Word2VecConfig):
         super(SkipGramModel, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.linear = nn.Embedding(embedding_dim, vocab_size)
+        self.embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
+        self.linear = nn.Linear(config.embedding_dim, config.vocab_size)
 
     def forward(self, context_ids: Tensor):
         embeds = self.embedding(context_ids)  # [batch_size, embedding_dim]
@@ -39,13 +31,16 @@ class SkipGramModel(nn.Module):
 
 
 if __name__ == "__main__":
+
+    config = Word2VecConfig()
+
     # Example usage
-    cbow_model = CbowModel()
+    cbow_model = CbowModel(config)
     # print model parameters count
     total_params = sum(p.numel() for p in cbow_model.parameters())
     print(f"Total parameters (CBOW): {total_params}")
 
-    skip_gram_model = SkipGramModel()
+    skip_gram_model = SkipGramModel(config)
     # print model parameters count
     total_params_skip_gram = sum(p.numel() for p in skip_gram_model.parameters())
     print(f"Total parameters (SkipGram): {total_params_skip_gram}")

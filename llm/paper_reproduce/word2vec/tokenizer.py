@@ -8,15 +8,10 @@ from tokenizers.trainers import WordLevelTrainer
 
 from config import Word2VecConfig
 
-corpus = [
-    "I love natural language processing.",
-    "Word2Vec is simple but powerful.",
-    "Tokenization is the first step.",
-]
-
 
 class Word2VecTokenizer:
-    def __init__(self):
+    def __init__(self, config: Word2VecConfig):
+        self.config = config
         self.tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
         self.tokenizer.normalizer = normalizers.Sequence(
             [
@@ -32,26 +27,22 @@ class Word2VecTokenizer:
             ],
         )
 
-    def train(
-        self,
-        dataset: Dataset,
-        vocab_size: int = Word2VecConfig.vocab_size,
-        min_freq: int = Word2VecConfig.min_freq,
-    ):
-
+    def train(self, dataset: Dataset) -> Tokenizer:
         trainer = WordLevelTrainer(
-            vocab_size=vocab_size, min_frequency=min_freq, special_tokens=["[UNK]"]
+            vocab_size=self.config.vocab_size,
+            min_frequency=self.config.min_freq,
+            special_tokens=["[UNK]"],
         )
         self.tokenizer.train_from_iterator(dataset["text"], trainer)
+        self.tokenizer.save(self.config.tokenizer_path)
+        return self.tokenizer
 
-    def save(self, path: str = Word2VecConfig.tokenizer_path):
-        self.tokenizer.save(path)
-
-    def load(self, path: str = Word2VecConfig.tokenizer_path):
-        self.tokenizer = Tokenizer.from_file(path)
+    def load(self) -> Tokenizer:
+        return Tokenizer.from_file(self.config.tokenizer_path)
 
 
 if __name__ == "__main__":
-    word2vec_tokenizer = Word2VecTokenizer().load()
-    print(word2vec_tokenizer.encode("Hello, World!").ids)
-    print(word2vec_tokenizer.decode([0, 1, 2, 3, 4, 5]))
+    config = Word2VecConfig()
+    tokenizer = Word2VecTokenizer(config).load()
+    print(tokenizer.encode("Hello, World!").ids)
+    print(tokenizer.decode([0, 1, 2, 3, 4, 5]))
