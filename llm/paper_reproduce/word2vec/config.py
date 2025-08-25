@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Literal
 
+import torch
+
 BASE_DIR = "/media/hdddisk/yisheng/replicate/word2vec"
 
 @dataclass
@@ -23,7 +25,7 @@ class Word2VecConfig:
     tokenizer_path: str = f"{BASE_DIR}/tokenizer"
 
     # training configs
-    device: str = "auto"
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
     epochs: int = 50
     batch_size: int = 256
     num_workers: int = 8
