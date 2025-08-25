@@ -21,8 +21,8 @@ class Word2VecConfig:
 
     n_words: int = 4
 
-    model_path: str = f"{BASE_DIR}/{model_name}_dim={embedding_dim}_nwords={n_words}"
-    tokenizer_path: str = f"{BASE_DIR}/tokenizer"
+    model_path: str = f"{BASE_DIR}/{model_name}_dim={embedding_dim}_nwords={n_words}.bin"
+    tokenizer_path: str = f"{BASE_DIR}/tokenizer.pt"
 
     # training configs
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
