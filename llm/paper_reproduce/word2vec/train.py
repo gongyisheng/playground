@@ -168,6 +168,7 @@ def train_cbow():
             num_workers=8,
             epochs=5,
         )
+        print(config.embedding_dim)
         train_tokenizer(config)
         train_model(config)
 
