@@ -49,10 +49,10 @@ class Word2VecConfig:
             self.tokenizer_path = self._get_tokenizer_path()
 
     def _get_wandb_name(self):
-        return f"word2vec_{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_lr_{self.learning_rate}"
+        return f"word2vec_{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_epoch_{self.epochs}_lr_{self.learning_rate}"
     
     def _get_model_path(self):
-        return f"{BASE_DIR}/{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_lr_{self.learning_rate}.bin"
+        return f"{BASE_DIR}/{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_epoch_{self.epochs}_lr_{self.learning_rate}.bin"
 
     def _get_tokenizer_path(self):
         return f"{BASE_DIR}/tokenizer.pt"
