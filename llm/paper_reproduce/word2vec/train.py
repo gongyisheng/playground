@@ -157,6 +157,7 @@ def train_model(config: Word2VecConfig) -> None:
 
 def train_cbow():
     for dim in [128, 256, 512, 1024]:
+        print(f"Training dim {dim}")
         config = Word2VecConfig(
             model_name="cbow",
             dataset_path="Salesforce/wikitext",
