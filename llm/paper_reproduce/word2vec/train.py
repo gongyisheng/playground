@@ -172,7 +172,7 @@ def train_cbow():
             learning_rate=1e-3,
             batch_size=256*256//dim,
             num_workers=8,
-            epochs=5,
+            epochs=10,
         )
         train_tokenizer(config)
         train_model(config)
