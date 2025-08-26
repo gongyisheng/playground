@@ -156,7 +156,6 @@ def train_model(config: Word2VecConfig) -> None:
     wandb.finish()
 
 def train_cbow():
-    train_tokenizer(config)
     for dim in [128, 256, 512, 1024]:
         config = Word2VecConfig(
             model_name="cbow",
@@ -168,7 +167,8 @@ def train_cbow():
             num_workers=8,
             epochs=5,
         )
-    train_model(config)
+        train_tokenizer(config)
+        train_model(config)
 
 
 def train_skip_gram():
