@@ -37,33 +37,47 @@ class Word2VecTrainer:
         val_dataloader: DataLoader,
         test_dataloader: DataLoader,
     ) -> None:
-        best_val_loss = float("inf")
-        for epoch in range(self.config.epochs):
-            train_loss = self._train_epoch(train_dataloader)
-            val_loss, test_loss = self._validate_epoch(val_dataloader, test_dataloader)
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                torch.save(self.model, self.model_path)
-                print(f"Saved best model to {self.model_path}")
+        # init wandb run
+        run = wandb.init(
+            # set the wandb project where this run will be logged
+            project=self.config.wandb_project,
+            name=self.config.wandb_name,
+            # track hyperparameters and run metadata
+            config=asdict(self.config),
+        )
 
-            print(
-                f"Epoch {epoch + 1}/{self.config.epochs} - "
-                f"Train Loss: {train_loss:.4f}, "
-                f"Val Loss: {val_loss:.4f}, "
-                f"Test Loss: {test_loss:.4f}",
-            )
+        try:
+            best_val_loss = float("inf")
+            for epoch in range(self.config.epochs):
+                train_loss = self._train_epoch(train_dataloader)
+                val_loss, test_loss = self._validate_epoch(val_dataloader, test_dataloader)
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    torch.save(self.model, self.model_path)
+                    print(f"Saved best model to {self.model_path}")
 
-            # log metrics to wandb
-            wandb.log(
-                {
-                    "Loss_train": train_loss,
-                    "loss_val": val_loss,
-                    "loss_test": test_loss,
-                    "perplexity_train": torch.exp(torch.tensor(train_loss)),
-                    "perplexity_val": torch.exp(torch.tensor(val_loss)),
-                    "perplexity_test": torch.exp(torch.tensor(test_loss)),
-                },
-            )
+                print(
+                    f"Epoch {epoch + 1}/{self.config.epochs} - "
+                    f"Train Loss: {train_loss:.4f}, "
+                    f"Val Loss: {val_loss:.4f}, "
+                    f"Test Loss: {test_loss:.4f}",
+                )
+
+                # log metrics to wandb
+                run.log(
+                    {
+                        "Loss_train": train_loss,
+                        "loss_val": val_loss,
+                        "loss_test": test_loss,
+                        "perplexity_train": torch.exp(torch.tensor(train_loss)),
+                        "perplexity_val": torch.exp(torch.tensor(val_loss)),
+                        "perplexity_test": torch.exp(torch.tensor(test_loss)),
+                    },
+                )
+        except Exception as e:
+            print(f"Error during training: {e}")
+        finally:
+            run.finish()
     
     def _train_epoch(self, train_dataloader: DataLoader) -> float:
         self.model.train()
@@ -120,13 +134,6 @@ def train_tokenizer(config: Word2VecConfig) -> None:
 
 def train_model(config: Word2VecConfig) -> None:
     model_name = config.model_name
-    wandb.init(
-        # set the wandb project where this run will be logged
-        project=config.wandb_project,
-        name=config.wandb_name,
-        # track hyperparameters and run metadata
-        config=asdict(config),
-    )
     dataset = get_dataset(config)
     tokenizer = Word2VecTokenizer(config).load()
     train_dataloader = get_split_dataloader(
@@ -153,7 +160,6 @@ def train_model(config: Word2VecConfig) -> None:
 
     trainer = Word2VecTrainer(config)
     trainer.train(train_dataloader, val_dataloader, test_dataloader)
-    wandb.finish()
 
 def train_cbow():
     for dim in [128, 256, 512, 1024]:
@@ -168,7 +174,6 @@ def train_cbow():
             num_workers=8,
             epochs=5,
         )
-        print(config.embedding_dim)
         train_tokenizer(config)
         train_model(config)
 
