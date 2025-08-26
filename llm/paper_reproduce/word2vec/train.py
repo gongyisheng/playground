@@ -153,20 +153,21 @@ def train_model(config: Word2VecConfig) -> None:
 
     trainer = Word2VecTrainer(config)
     trainer.train(train_dataloader, val_dataloader, test_dataloader)
+    wandb.finish()
 
 def train_cbow():
-    config = Word2VecConfig(
-        model_name="cbow",
-        dataset_path="Salesforce/wikitext",
-        dataset_name="wikitext-103-raw-v1",
-        embedding_dim=512,
-        learning_rate=1e-3,
-        batch_size=128,
-        num_workers=8,
-        epochs=10,
-    )
-
     train_tokenizer(config)
+    for dim in [128, 256, 512, 1024]:
+        config = Word2VecConfig(
+            model_name="cbow",
+            dataset_path="Salesforce/wikitext",
+            dataset_name="wikitext-103-raw-v1",
+            embedding_dim=dim,
+            learning_rate=1e-3,
+            batch_size=256*256/dim,
+            num_workers=8,
+            epochs=5,
+        )
     train_model(config)
 
 
