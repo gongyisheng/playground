@@ -30,10 +30,29 @@ class Word2VecConfig:
     weight_decay: float = 0.01
 
     # storage
-    model_path: str = f"{BASE_DIR}/{model_name}_dim_{embedding_dim}_nwords_{n_words}_lr_{learning_rate}.bin"
-    tokenizer_path: str = f"{BASE_DIR}/tokenizer.pt"
-
+    model_path: str | None = None
+    tokenizer_path: str | None = None
 
     # wandb configs
-    wandb_name: str | None = f"word2vec_{model_name}_dim_{embedding_dim}_nwords_{n_words}_lr_{learning_rate}"
+    wandb_name: str | None = None
     wandb_project: str = "paper_reproduce"
+
+    def __post_init__(self) -> None:
+        """Set dynamic values"""
+        if self.wandb_name is None:
+            self.wandb_name = self._get_wandb_name()
+        
+        if self.model_path is None:
+            self.model_path = self._get_model_path()
+        
+        if self.tokenizer_path is None:
+            self.tokenizer_path = self._get_tokenizer_path()
+
+    def _get_wandb_name(self):
+        return f"word2vec_{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_lr_{self.learning_rate}"
+    
+    def _get_model_path(self):
+        return f"{BASE_DIR}/{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_lr_{self.learning_rate}.bin"
+
+    def _get_tokenizer_path(self):
+        return f"{BASE_DIR}/tokenizer.pt"
