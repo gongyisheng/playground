@@ -18,11 +18,7 @@ class Word2VecConfig:
     vocab_size: int = 20000
     min_freq: int = 50
     embedding_dim: int = 256
-
     n_words: int = 4
-
-    model_path: str = f"{BASE_DIR}/{model_name}_dim={embedding_dim}_nwords={n_words}.bin"
-    tokenizer_path: str = f"{BASE_DIR}/tokenizer.pt"
 
     # training configs
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -33,6 +29,11 @@ class Word2VecConfig:
     learning_rate: float = 1e-4
     weight_decay: float = 0.01
 
+    # storage
+    model_path: str = f"{BASE_DIR}/{model_name}_dim_{embedding_dim}_nwords_{n_words}_lr_{learning_rate}.bin"
+    tokenizer_path: str = f"{BASE_DIR}/tokenizer.pt"
+
+
     # wandb configs
-    wandb_name: str | None = f"word2vec_{model_name}_dim={embedding_dim}_nwords={n_words}"
+    wandb_name: str | None = f"word2vec_{model_name}_dim_{embedding_dim}_nwords_{n_words}_lr_{learning_rate}"
     wandb_project: str = "paper_reproduce"
