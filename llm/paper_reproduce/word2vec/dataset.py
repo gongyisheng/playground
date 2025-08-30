@@ -54,8 +54,8 @@ def collate_cbow_fn(
                     batch_target.append(random_target)
                     batch_label.append(0.0)
     
-    batch_input_tensor = torch.tensor(batch_input, dtype=torch.float32)
-    batch_target_tensor = torch.tensor(batch_target, dtype=torch.float32)
+    batch_input_tensor = torch.tensor(batch_input, dtype=torch.long)
+    batch_target_tensor = torch.tensor(batch_target, dtype=torch.long)
     batch_labels_tensor = torch.tensor(batch_label, dtype=torch.float32)
     
     return batch_input_tensor, batch_target_tensor, batch_labels_tensor
@@ -101,8 +101,8 @@ def collate_skip_gram_fn(
                         batch_target.append(random_target)
                         batch_label.append(0.0)
     
-    batch_input_tensor = torch.tensor(batch_input, dtype=torch.float32)
-    batch_target_tensor = torch.tensor(batch_target, dtype=torch.float32)
+    batch_input_tensor = torch.tensor(batch_input, dtype=torch.long)
+    batch_target_tensor = torch.tensor(batch_target, dtype=torch.long)
     batch_labels_tensor = torch.tensor(batch_label, dtype=torch.float32)
     
     return batch_input_tensor, batch_target_tensor, batch_labels_tensor
