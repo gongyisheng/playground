@@ -68,10 +68,7 @@ class Word2VecTrainer:
                     {
                         "Loss_train": train_loss,
                         "loss_val": val_loss,
-                        "loss_test": test_loss,
-                        "perplexity_train": torch.exp(torch.tensor(train_loss)),
-                        "perplexity_val": torch.exp(torch.tensor(val_loss)),
-                        "perplexity_test": torch.exp(torch.tensor(test_loss)),
+                        "loss_test": test_loss
                     },
                 )
         except Exception as e:
