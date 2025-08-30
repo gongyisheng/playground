@@ -23,7 +23,9 @@ class Word2VecTrainer:
 
         self.config = config
         self.device = config.device
-        print(f"Using device: {config.device}")
+        if self.config.use_tf32:
+            torch.backends.cuda.matmul.allow_tf32 = True
+        print(f"Using device: {config.device}, tf32 support: {self.config.use_tf32}")
         self.model.to(self.device)
         self.optimizer = AdamW(
             self.model.parameters(),

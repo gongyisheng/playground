@@ -23,6 +23,7 @@ class Word2VecConfig:
 
     # training configs
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    use_tf32: bool = True if device == "cuda" else False
     epochs: int = 50
     batch_size: int = 256
     num_workers: int = 8
