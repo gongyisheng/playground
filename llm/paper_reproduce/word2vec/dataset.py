@@ -1,3 +1,4 @@
+import random
 from typing import Literal
 
 from datasets import load_dataset, DatasetDict
@@ -17,11 +18,14 @@ def collate_cbow_fn(
     batch: dict[str, list[str]],
     tokenizer: Tokenizer,
     config: Word2VecConfig,
-) -> tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
     n_words = config.n_words
+    n_negative = config.n_negative
+    vocab_size = config.vocab_size
     batch_input = []
     batch_target = []
+    batch_label = []
 
     for line in batch:
         token_ids = tokenizer.encode(line["text"]).ids
@@ -39,25 +43,36 @@ def collate_cbow_fn(
             target = token_ids[i]
             batch_input.append(context)
             batch_target.append(target)
+            batch_label.append(1.0)
 
-    # transform to tensor
-    batch_input_tensor = torch.tensor(
-        batch_input, dtype=torch.long
-    )  # [batch_size, n_words * 2]
-    batch_target_tensor = torch.tensor(batch_target, dtype=torch.long)  # [batch_size,]
-
-    return batch_input_tensor, batch_target_tensor
+            if n_negative > 0:
+                for _ in range(n_negative):
+                    batch_input.append(context)
+                    random_target = random.randint(0, vocab_size-1)
+                    while random_target == target:
+                        random_target = random.randint(0, vocab_size-1)
+                    batch_target.append(random_target)
+                    batch_label.append(0.0)
+    
+    batch_input_tensor = torch.tensor(batch_input, dtype=torch.long)
+    batch_target_tensor = torch.tensor(batch_target, dtype=torch.long)
+    batch_labels_tensor = torch.tensor(batch_label, dtype=torch.float)
+    
+    return batch_input_tensor, batch_target_tensor, batch_labels_tensor
 
 
 def collate_skip_gram_fn(
     batch: dict[str, list[str]],
     tokenizer: Tokenizer,
     config: Word2VecConfig,
-) -> tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
     n_words = config.n_words
+    n_negative = config.n_negative
+    vocab_size = config.vocab_size
     batch_input = []
     batch_target = []
+    batch_label = []
 
     for line in batch:
         token_ids = tokenizer.encode(line["text"]).ids
@@ -66,7 +81,6 @@ def collate_skip_gram_fn(
         if len(token_ids) < n_words * 2 + 1:
             continue
 
-        # get input word, predict target context words
         for i in range(n_words, len(token_ids) - n_words):
             context_words = (
                 token_ids[i - n_words : i]
@@ -76,14 +90,22 @@ def collate_skip_gram_fn(
             for context in context_words:
                 batch_input.append(input_word)
                 batch_target.append(context)
-
-    # transform to tensor
-    batch_input_tensor = torch.tensor(batch_input, dtype=torch.long)  # [batch_size,]
-    batch_target_tensor = torch.tensor(
-        batch_target, dtype=torch.long
-    )  # [batch_size, n_words * 2]
-
-    return batch_input_tensor, batch_target_tensor
+                batch_label.append(1.0)
+                
+                if n_negative > 0:
+                    for _ in range(n_negative):
+                        batch_input.append(input_word)
+                        random_target = random.randint(0, vocab_size-1)
+                        while random_target == context:
+                            random_target = random.randint(0, vocab_size-1)
+                        batch_target.append(random_target)
+                        batch_label.append(0.0)
+    
+    batch_input_tensor = torch.tensor(batch_input, dtype=torch.long)
+    batch_target_tensor = torch.tensor(batch_target, dtype=torch.long)
+    batch_labels_tensor = torch.tensor(batch_label, dtype=torch.float)
+    
+    return batch_input_tensor, batch_target_tensor, batch_labels_tensor
 
 
 def get_split_dataloader(

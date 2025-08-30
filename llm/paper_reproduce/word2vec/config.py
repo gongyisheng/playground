@@ -19,6 +19,7 @@ class Word2VecConfig:
     min_freq: int = 50
     embedding_dim: int = 256
     n_words: int = 4
+    n_negative: int = 5  # number of negative samples, 0 to disable negative sampling
 
     # training configs
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -35,7 +36,7 @@ class Word2VecConfig:
 
     # wandb configs
     wandb_name: str | None = None
-    wandb_project: str = "paper_reproduce"
+    wandb_project: str = "paper_reproduce_word2vec"
 
     def __post_init__(self) -> None:
         """Set dynamic values"""

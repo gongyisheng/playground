@@ -83,13 +83,12 @@ class Word2VecTrainer:
         self.model.train()
         total_loss = 0.0
         total_samples = 0
-        for input_batch, target_batch in tqdm(train_dataloader):
+        for input_batch, target_batch, label_batch in tqdm(train_dataloader):
             self.optimizer.zero_grad()
-            input_batch_device, target_batch_device = (
-                input_batch.to(self.device),
-                target_batch.to(self.device),
-            )
-            loss = self.calc_loss_batch(input_batch_device, target_batch_device)
+            input_batch_device = input_batch.to(self.device)
+            target_batch_device = target_batch.to(self.device)
+            label_batch_device = label_batch.to(self.device)
+            loss = self.calc_loss_batch(input_batch_device, target_batch_device, label_batch_device)
             loss.backward()
             self.optimizer.step()
             total_loss += loss.item() * input_batch.size(0)  # Multiply by batch size
@@ -104,20 +103,29 @@ class Word2VecTrainer:
             test_loss = self.calc_loss_loader(test_dataloader)
         return val_loss, test_loss
     
-    def calc_loss_batch(self, input_batch: torch.Tensor, target_batch: torch.Tensor) -> torch.Tensor:
-        logits = self.model(input_batch)
-        loss = torch.nn.functional.cross_entropy(logits, target_batch)
+    def calc_loss_batch(self, input_batch: torch.Tensor, target_batch: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        # Use binary cross-entropy with sigmoid
+        logits = self.model(input_batch)  # [batch_size * (1 + n_negative), vocab_size]
+        
+        # Gather the logits for the specific target words
+        target_logits = logits.gather(1, target_batch.unsqueeze(1)).squeeze(1)  # [batch_size * (1 + n_negative)]
+        
+        # Apply sigmoid to get probabilities
+        probs = torch.sigmoid(target_logits)
+        
+        # Binary cross-entropy loss
+        loss = torch.nn.functional.binary_cross_entropy(probs, labels)
+        
         return loss
 
     def calc_loss_loader(self, data_loader: DataLoader) -> float:
         total_loss = 0.0
         total_samples = 0  # Track total samples
-        for input_batch, target_batch in tqdm(data_loader):
-            input_batch_device, target_batch_device = (
-                input_batch.to(self.device),
-                target_batch.to(self.device),
-            )
-            loss = self.calc_loss_batch(input_batch_device, target_batch_device)
+        for input_batch, target_batch, label_batch in tqdm(data_loader):
+            input_batch_device = input_batch.to(self.device)
+            target_batch_device = target_batch.to(self.device)
+            label_batch_device = label_batch.to(self.device)
+            loss = self.calc_loss_batch(input_batch_device, target_batch_device, label_batch_device)
             total_loss += loss.item() * input_batch.size(0)  # Multiply by batch size
             total_samples += input_batch.size(0)
         return total_loss / total_samples  # Correct average
