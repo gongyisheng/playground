@@ -179,7 +179,7 @@ class Transformer(nn.Module):
         device = src.device
         
         # Initialize target sequence with start token
-        tgt = torch.ones(batch_size, 1, dtype=torch.long, device=device) * start_token
+        tgt = torch.ones(batch_size, 1, dtype=torch.float32, device=device) * start_token
         
         # Generate tokens
         for _ in range(max_length):
