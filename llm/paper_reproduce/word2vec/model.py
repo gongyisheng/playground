@@ -13,7 +13,7 @@ class CbowModel(nn.Module):
         embeds = self.embedding(
             context_idxs
         )  # [batch_size, context_size, embedding_dim]
-        sum_embeds = embeds.sum(dim=1)  # [batch_size, embedding_dim]
+        sum_embeds = embeds.avg(dim=1)  # [batch_size, embedding_dim]
         output = self.linear(sum_embeds)  # [batch_size, vocab_size]
         return output
 
