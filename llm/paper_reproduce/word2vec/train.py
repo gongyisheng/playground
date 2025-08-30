@@ -195,7 +195,7 @@ def train_skip_gram():
             dataset_name="wikitext-103-raw-v1",
             embedding_dim=dim,
             learning_rate=1e-3,
-            batch_size=64*64//dim,
+            batch_size=64*32//dim,
             num_workers=8,
             epochs=5,
         )
