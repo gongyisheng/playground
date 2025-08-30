@@ -68,7 +68,7 @@ class Word2VecTrainer:
                 # log metrics to wandb
                 run.log(
                     {
-                        "Loss_train": train_loss,
+                        "loss_train": train_loss,
                         "loss_val": val_loss,
                         "loss_test": test_loss
                     },
