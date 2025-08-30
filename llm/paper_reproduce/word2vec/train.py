@@ -187,21 +187,23 @@ def train_cbow():
 
 
 def train_skip_gram():
-    config = Word2VecConfig(
-        model_name="skip_gram",
-        dataset_path="Salesforce/wikitext",
-        dataset_name="wikitext-103-raw-v1",
-        embedding_dim=100,
-        learning_rate=0.01,
-        batch_size=64,
-        num_workers=8,
-        epochs=5,
-    )
+    for dim in [128, 256, 512, 1024]:
+        print(f"Training dim {dim}")
+        config = Word2VecConfig(
+            model_name="skip_gram",
+            dataset_path="Salesforce/wikitext",
+            dataset_name="wikitext-103-raw-v1",
+            embedding_dim=dim,
+            learning_rate=1e-3,
+            batch_size=128*128//dim,
+            num_workers=8,
+            epochs=5,
+        )
 
-    train_tokenizer(config)
-    train_model(config)
+        train_tokenizer(config)
+        train_model(config)
 
 
 if __name__ == "__main__":
-    train_cbow()
-    # train_skip_gram()
+    # train_cbow()
+    train_skip_gram()
