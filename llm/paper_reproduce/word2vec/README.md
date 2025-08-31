@@ -6,4 +6,5 @@ url: https://arxiv.org/abs/1301.3781
 https://huggingface.co/datasets/sentence-transformers/wikipedia-en-sentences
 
 ## Notes
-- n_negative > 0: negative sample number must be > 0, otherwise model will predict everything = 1 and you will see loss = 0
+1. n_negative
+    negative sample must be > 0, otherwise model will predict everything = 1 and you will see loss = 0
