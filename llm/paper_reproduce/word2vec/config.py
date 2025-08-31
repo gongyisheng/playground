@@ -19,8 +19,7 @@ class Word2VecConfig:
     min_freq: int = 50
     embedding_dim: int = 256
     n_words: int = 4
-    n_negative: int = 5  # number of negative samples, must be > 0, otherwise you will see loss=0 (model predict 1 for everything)
-
+    n_negative: int = 5  # number of negative samples, must be > 0
     # training configs
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     use_tf32: bool = True if device == "cuda" else False
