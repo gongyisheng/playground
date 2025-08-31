@@ -103,17 +103,14 @@ class Word2VecTrainer:
         return val_loss, test_loss
     
     def calc_loss_batch(self, input_batch: torch.Tensor, target_batch: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-        # Use binary cross-entropy with sigmoid
+        # Use binary cross-entropy with logits
         logits = self.model(input_batch)  # [batch_size * (1 + n_negative), vocab_size]
         
         # Gather the logits for the specific target words
         target_logits = logits.gather(1, target_batch.unsqueeze(1)).squeeze(1)  # [batch_size * (1 + n_negative)]
         
-        # Apply sigmoid to get probabilities
-        probs = torch.sigmoid(target_logits)
-        
-        # Binary cross-entropy loss
-        loss = torch.nn.functional.binary_cross_entropy(probs, labels)
+        # Binary cross-entropy loss with logits
+        loss = torch.nn.BCEWithLogitsLoss()(target_logits, labels)
         
         return loss
 
