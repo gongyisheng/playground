@@ -162,7 +162,7 @@ def train_model(config: Word2VecConfig) -> None:
     trainer.train(train_dataloader, val_dataloader, test_dataloader)
 
 def train_cbow():
-    for dim in [128, 256, 512, 1024]:
+    for dim in [128, 256, 512]:
         print(f"Training dim {dim}")
         config = Word2VecConfig(
             model_name="cbow",
@@ -179,7 +179,7 @@ def train_cbow():
 
 
 def train_skip_gram():
-    for dim in [128, 256, 512, 1024]:
+    for dim in [128, 256, 512]:
         print(f"Training dim {dim}")
         config = Word2VecConfig(
             model_name="skip_gram",
@@ -187,7 +187,7 @@ def train_skip_gram():
             dataset_name="wikitext-103-raw-v1",
             embedding_dim=dim,
             learning_rate=1e-3,
-            batch_size=64*32//dim,
+            batch_size=32*32//dim,
             num_workers=8,
             epochs=5,
         )
@@ -197,5 +197,5 @@ def train_skip_gram():
 
 
 if __name__ == "__main__":
-    train_cbow()
-    # train_skip_gram()
+    # train_cbow()
+    train_skip_gram()
