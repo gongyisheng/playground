@@ -137,7 +137,6 @@ def train_tokenizer(config: Word2VecConfig) -> None:
 
 
 def train_model(config: Word2VecConfig) -> None:
-    model_name = config.model_name
     dataset = get_dataset(config)
     tokenizer = Word2VecTokenizer(config).load()
     train_dataloader = get_split_dataloader(
@@ -145,21 +144,18 @@ def train_model(config: Word2VecConfig) -> None:
         "train",
         tokenizer=tokenizer,
         config=config,
-        model_name=model_name,
     )
     val_dataloader = get_split_dataloader(
         dataset,
         "validation",
         tokenizer=tokenizer,
         config=config,
-        model_name=model_name,
     )
     test_dataloader = get_split_dataloader(
         dataset,
         "test",
         tokenizer=tokenizer,
         config=config,
-        model_name=model_name,
     )
 
     trainer = Word2VecTrainer(config)

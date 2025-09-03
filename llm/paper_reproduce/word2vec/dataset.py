@@ -113,9 +113,8 @@ def get_split_dataloader(
     split: str,
     tokenizer: Tokenizer,
     config: Word2VecConfig,
-    model_name: Literal["cbow", "skip_gram"] = "cbow",
 ) -> DataLoader:
-    if model_name == "cbow":
+    if config.model_name == "cbow":
 
         def collate_fn(batch) -> tuple[torch.Tensor, torch.Tensor]:
             return collate_cbow_fn(batch, tokenizer, config)
