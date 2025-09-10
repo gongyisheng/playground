@@ -1,0 +1,76 @@
+# QLoRA-specific configuration (Quantized LoRA)
+
+# Inherits from base_config.yaml
+base_config: "./base_config.yaml"
+
+# QLoRA parameters (same as LoRA but with quantization)
+lora:
+  # LoRA attention dimension (rank) - smaller for QLoRA
+  r: 16
+  
+  # LoRA scaling parameter
+  lora_alpha: 32
+  
+  # LoRA dropout
+  lora_dropout: 0.05
+  
+  # Target modules to apply LoRA
+  target_modules:
+    - q_proj
+    - v_proj
+    - k_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  
+  # Bias handling
+  bias: "none"
+  
+  # Task type
+  task_type: "CAUSAL_LM"
+  
+  # Module replacement
+  modules_to_save: null
+
+# Quantization configuration (4-bit)
+quantization:
+  load_in_4bit: true
+  bnb_4bit_compute_dtype: "float16"  # or "bfloat16" if supported
+  bnb_4bit_quant_type: "nf4"  # Normal Float 4
+  bnb_4bit_use_double_quant: true  # Double quantization for extra memory savings
+  
+# Training overrides for QLoRA (optimized for lower memory)
+training_overrides:
+  output_dir: "./results/qlora"
+  per_device_train_batch_size: 2  # Smaller batch size for QLoRA
+  gradient_accumulation_steps: 4  # More accumulation to compensate
+  learning_rate: 2e-4
+  num_train_epochs: 3
+  optim: "paged_adamw_32bit"  # Use 32-bit optimizer for stability
+  
+# Model loading configuration
+model_loading:
+  load_in_8bit: false
+  load_in_4bit: true  # Enable 4-bit quantization
+  device_map: "auto"
+  torch_dtype: "float16"  # or "bfloat16"
+  
+# Memory optimization for RTX 3060 (more aggressive for QLoRA)
+memory_optimization:
+  gradient_checkpointing: true
+  gradient_checkpointing_kwargs:
+    use_reentrant: false
+  max_memory: 
+    0: "11GB"  # Limit GPU memory usage
+  
+# QLoRA specific settings
+qlora_specific:
+  # Prepare model for k-bit training
+  prepare_model_for_kbit_training: true
+  
+  # Use cache during training (set to false for training)
+  use_cache: false
+  
+  # Pretraining tensor parallelism rank
+  pretraining_tp: 1

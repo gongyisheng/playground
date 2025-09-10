@@ -1,0 +1,71 @@
+# Base configuration shared between LoRA and QLoRA training
+
+# Model configuration
+model:
+  name: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  use_cache: false
+  trust_remote_code: true
+  
+# Dataset configuration
+dataset:
+  name: "iamtarun/python_code_instructions_18k_alpaca"
+  train_split: "train[:90%]"
+  val_split: "train[90%:]"
+  max_length: 512
+  # Text field for training (will be formatted with chat template)
+  text_field: "text"
+  
+# Training arguments
+training:
+  output_dir: "./results"
+  num_train_epochs: 3
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 2
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+  logging_steps: 10
+  save_strategy: "steps"
+  save_steps: 500
+  save_total_limit: 3
+  evaluation_strategy: "steps"
+  eval_steps: 500
+  learning_rate: 2e-4
+  warmup_steps: 100
+  logging_dir: "./logs"
+  report_to: "tensorboard"  # Can be "wandb" if you have wandb setup
+  remove_unused_columns: false
+  group_by_length: true
+  lr_scheduler_type: "cosine"
+  seed: 42
+  
+  # Mixed precision training
+  fp16: true
+  bf16: false  # Set to true if your GPU supports bf16
+  
+  # Memory optimization
+  max_grad_norm: 0.3
+  weight_decay: 0.001
+  
+  # Push to hub (optional)
+  push_to_hub: false
+  hub_model_id: null  # "your-username/tinyllama-python-lora"
+  hub_token: null  # Your HuggingFace token
+  
+# Data formatting
+formatting:
+  # How to format the dataset for training
+  format_type: "chat"  # Options: "chat", "instruction", "completion"
+  system_message: "You are a helpful Python coding assistant."
+  
+# Evaluation
+evaluation:
+  compute_metrics: true
+  metric: "perplexity"
+  
+# Logging
+logging:
+  use_wandb: false
+  wandb_project: "tinyllama-finetune"
+  wandb_run_name: null  # Will be auto-generated if null
+  verbose: true
