@@ -13,7 +13,7 @@ The attention mechanism uses three learned linear projections:
 ### Attention Computation
 
 ```
-Attention(Q, K, V) = softmax(QK^T / √d_k) V
+Attention(Q, K, V) = softmax(QK^T/√d_k)·V
 ```
 
 Where:
