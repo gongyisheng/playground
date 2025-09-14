@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-from transformer import Transformer
+from ml.transformer.transformer import Transformer
 import numpy as np
 
 # Example dataset for translation
