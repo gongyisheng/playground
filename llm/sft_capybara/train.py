@@ -21,7 +21,6 @@ training_args = SFTConfig(
     warmup_ratio=0.1,
     weight_decay=0.01,
     
-    model_init_kwargs={"dtype": torch.bfloat16},
     max_length=512,
     packing=True,
     completion_only_loss=True,
