@@ -24,7 +24,7 @@ training_args = SFTConfig(
     model_init_kwargs={"dtype": torch.bfloat16},
     max_length=512,
     packing=True,
-    completion_only_loss=True
+    completion_only_loss=True,
 
     save_strategy="steps",
     save_steps=500,
