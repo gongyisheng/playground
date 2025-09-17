@@ -9,7 +9,7 @@ services:
     command: >
       --host 0.0.0.0
       --port 8000
-      --model Qwen/Qwen3-0.6B-Base
+      --model /models/qwen3_0.6b_base_sft/checkpoint-40107
     volumes:
       - /media/hdddisk/yisheng/replicate/sft_capybara:/models
     deploy: {}   # remove deploy.resources if not in Swarm
