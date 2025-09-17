@@ -91,7 +91,7 @@ def accuracy_reward(completions, **kwargs):
 
 lr = 1e-5
 batch_size = 2 
-epoch = 1
+epoch = 3
 
 # Configure training arguments using GRPOConfig
 training_args = GRPOConfig(
@@ -100,7 +100,7 @@ training_args = GRPOConfig(
     learning_rate=1e-5,
     remove_unused_columns=False,  # to access the solution column in accuracy_reward
     gradient_accumulation_steps=16,
-    num_train_epochs=3,
+    num_train_epochs=epoch,
     bf16=True,
     # Parameters that control de data preprocessing
     max_completion_length=64,  # default: 256
