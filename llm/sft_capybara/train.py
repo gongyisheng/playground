@@ -1,12 +1,17 @@
 import os
-import torch
 
 from datasets import load_dataset
+from transformers import AutoModelForCausalLM
 from trl import SFTTrainer, SFTConfig
 
 os.environ["WANDB_PROJECT"] = "sft_capybara"  # adjust name
 
 dataset = load_dataset("trl-lib/Capybara", split="train")
+
+model = AutoModelForCausalLM.from_pretrained(
+    "Qwen/Qwen3-0.6B-Base",
+    attn_implementation="flash_attention_2"
+)
 
 lr = 1e-4
 epoch = 3
@@ -35,7 +40,7 @@ training_args = SFTConfig(
 )
 
 trainer = SFTTrainer(
-    model="Qwen/Qwen3-0.6B-Base",
+    model=model,
     train_dataset=dataset,
     args=training_args,
 )
