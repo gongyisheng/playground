@@ -1,12 +1,13 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_name = "Qwen/Qwen3-0.6B"
+model_name = "Qwen/Qwen3-0.6B-Base"
+# model_name = "/media/hdddisk/yisheng/replicate/sft_capybara/qwen3_0.6b_base_sft/checkpoint-40107"
 
 # load the tokenizer and the model
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    dtype="auto",
+    torch_dtype="auto",
     device_map="auto"
 )
 
@@ -28,7 +29,7 @@ model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
 # conduct text completion
 generated_ids = model.generate(
     **model_inputs,
-    max_new_tokens=32768
+    max_new_tokens=512
 )
 output_ids = generated_ids[0][len(model_inputs.input_ids[0]):].tolist() 
 
