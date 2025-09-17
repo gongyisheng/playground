@@ -44,9 +44,9 @@ print(len(train_dataset))
 model_id = "Qwen/Qwen2-0.5B-Instruct"
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    torch_dtype="bfloat16",
-    device_map="auto"
-)
+    torch_dtype="bfloat16",   # or float16 if no bf16
+    device_map=None
+).to("cuda")
 
 # configure lora
 lora_config = LoraConfig(
@@ -90,11 +90,13 @@ def accuracy_reward(completions, **kwargs):
     return rewards
 
 lr = 1e-5
+batch_size = 2 
 epoch = 1
 
 # Configure training arguments using GRPOConfig
 training_args = GRPOConfig(
     output_dir="/media/hdddisk/yisheng/replicate/grpo_math/qwen2-0.5b-grpo",
+    per_device_train_batch_size=batch_size,
     learning_rate=1e-5,
     remove_unused_columns=False,  # to access the solution column in accuracy_reward
     gradient_accumulation_steps=16,
@@ -120,4 +122,4 @@ trainer = GRPOTrainer(
     train_dataset=train_dataset
 )
 
-# trainer.train()
+trainer.train()
