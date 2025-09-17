@@ -10,7 +10,7 @@ dataset = load_dataset("trl-lib/Capybara", split="train")
 
 lr = 1e-4
 epoch = 3
-batch_size = 16
+batch_size = 8
 
 # define training arguments with wandb config
 training_args = SFTConfig(
