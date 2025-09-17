@@ -12,7 +12,7 @@ from trl import GRPOConfig, GRPOTrainer
 os.environ["WANDB_PROJECT"] = "grpo_math"  # adjust name
 
 dataset_id = "AI-MO/NuminaMath-TIR"
-train_dataset, test_dataset = load_dataset(dataset_id, split=["train[:5%]", "test[:5%]"])
+train_dataset, test_dataset = load_dataset(dataset_id, split=["train", "test"])
 
 SYSTEM_PROMPT = (
     "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
@@ -100,7 +100,7 @@ training_args = GRPOConfig(
     learning_rate=1e-5,
     remove_unused_columns=False,  # to access the solution column in accuracy_reward
     gradient_accumulation_steps=16,
-    num_train_epochs=1,
+    num_train_epochs=3,
     bf16=True,
     # Parameters that control de data preprocessing
     max_completion_length=64,  # default: 256
