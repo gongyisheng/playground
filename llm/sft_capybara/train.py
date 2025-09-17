@@ -15,7 +15,7 @@ model = AutoModelForCausalLM.from_pretrained(
 
 lr = 1e-4
 epoch = 3
-batch_size = 2
+batch_size = 1
 
 # define training arguments with wandb config
 training_args = SFTConfig(
