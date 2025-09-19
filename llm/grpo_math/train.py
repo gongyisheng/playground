@@ -36,8 +36,8 @@ test_dataset = test_dataset.map(make_conversation)
 
 train_dataset = train_dataset.remove_columns(["messages", "problem"])
 
-print(train_dataset[0]["prompt"])
-print(train_dataset[0]["solution"])
+# print(train_dataset[0]["prompt"])
+# print(train_dataset[0]["solution"])
 print(len(train_dataset))
 
 # load model
@@ -69,7 +69,7 @@ def format_reward(completions, **kwargs):
     completion_contents = [completion[0]["content"] for completion in completions]
     matches = [re.match(pattern, content) for content in completion_contents]
     rewards_list = [1.0 if match else 0.0 for match in matches]
-    return [1.0 if match else 0.0 for match in matches]
+    return rewards_list
 
 ## 2. solution accuracy
 def accuracy_reward(completions, **kwargs):
