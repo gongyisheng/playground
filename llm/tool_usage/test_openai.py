@@ -65,9 +65,13 @@ def chat_with_tools(client: OpenAI, user_message: str):
     ]
     
     # First API call
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=messages,
+    response = client.responses.create(
+        model="gpt-5-mini",
+        input=messages,
+        reasoning={
+            "effort": "low", # minimal, low, medium, and high
+            "summary": "detailed" # auto, concise, or detailed
+        },
         tools=tools,
         tool_choice="auto"
     )
@@ -95,9 +99,13 @@ def chat_with_tools(client: OpenAI, user_message: str):
             })
         
         # Second API call to get final response
-        final_response = client.chat.completions.create(
-            model="gpt-4",
-            messages=messages
+        final_response = client.responses.create(
+            model="gpt-5-mini",
+            input=messages,
+            reasoning={
+                "effort": "low", # minimal, low, medium, and high
+                "summary": "detailed" # auto, concise, or detailed
+            },
         )
         
         return final_response.choices[0].message.content
