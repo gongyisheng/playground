@@ -41,7 +41,7 @@ print(train_dataset[0]["solution"])
 print(len(train_dataset))
 
 # load model
-model_id = "Qwen/Qwen2-0.5B-Instruct"
+model_id = "Qwen/Qwen2-1.5B-Instruct"
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     torch_dtype="bfloat16",   # or float16 if no bf16
@@ -95,7 +95,7 @@ epoch = 3
 
 # Configure training arguments using GRPOConfig
 training_args = GRPOConfig(
-    output_dir="/media/hdddisk/yisheng/replicate/grpo_math/qwen2-0.5b-grpo",
+    output_dir="/media/hdddisk/yisheng/replicate/grpo_math/qwen2-1.5b-grpo",
     per_device_train_batch_size=batch_size,
     learning_rate=1e-5,
     remove_unused_columns=False,  # to access the solution column in accuracy_reward
@@ -112,7 +112,7 @@ training_args = GRPOConfig(
     save_steps=50,
     save_total_limit=2,
     report_to="wandb",
-    run_name=f"qwen2_0.5b_grpo_lr_{lr}_epoch_{epoch}"   # wandb run name
+    run_name=f"qwen2_1.5b_grpo_lr_{lr}_epoch_{epoch}"   # wandb run name
 )
 
 trainer = GRPOTrainer(
