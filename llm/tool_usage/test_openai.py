@@ -6,68 +6,53 @@ Example of OpenAI function calling with math tools.
 import json
 from openai import OpenAI
 
-def add_numbers(a: float, b: float) -> float:
-    """Add two numbers together."""
-    return a + b
-
-def subtract_numbers(a: float, b: float) -> float:
-    """Subtract second number from first number."""
-    return a - b
+def calculate_magic_score(a: float, b: float) -> float:
+    """Calculate the magic score of two numbers (defined as their sum)."""
+    return (a + b) / 2
 
 # Tool definitions for OpenAI
 tools = [
     {
         "type": "function",
-        "function": {
-            "name": "add_numbers",
-            "description": "Add two numbers together",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "a": {"type": "number", "description": "First number"},
-                    "b": {"type": "number", "description": "Second number"}
+        "name": "magic_score",
+        "description": "Calculate the magic score of two numbers (defined as their sum)",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "number1": {
+                    "type": "number",
+                    "description": "The first number for the magic score calculation"
                 },
-                "required": ["a", "b"]
-            }
-        }
-    },
-    {
-        "type": "function", 
-        "function": {
-            "name": "subtract_numbers",
-            "description": "Subtract second number from first number",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "a": {"type": "number", "description": "First number"},
-                    "b": {"type": "number", "description": "Second number"}
-                },
-                "required": ["a", "b"]
-            }
+                "number2": {
+                    "type": "number", 
+                    "description": "The second number for the magic score calculation"
+                }
+            },
+            "required": ["number1", "number2"]
         }
     }
 ]
 
-def execute_function(function_name: str, arguments: dict):
+def execute_function(function_name: str, arguments: str):
     """Execute the requested function with given arguments."""
-    if function_name == "add_numbers":
-        return add_numbers(arguments["a"], arguments["b"])
-    elif function_name == "subtract_numbers":
-        return subtract_numbers(arguments["a"], arguments["b"])
+    if function_name == "magic_score":
+        # Parse the arguments from JSON string
+        args = json.loads(arguments)
+        return calculate_magic_score(args["number1"], args["number2"])
     else:
         raise ValueError(f"Unknown function: {function_name}")
 
 def chat_with_tools(client: OpenAI, user_message: str):
     """Chat with OpenAI using function calling."""
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant that can perform math operations."},
+    # Create a running input list
+    input_list = [
         {"role": "user", "content": user_message}
     ]
     
     # First API call
     response = client.responses.create(
         model="gpt-5-mini",
-        input=messages,
+        input=input_list,
         reasoning={
             "effort": "low", # minimal, low, medium, and high
             "summary": "detailed" # auto, concise, or detailed
@@ -75,42 +60,44 @@ def chat_with_tools(client: OpenAI, user_message: str):
         tools=tools,
         tool_choice="auto"
     )
+
+    print(response.output)
     
-    response_message = response.choices[0].message
-    messages.append(response_message)
+    # Save function call outputs for subsequent requests
+    input_list += response.output
     
-    # Check if the model wants to call functions
-    if response_message.tool_calls:
-        for tool_call in response_message.tool_calls:
-            function_name = tool_call.function.name
-            function_args = json.loads(tool_call.function.arguments)
-            
-            print(f"Calling function: {function_name} with args: {function_args}")
+    # Process any function calls
+    for item in response.output:
+        if item.type == "function_call" and item.name == "magic_score":
+            print(f"Calling function: {item.name} with args: {item.arguments}, call_id: {item.call_id}")
             
             # Execute the function
-            function_result = execute_function(function_name, function_args)
+            result = execute_function(item.name, item.arguments)
             
-            # Add function result to messages
-            messages.append({
-                "tool_call_id": tool_call.id,
-                "role": "tool",
-                "name": function_name,
-                "content": str(function_result)
+            # Add function result to input list
+            input_list.append({
+                "type": "function_call_output",
+                "call_id": item.call_id,
+                "output": json.dumps({
+                    "magic_score": result
+                })
             })
-        
-        # Second API call to get final response
-        final_response = client.responses.create(
-            model="gpt-5-mini",
-            input=messages,
-            reasoning={
-                "effort": "low", # minimal, low, medium, and high
-                "summary": "detailed" # auto, concise, or detailed
-            },
-        )
-        
-        return final_response.choices[0].message.content
-    else:
-        return response_message.content
+
+            print(input_list)
+
+            response = client.responses.create(
+                model="gpt-5-mini",
+                input=input_list,
+                reasoning={
+                    "effort": "low", # minimal, low, medium, and high
+                    "summary": "detailed" # auto, concise, or detailed
+                },
+                tools=tools
+            )
+
+            print(response.output)
+
+    return response.output_text
 
 def main():
     # Initialize OpenAI client
@@ -118,9 +105,7 @@ def main():
     
     # Example usage
     examples = [
-        "What is 15 + 27?",
-        "Calculate 100 - 43",
-        "I need to add 25.5 and 14.3, then subtract 10 from the result"
+        "You can only call one tool at a time. question: assume the magic score of 15 and 27 is A, please calculate magic score of A and 30. "
     ]
     
     for example in examples:
