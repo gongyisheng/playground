@@ -43,7 +43,7 @@ print(len(train_dataset))
 model_id = "Qwen/Qwen2-0.5B-Instruct"
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    torch_dtype="bfloat16",   # or float16 if no bf16
+    dtype="bfloat16",   # or float16 if no bf16
     device_map=None
 ).to("cuda")
 

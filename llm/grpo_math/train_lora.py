@@ -112,7 +112,7 @@ training_args = GRPOConfig(
     save_steps=50,
     save_total_limit=2,
     report_to="wandb",
-    run_name=f"qwen2_1.5b_grpo_lr_{lr}_epoch_{epoch}"   # wandb run name
+    run_name=f"qwen2_1.5b_grpo_lora_lr_{lr}_epoch_{epoch}"   # wandb run name
 )
 
 trainer = GRPOTrainer(
