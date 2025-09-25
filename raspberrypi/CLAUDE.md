@@ -1,0 +1,11 @@
+## git commit message perfix
+- [feat]: a new feature
+- [chore]: routine tasks, maintenance, or code refactor
+- [fix]: a bug fix
+- [docs]: documentation only changes
+- [style]: code style/formatting (no code logic changes)
+- [perf]: performance improvement
+- [test]: adding or fixing tests
+- [build]: changes that affect the build system or external dependencies
+- [ci]: changes to CI/CD configuration or scripts
+- [deps]: dependency upgrades/downgrades
