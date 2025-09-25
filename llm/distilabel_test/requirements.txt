@@ -1,0 +1,2 @@
+distilabel[hf-inference-endpoints]
+openai
