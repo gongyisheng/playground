@@ -15,6 +15,11 @@ async def test_multiple_urls(urls):
 
 async def test_connector(url):
     # Create new session with connection pool limits
+    # Note: TCPConnector is a connection pool
+    #   it will reuse connections if force_close=False
+    #   and may cause load unbalance issue
+    # To test it, you need to run on tornado server
+    # simple server like http.server close connections after response complete by default
     timeout = aiohttp.ClientTimeout(
         connect=5,
         sock_connect=60
