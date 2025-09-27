@@ -6,6 +6,11 @@ maco parameter tuning
     add λ⋅∣∣w∣∣ to pentalize large weights, prevent overfitting  
     strongly not recommend to set to 0
     ```
+2. gradient_accumulation_steps: int
+   ```
+   accumulate gradients over several smaller mini-batches and then perform one update
+   use it to avoid CUDA out of memory issue, but at cost of training performance
+   ```
 
 ## Finetune
 1. epoch: 3-5 (small) / 2-4 (large) / 3-10 (with early stop) 

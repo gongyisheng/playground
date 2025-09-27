@@ -1,0 +1,28 @@
+# Core dependencies for TinyLlama fine-tuning
+torch>=2.0.0
+transformers>=4.36.0
+datasets>=2.14.0
+accelerate>=0.25.0
+peft>=0.7.0
+trl>=0.7.0
+bitsandbytes>=0.41.0
+
+# Configuration and utilities
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Evaluation and metrics
+evaluate>=0.4.0
+scikit-learn>=1.3.0
+
+# Logging and monitoring (optional)
+wandb>=0.16.0
+tensorboard>=2.14.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Additional utilities
+tqdm>=4.65.0
+colorama>=0.4.6

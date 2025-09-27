@@ -1,0 +1,54 @@
+# LoRA-specific configuration
+
+# Inherits from base_config.yaml
+base_config: "./base_config.yaml"
+
+# LoRA parameters
+lora:
+  # LoRA attention dimension (rank)
+  r: 8
+  
+  # LoRA scaling parameter
+  lora_alpha: 16
+  
+  # LoRA dropout
+  lora_dropout: 0.1
+  
+  # Target modules to apply LoRA
+  target_modules:
+    - q_proj
+    - v_proj
+    - k_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  
+  # Bias handling
+  bias: "none"  # Options: "none", "all", "lora_only"
+  
+  # Task type
+  task_type: "CAUSAL_LM"
+  
+  # Module replacement
+  modules_to_save: null  # List of modules to train fully (optional)
+  
+# Training overrides for LoRA (overwrites base config)
+training_overrides:
+  output_dir: "./results/lora"
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 2
+  learning_rate: 2e-4
+  num_train_epochs: 3
+  
+# Model loading
+model_loading:
+  load_in_8bit: false
+  load_in_4bit: false
+  device_map: "auto"
+  
+# Memory optimization for RTX 3060
+memory_optimization:
+  gradient_checkpointing: true
+  gradient_checkpointing_kwargs:
+    use_reentrant: false

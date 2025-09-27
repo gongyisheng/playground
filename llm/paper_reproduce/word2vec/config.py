@@ -1,0 +1,59 @@
+from dataclasses import dataclass
+from typing import Literal
+
+import torch
+
+BASE_DIR = "/media/hdddisk/yisheng/replicate/word2vec"
+
+@dataclass
+class Word2VecConfig:
+    # model selection
+    model_name: Literal["cbow", "skip_gram"] = "cbow"
+
+    # dataset configs
+    dataset_path: str = "Salesforce/wikitext"
+    dataset_name: str = "wikitext-103-raw-v1"
+
+    # model configs
+    vocab_size: int = 20000
+    min_freq: int = 50
+    embedding_dim: int = 256
+    n_words: int = 4
+    n_negative: int = 5  # number of negative samples, must be > 0
+    # training configs
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    use_tf32: bool = True if device == "cuda" else False
+    epochs: int = 10
+    batch_size: int = 256
+    num_workers: int = 8
+    shuffle: bool = True
+    learning_rate: float = 1e-3
+    weight_decay: float = 0.01
+
+    # storage
+    model_path: str | None = None
+    tokenizer_path: str | None = None
+
+    # wandb configs
+    wandb_name: str | None = None
+    wandb_project: str = "paper_reproduce_word2vec"
+
+    def __post_init__(self) -> None:
+        """Set dynamic values"""
+        if self.wandb_name is None:
+            self.wandb_name = self._get_wandb_name()
+        
+        if self.model_path is None:
+            self.model_path = self._get_model_path()
+        
+        if self.tokenizer_path is None:
+            self.tokenizer_path = self._get_tokenizer_path()
+
+    def _get_wandb_name(self):
+        return f"word2vec_{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_epoch_{self.epochs}_lr_{self.learning_rate}_neg_{self.n_negative}"
+    
+    def _get_model_path(self):
+        return f"{BASE_DIR}/{self.model_name}_dim_{self.embedding_dim}_nwords_{self.n_words}_epoch_{self.epochs}_lr_{self.learning_rate}_neg_{self.n_negative}.bin"
+
+    def _get_tokenizer_path(self):
+        return f"{BASE_DIR}/tokenizer.pt"
