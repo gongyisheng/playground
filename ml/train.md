@@ -11,6 +11,14 @@ maco parameter tuning
    accumulate gradients over several smaller mini-batches and then perform one update
    use it to avoid CUDA out of memory issue, but at cost of training performance
    ```
+3. lr_scheduler_type: str
+    ```
+    configure the learning rate scheduler during training, following is good
+
+    linear: lr reduce to 0 linear change
+    cosine: lr reduce to 0 cosine change
+    cosine_with_min_lr: lr reduce to min_lr or min_lr_rate cosine change
+    ```
 
 ## Finetune
 1. epoch: 3-5 (small) / 2-4 (large) / 3-10 (with early stop) 
