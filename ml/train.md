@@ -33,6 +33,27 @@ maco parameter tuning
     to prevent gradient unstable
     ```
 
+## Supervised Finetune (SFT)
+1. packing: true
+```
+packing allows model to concat examples using <eos> token to improve training efficiency
+
+recommend to set to true because it's more efficient than padding and gains performance improvement
+
+note that bigger model, larger dataset can benefits more from packing. 
+small dataset, small model, single turn conversation may suffer from batch contamination.
+```
+
+2. assistant_only_loss: true
+```
+use a conversational dataset and train on assistant tokens only, ignoring user or system messages
+```
+
+3. completion_only_loss: true
+```
+use a prompt-completion dataset and train on completion tokens only, ignoring prompt tokens
+```
+
 ## Unstable Traning
 - Loss explodes: learning rate is too high
 - Loss fluctuates wildly: too much gradient noise, overfitting, poor batch normalization
