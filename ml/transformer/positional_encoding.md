@@ -31,3 +31,7 @@ with RoPE: (rotate vector by an angle)
     inner product decays when relative position increases  
 - relative distance  
     RoPE focus on relative distance (favored over absolute PE)  
+
+## Reference
+- https://blog.eleuther.ai/yarn/  
+- https://kaiokendev.github.io/context  
