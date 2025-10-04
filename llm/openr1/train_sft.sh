@@ -8,4 +8,6 @@ accelerate launch --config_file=accelerate_configs/zero3.yaml script/sft.py \
     --max_seq_length 32768 \
     --per_device_train_batch_size 2 \
     --gradient_checkpointing \
+    --bf16 \
+    --use_liger_kernel \
     --output_dir data/OpenR1-Distill-7B
