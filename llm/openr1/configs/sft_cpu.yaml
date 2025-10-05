@@ -1,5 +1,5 @@
 # Model 
-model_name_or_path: open-r1/Qwen2.5-Math-7B-RoPE-300k
+model_name_or_path: gongyisheng/Qwen2.5-Math-1.5B-RoPE-300k
 
 # Dataset 
 dataset_name: open-r1/Mixture-of-Thoughts
