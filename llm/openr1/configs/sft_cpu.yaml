@@ -20,7 +20,8 @@ warmup_ratio: 0.1
 
 # Wandb 
 report_to: wandb
-wandb_project: qwen2.5-math-7b-sft
+wandb_project: openr1
+wandb_run_name: qwen2.5-math-1.5b-sft
 
 # Output 
-output_dir: /home/yisheng/Documents/replicate/openr1/qwen2.5-math-7b-sft
+output_dir: /home/yisheng/Documents/replicate/openr1/qwen2.5-math-1.5b-sft
