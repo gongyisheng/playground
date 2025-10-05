@@ -35,6 +35,12 @@ seed: 42
 use_liger_kernel: true
 warmup_ratio: 0.03
 
+# LoRA
+use_peft: false
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+
 # Wandb 
 report_to: 
 - wandb
