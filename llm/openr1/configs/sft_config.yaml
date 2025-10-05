@@ -7,6 +7,7 @@ dataset_config: all
 
 # Tokenizer Configuration
 eos_token: '<|im_end|>'
+dataset_num_proc: 8
 
 # Training Configuration
 learning_rate: 4.0e-5
@@ -16,8 +17,5 @@ per_device_train_batch_size: 2
 gradient_checkpointing: true
 bf16: true
 
-# Model Optimization
-use_liger_kernel: true
-
 # Output Configuration
-output_dir: data/OpenR1-Distill-7B
+output_dir: /media/hdddisk/yisheng/replicate/openr1/qwen2.5-math-7b-sft
