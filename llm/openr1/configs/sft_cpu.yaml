@@ -13,7 +13,8 @@ dataset_num_proc: 8
 learning_rate: 4.0e-5
 num_train_epochs: 5
 max_length: 32768
-per_device_train_batch_size: 2
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
 gradient_checkpointing: true
 bf16: false
 warmup_ratio: 0.1
