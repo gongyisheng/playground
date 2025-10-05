@@ -20,6 +20,17 @@ maco parameter tuning
     cosine: lr reduce to 0 cosine change
     cosine_with_min_lr: lr reduce to min_lr or min_lr_rate cosine change
     ```
+4. max_grad_norm: float
+    ```
+    controls gradient clipping, prevent gradient to be extremely large
+
+    if ∥g∥>max_grad_norm,g = g × max_grad_norm / ∥g∥
+    
+    full finetune: 1.0
+    LoRA/QLoRA: 0.3-1.0
+    Large Models (>13B): 0.1-0.5
+    RLHF/PPO: 0.1-0.3​
+    ```
 
 ## Finetune
 1. epoch: 3-5 (small) / 2-4 (large) / 3-10 (with early stop) 
