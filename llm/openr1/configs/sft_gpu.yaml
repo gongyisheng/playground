@@ -8,6 +8,7 @@ chat_template: "{%- if tools %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if 
 dataset_name: open-r1/Mixture-of-Thoughts
 dataset_config: all
 dataset_num_proc: 8
+dataset_sample_ratio: 0.01
 eos_token: <|im_end|>
 
 # Training 

@@ -20,7 +20,21 @@ def get_dataset(args: ScriptArguments) -> DatasetDict:
     """
     if args.dataset_name and not args.dataset_mixture:
         logger.info(f"Loading dataset: {args.dataset_name}")
-        return datasets.load_dataset(args.dataset_name, args.dataset_config)
+        dataset = datasets.load_dataset(args.dataset_name, args.dataset_config)
+
+        # Apply sampling if specified
+        if args.dataset_sample_ratio is not None:
+            sampled_dataset = {}
+            for split_name, split_data in dataset.items():
+                num_samples = int(len(split_data) * args.dataset_sample_ratio)
+                sampled_dataset[split_name] = split_data.shuffle().select(range(num_samples))
+                logger.info(
+                    f"Sampled {split_name} split with ratio={args.dataset_sample_ratio}: "
+                    f"{len(split_data)} -> {num_samples} examples"
+                )
+            return DatasetDict(sampled_dataset)
+
+        return dataset
     elif args.dataset_mixture:
         logger.info(f"Creating dataset mixture with {len(args.dataset_mixture.datasets)} datasets")
         seed = args.dataset_mixture.seed
@@ -56,9 +70,34 @@ def get_dataset(args: ScriptArguments) -> DatasetDict:
                 logger.info(
                     f"Split dataset into train and test sets with test size: {args.dataset_mixture.test_split_size}"
                 )
+
+                # Apply sampling if specified
+                if args.dataset_sample_ratio is not None:
+                    sampled_dataset = {}
+                    for split_name, split_data in combined_dataset.items():
+                        num_samples = int(len(split_data) * args.dataset_sample_ratio)
+                        sampled_dataset[split_name] = split_data.shuffle().select(range(num_samples))
+                        logger.info(
+                            f"Sampled {split_name} split with ratio={args.dataset_sample_ratio}: "
+                            f"{len(split_data)} -> {num_samples} examples"
+                        )
+                    return DatasetDict(sampled_dataset)
+
                 return combined_dataset
             else:
-                return DatasetDict({"train": combined_dataset})
+                dataset_dict = DatasetDict({"train": combined_dataset})
+
+                # Apply sampling if specified
+                if args.dataset_sample_ratio is not None:
+                    num_samples = int(len(combined_dataset) * args.dataset_sample_ratio)
+                    sampled_train = combined_dataset.shuffle().select(range(num_samples))
+                    logger.info(
+                        f"Sampled train split with ratio={args.dataset_sample_ratio}: "
+                        f"{len(combined_dataset)} -> {num_samples} examples"
+                    )
+                    return DatasetDict({"train": sampled_train})
+
+                return dataset_dict
         else:
             raise ValueError("No datasets were loaded from the mixture configuration")
 

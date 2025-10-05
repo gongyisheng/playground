@@ -60,10 +60,17 @@ class ScriptArguments(trl.ScriptArguments):
         default=None,
         metadata={"help": "Configuration for creating dataset mixtures with advanced options like shuffling."},
     )
+    dataset_sample_ratio: Optional[float] = field(
+        default=None,
+        metadata={"help": "Ratio of dataset to sample for faster testing. Value between 0 and 1. If None, uses full dataset."},
+    )
 
     def __post_init__(self):
         if self.dataset_name is None and self.dataset_mixture is None:
             raise ValueError("Either `dataset_name` or `dataset_mixture` must be provided")
+
+        if self.dataset_sample_ratio is not None and (self.dataset_sample_ratio <= 0 or self.dataset_sample_ratio > 1):
+            raise ValueError("dataset_sample_ratio must be between 0 and 1")
 
         if self.dataset_mixture is not None:
             if not isinstance(self.dataset_mixture, dict) or "datasets" not in self.dataset_mixture:
