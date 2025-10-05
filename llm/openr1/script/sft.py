@@ -1,38 +1,3 @@
-# Copyright 2025 The HuggingFace Team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""
-Supervised fine-tuning script for decoder language models.
-
-Usage:
-
-# One 1 node of 8 x H100s
-accelerate launch --config_file=recipes/accelerate_configs/zero3.yaml src/open_r1/sft.py \
-    --model_name_or_path open-r1/Qwen2.5-Math-7B-RoPE-300k \
-    --dataset_name open-r1/Mixture-of-Thoughts \
-    --dataset_config all \
-    --eos_token '<|im_end|>' \
-    --learning_rate 4.0e-5 \
-    --num_train_epochs 5 \
-    --max_seq_length 32768 \
-    --per_device_train_batch_size 2 \
-    --gradient_checkpointing \
-    --bf16 \
-    --use_liger_kernel \
-    --output_dir data/OpenR1-Distill-7B
-"""
-
 import logging
 import os
 import sys
@@ -172,4 +137,4 @@ if __name__ == "__main__":
     print(script_args)
     print(training_args)
     print(model_args)
-    # main(script_args, training_args, model_args)
+    main(script_args, training_args, model_args)
