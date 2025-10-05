@@ -177,17 +177,13 @@ class SFTConfig(trl.SFTConfig):
     )
     overwrite_hub_revision: bool = field(default=False, metadata={"help": "Whether to overwrite the Hub revision."})
     push_to_hub_revision: bool = field(default=False, metadata={"help": "Whether to push to a Hub revision/branch."})
-    wandb_entity: Optional[str] = field(
-        default=None,
-        metadata={"help": ("The entity to store runs under.")},
-    )
     wandb_project: Optional[str] = field(
         default=None,
         metadata={"help": ("The project to store runs under.")},
     )
-    wandb_run_group: Optional[str] = field(
+    wandb_run_name: Optional[str] = field(
         default=None,
-        metadata={"help": ("The group to store runs under.")},
+        metadata={"help": ("The name of current experiment run.")},
     )
 
 
@@ -320,9 +316,7 @@ def init_wandb_training(training_args):
     """
     Helper function for setting up Weights & Biases logging tools.
     """
-    if training_args.wandb_entity is not None:
-        os.environ["WANDB_ENTITY"] = training_args.wandb_entity
     if training_args.wandb_project is not None:
         os.environ["WANDB_PROJECT"] = training_args.wandb_project
-    if training_args.wandb_run_group is not None:
-        os.environ["WANDB_RUN_GROUP"] = training_args.wandb_run_group
+    if training_args.wandb_run_name is not None:
+        os.environ["WANDB_NAME"] = training_args.wandb_run_name
