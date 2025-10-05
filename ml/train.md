@@ -5,6 +5,7 @@ maco parameter tuning
     ```
     add λ⋅∣∣w∣∣ to pentalize large weights, prevent overfitting  
     strongly not recommend to set to 0
+    optional for LoRA/QLoRA SFT because dataset is small, mail goal is alignment not feature learning
     ```
 2. gradient_accumulation_steps: int
    ```
