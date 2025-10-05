@@ -17,6 +17,7 @@ per_device_train_batch_size: 2
 gradient_checkpointing: true
 bf16: true
 warmup_ratio: 0.1
+weight_decay: 0.01
 
 # Wandb 
 report_to: wandb
