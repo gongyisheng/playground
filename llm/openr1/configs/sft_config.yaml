@@ -1,0 +1,23 @@
+# Model Configuration
+model_name_or_path: open-r1/Qwen2.5-Math-7B-RoPE-300k
+
+# Dataset Configuration
+dataset_name: open-r1/Mixture-of-Thoughts
+dataset_config: all
+
+# Tokenizer Configuration
+eos_token: '<|im_end|>'
+
+# Training Configuration
+learning_rate: 4.0e-5
+num_train_epochs: 5
+max_length: 32768
+per_device_train_batch_size: 2
+gradient_checkpointing: true
+bf16: true
+
+# Model Optimization
+use_liger_kernel: true
+
+# Output Configuration
+output_dir: data/OpenR1-Distill-7B

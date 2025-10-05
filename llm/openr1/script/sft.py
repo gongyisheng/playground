@@ -37,6 +37,10 @@ import logging
 import os
 import sys
 
+# Work around type annotation issues
+import builtins
+builtins.ParallelismConfig = type('ParallelismConfig', (), {})
+
 import datasets
 import transformers
 from transformers import set_seed
@@ -166,4 +170,6 @@ if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
     print(script_args)
+    print(training_args)
+    print(model_args)
     # main(script_args, training_args, model_args)
