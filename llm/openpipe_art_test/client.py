@@ -18,7 +18,7 @@ async def main():
 
     backend = LocalBackend(
         in_process=True,
-        path="/media/hdddisk/yisheng/replicate/"
+        path="/media/hdddisk/yisheng/.art"
     )
     await model.register(backend)
 
