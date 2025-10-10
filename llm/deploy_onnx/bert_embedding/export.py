@@ -1,5 +1,4 @@
 from transformers import AutoTokenizer, AutoModel
-from pathlib import Path
 import torch
 
 from configs import HF_MODEL_NAME, ONNX_MODEL_PATH, EXAMPLE_TEXTS

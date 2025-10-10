@@ -1,19 +1,13 @@
 import time
 import numpy as np
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer
 import onnxruntime as ort
-from pathlib import Path
 from numpy.linalg import norm
 
 from configs import HF_MODEL_NAME, ONNX_MODEL_PATH, EXAMPLE_TEXTS
 
 # ---------- HELPER FUNCTIONS ----------
-def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[0]  # (batch, seq, hidden)
-    mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-    return (token_embeddings * mask_expanded).sum(1) / mask_expanded.sum(1)
-
 def cosine_similarity(a, b):
     return np.dot(a, b) / (norm(a) * norm(b))
 
@@ -27,7 +21,7 @@ providers = ["CPUExecutionProvider"]
 session = ort.InferenceSession(ONNX_MODEL_PATH, providers=providers)
 
 # ---------- Prepare inputs ----------
-inputs = tokenizer(EXAMPLE_TEXTS, padding=True, truncation=True, return_tensors="pt")
+inputs = tokenizer(EXAMPLE_TEXTS, padding=True, return_tensors="pt")
 
 # Convert to NumPy for ONNX
 onnx_inputs = {
