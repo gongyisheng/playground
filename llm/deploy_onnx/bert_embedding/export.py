@@ -3,7 +3,7 @@ import torch
 
 from configs import HF_MODEL_NAME, ONNX_MODEL_PATH, EXAMPLE_TEXTS
 
-def export_bert_to_onnx():
+def export():
     # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
     model = AutoModel.from_pretrained(HF_MODEL_NAME)
@@ -35,4 +35,4 @@ def export_bert_to_onnx():
     print(f"✅ Export complete: {ONNX_MODEL_PATH}")
 
 if __name__ == "__main__":
-    export_bert_to_onnx()
+    export()
