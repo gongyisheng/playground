@@ -33,8 +33,6 @@ def export_bert_to_onnx():
     )
 
     print(f"✅ Export complete: {ONNX_MODEL_PATH}")
-    print("You can test it with:")
-    print("  onnxruntime_tools.optimizer_cli --input onnx_model/bert-base-uncased.onnx --output onnx_model/bert-optimized.onnx")
 
 if __name__ == "__main__":
     export_bert_to_onnx()
