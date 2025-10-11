@@ -11,7 +11,7 @@ start = time.time()
 st_embeddings = sentence_model.encode(EXAMPLE_TEXTS, convert_to_numpy=True)
 st_time = time.time() - start
 
-print(f"FP32 Inference time: {st_time}")
+print(f"FP32 Inference time: {st_time:.3f}s")
 
 
 # ---------- FP16 ----------
@@ -21,7 +21,7 @@ start = time.time()
 st_embeddings = sentence_model.encode(EXAMPLE_TEXTS, convert_to_numpy=True)
 st_time = time.time() - start
 
-print(f"FP16 Inference time: {st_time}")
+print(f"FP16 Inference time: {st_time:.3f}s")
 
 
 # ---------- BP16 ----------
@@ -31,6 +31,6 @@ start = time.time()
 st_embeddings = sentence_model.encode(EXAMPLE_TEXTS, convert_to_numpy=True)
 st_time = time.time() - start
 
-print(f"BP16 Inference time: {st_time}")
+print(f"BP16 Inference time: {st_time:.3f}s")
 
-print("\n✅ Comparison complete.")
+print("✅ Comparison complete.")
