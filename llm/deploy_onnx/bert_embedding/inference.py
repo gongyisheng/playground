@@ -17,7 +17,7 @@ tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
 sentence_model = SentenceTransformer(HF_MODEL_NAME)
 
 # ---------- ONNX Runtime session ----------
-providers = ["CPUExecutionProvider"]
+providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
 session = ort.InferenceSession(ONNX_MODEL_PATH, providers=providers)
 
 # ---------- Prepare inputs ----------

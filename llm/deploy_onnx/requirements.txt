@@ -1,0 +1,7 @@
+transformers>=4.40.0
+sentence-transformers
+torch
+optimum
+onnxruntime
+onnxruntime-gpu
+onnx

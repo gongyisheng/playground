@@ -48,7 +48,7 @@ pytorch_model = AutoModelForTokenClassification.from_pretrained(HF_MODEL_NAME)
 ner_pipeline = pipeline("ner", model=pytorch_model, tokenizer=tokenizer, aggregation_strategy="simple")
 
 # ---------- ONNX Runtime session ----------
-providers = ["CPUExecutionProvider"]
+providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
 session = ort.InferenceSession(ONNX_MODEL_PATH, providers=providers)
 
 # Get label mappings from the model

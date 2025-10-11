@@ -13,7 +13,7 @@ tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_NAME)
 reranker = CrossEncoder(HF_MODEL_NAME)
 
 # ---------- ONNX Runtime session ----------
-providers = ["CPUExecutionProvider"]
+providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
 session = ort.InferenceSession(ONNX_MODEL_PATH, providers=providers)
 
 # ---------- Prepare inputs (query-document pairs) ----------

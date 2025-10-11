@@ -1,5 +1,6 @@
 HF_MODEL_NAME = "BAAI/bge-reranker-base"
-ONNX_MODEL_PATH = "/home/yisheng/Documents/replicate/deploy_onnx/bge-reranker-base.onnx"
+# ONNX_MODEL_PATH = "/home/yisheng/Documents/replicate/deploy_onnx/bge-reranker-base.onnx" # cpu machine
+ONNX_MODEL_PATH = "/media/hdddisk/yisheng/replicate/deploy_onnx/bge-reranker-base.onnx" # gpu machine
 
 # Reranker expects query-document pairs
 EXAMPLE_QUERY = "What is ONNX Runtime?"
