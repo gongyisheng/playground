@@ -37,5 +37,7 @@ nohup.out
 *.bin
 mlruns
 wandb
+unsloth_compiled_cache
+outputs
 
 .env

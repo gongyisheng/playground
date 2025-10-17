@@ -1,16 +1,7 @@
 #!/usr/bin/env python3
-"""Simple CLI wrapper for calling GPT-5 Mini with reasoning enabled.
 
-Usage:
-    python openai.py "Explain quantum entanglement in simple terms"
-    python openai.py --effort medium "Draft a product update"
-"""
-
-import argparse
-import json
 import os
-import sys
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from openai import OpenAI
 

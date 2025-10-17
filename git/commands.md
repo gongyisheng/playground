@@ -36,3 +36,11 @@ error: RPC failed; HTTP 408 curl 22 The requested URL returned error: 408
 send-pack: unexpected disconnect while reading sideband packet
 Writing objects: 100% (5/5), 1.76 GiB | 5.67 MiB/s, done.
 ```
+- add submodule
+`git submodule add <repo-url> <path/to/submodule>`
+- pull submodule 
+`git submodule update --init --recursive`
+- pull along with submodule
+`git pull --recurse-submodules`
+- set config to always pull submodule
+`git config submodule.recurse true`
