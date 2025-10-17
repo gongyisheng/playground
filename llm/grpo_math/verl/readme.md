@@ -2,7 +2,7 @@
 
 ## install
 ```
-pip install verl
+pip install verl torch
 pip install flash-attn --no-build-isolation
 ```
 

@@ -61,5 +61,5 @@ def run_preprocess(save_dir):
     test_dataset.to_parquet(os.path.join(save_dir, "test.parquet"))
 
 if __name__ == "__main__":
-    save_dir = "/media/hdddisk/yisheng/datasets/gsm8k/verl"
+    save_dir = "/home/yisheng/datasets/gsm8k/verl"
     run_preprocess(save_dir)
