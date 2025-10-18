@@ -1,25 +1,24 @@
 # Install CUDA
-cuda 12.4, amd64, ubuntu22.04
+cuda 12.8
 ```
-wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
-sudo cp /var/cuda-repo-ubuntu2204-12-4-local/cuda-*-keyring.gpg /usr/share/keyrings/
-sudo apt-get update
-sudo apt-get -y install cuda-toolkit-12-4
-sudo update-alternatives --set cuda /usr/local/cuda-12.4
+check https://developer.nvidia.com/cuda-12-8-0-download-archive
 
+add to ~/.bashrc:
+export CUDA_HOME=/usr/local/cuda
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
-echo 'export PATH=/usr/local/cuda-12.4/bin:$PATH' >> ~/.bashrc
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-source ~/.bashrc
+switch cuda version:
+sudo rm /usr/local/cuda
+sudo ln -s /usr/local/cuda-12.8 /usr/local/cuda
 ```
 
 output
 ```
-yisheng@pc.local:~$ nvcc -V
+yisheng@pc:/usr/local$ nvcc -V
 nvcc: NVIDIA (R) Cuda compiler driver
-Copyright (c) 2005-2024 NVIDIA Corporation
-Built on Thu_Mar_28_02:18:24_PDT_2024
-Cuda compilation tools, release 12.4, V12.4.131
-Build cuda_12.4.r12.4/compiler.34097967_0
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
 ```
