@@ -3,8 +3,8 @@ set -x
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     trainer.val_before_train=False \
-    data.train_files=/workspace/datasets/gsm8k/verl/train.parquet \
-    data.val_files=/workspace/datasets/gsm8k/verl/test.parquet \
+    data.train_files=/root/datasets/gsm8k/verl/train.parquet \
+    data.val_files=/root/datasets/gsm8k/verl/test.parquet \
     data.train_batch_size=8 \
     data.max_prompt_length=512 \
     data.max_response_length=1024 \
