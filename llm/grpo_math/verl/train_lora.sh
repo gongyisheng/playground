@@ -3,15 +3,15 @@ set -x
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     trainer.val_before_train=False \
-    data.train_files=/home/ubuntu/dev-instance/datasets/gsm8k/verl/train.parquet \
-    data.val_files=/home/ubuntu/dev-instance/datasets/gsm8k/verl/test.parquet \
+    data.train_files=/workspace/datasets/gsm8k/verl/train.parquet \
+    data.val_files=/workspace/datasets/gsm8k/verl/test.parquet \
     data.train_batch_size=16 \
     data.max_prompt_length=512 \
     data.max_response_length=1024 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.shuffle=False \
-    actor_rollout_ref.model.path=Qwen/Qwen2-1.5B-Instruct \
+    actor_rollout_ref.model.path=Qwen/Qwen3-0.6B \
     actor_rollout_ref.model.lora_rank=64 \
     actor_rollout_ref.model.lora_alpha=32 \
     actor_rollout_ref.actor.optim.lr=3e-6 \
