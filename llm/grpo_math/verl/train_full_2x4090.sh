@@ -8,7 +8,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.val_before_train=False \
     data.train_files=/root/datasets/gsm8k/verl/train.parquet \
     data.val_files=/root/datasets/gsm8k/verl/test.parquet \
-    data.train_batch_size=64 \
+    data.train_batch_size=32 \
     data.max_prompt_length=512 \
     data.max_response_length=1024 \
     data.filter_overlong_prompts=True \
