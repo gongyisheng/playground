@@ -9,12 +9,7 @@ model:
 - int8: 1.7GiB (1.7*1)
 
 activation:
-- M = 2*B*L*H*Nlayers*s
-    - B: batch size
-    - L: sequence length
-    - H: hidden size (2048 for Qwen3-1.7B)
-    - Nlayers (28 for Qwen3-1.7B)
-    - s: precision (fp32=4, fp16=2)
+- mainly kv cache
 
 kv cache:
 - per token: Mt = 2*s*Nlayers*H
