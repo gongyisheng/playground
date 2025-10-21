@@ -7,13 +7,13 @@ python3 -m verl.trainer.main_ppo \
     trainer.val_before_train=False \
     data.train_files=/root/datasets/gsm8k/verl/train.parquet \
     data.val_files=/root/datasets/gsm8k/verl/test.parquet \
-    data.train_batch_size=32 \
+    data.train_batch_size=64 \
     data.max_prompt_length=512 \
     data.max_response_length=1024 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.shuffle=False \
-    actor_rollout_ref.model.path=Qwen/Qwen3-0.6B \
+    actor_rollout_ref.model.path=Qwen/Qwen3-0.6B-Base \
     actor_rollout_ref.actor.optim.lr=3e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=16 \
@@ -39,7 +39,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger='["console","wandb"]' \
     trainer.project_name='verl_grpo_example_gsm8k' \
-    trainer.experiment_name='qwen3_0.6b_grpo_math_full_2x4090' \
+    trainer.experiment_name='qwen3_0.6b_base_grpo_math_full_2x4090' \
     trainer.n_gpus_per_node=2 \
     +trainer.num_cpus_per_actor=8 \
     +trainer.num_gpus_per_actor=1 \
