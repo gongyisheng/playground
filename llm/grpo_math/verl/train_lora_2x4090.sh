@@ -1,10 +1,5 @@
 set -x
 
-export OMP_NUM_THREADS=8
-export MKL_NUM_THREADS=8
-export TOKENIZERS_PARALLELISM=true
-export RAY_TASK_CPU_DEFAULT=8
-
 ray start --head --num-cpus=32 --num-gpus=2
 
 python3 -m verl.trainer.main_ppo \
