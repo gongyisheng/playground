@@ -44,6 +44,6 @@ python3 -m verl.trainer.main_ppo \
     +trainer.num_cpus_per_actor=8 \
     +trainer.num_gpus_per_actor=1 \
     trainer.nnodes=1 \
-    trainer.save_freq=20 \
-    trainer.test_freq=5 \
+    trainer.save_freq=100 \
+    trainer.test_freq=10 \
     trainer.total_epochs=15 $@
