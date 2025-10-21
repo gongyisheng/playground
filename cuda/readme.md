@@ -1,4 +1,6 @@
-# Install CUDA
+# cuda/cuDNN
+
+## install cuda
 cuda 12.8
 ```
 check https://developer.nvidia.com/cuda-12-8-0-download-archive
@@ -22,3 +24,12 @@ Built on Fri_Feb_21_20:23:50_PST_2025
 Cuda compilation tools, release 12.8, V12.8.93
 Build cuda_12.8.r12.8/compiler.35583870_0
 ```
+
+## install cuDNN
+```
+check https://developer.nvidia.com/cudnn-downloads
+```
+
+## check version
+cuda: `nvcc -V`
+cuDNN: `dpkg -l | grep cudnn`
