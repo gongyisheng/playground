@@ -39,7 +39,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger='["console","wandb"]' \
     trainer.project_name='verl_grpo_example_gsm8k' \
-    trainer.experiment_name='qwen2_1.5b_grpo_lora' \
+    trainer.experiment_name='qwen3_0.6b_grpo_math_lora_2x4090' \
     trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=20 \
