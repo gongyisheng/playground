@@ -1,6 +1,6 @@
 set -x
 
-ray start --head --num-cpus=32 --num-gpus=2
+# ray start --head --num-cpus=32 --num-gpus=2
 
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
