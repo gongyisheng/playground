@@ -41,6 +41,8 @@ python3 -m verl.trainer.main_ppo \
     trainer.project_name='verl_grpo_example_gsm8k' \
     trainer.experiment_name='qwen3_0.6b_grpo_math_full_2x4090' \
     trainer.n_gpus_per_node=2 \
+    +trainer.num_cpus_per_actor=8 \
+    +trainer.num_gpus_per_actor=1 \
     trainer.nnodes=1 \
     trainer.save_freq=20 \
     trainer.test_freq=5 \
