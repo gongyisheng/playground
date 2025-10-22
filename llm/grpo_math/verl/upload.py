@@ -23,16 +23,4 @@ print(f"✅ Saved merged model to {out_path}")
 
 # load model
 model = AutoModelForCausalLM.from_pretrained(out_path, torch_dtype="auto", device_map="cpu")
-tok = AutoTokenizer.from_pretrained(out_path)
-
-# upload
-api = HfApi()
-repo_id = "your-username/qwen3-0.6b-grpo-math"
-
-api.create_repo(repo_id=repo_id, private=False, exist_ok=True)
-
-upload_folder(
-    folder_path=str(ckpt_dir),
-    repo_id=repo_id,
-    path_in_repo="",
-)
+model.push_to_hub("gongyisheng/qwen3-0.6b-base-grpo-math-ckpt-100")
