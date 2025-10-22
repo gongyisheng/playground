@@ -13,6 +13,8 @@ rank0 = torch.load(ckpt_dir / "model_world_size_2_rank_0.pt", map_location="cpu"
 rank1 = torch.load(ckpt_dir / "model_world_size_2_rank_1.pt", map_location="cpu")
 
 # Merge
+print(rank0.keys())
+print(rank1.keys())
 state_dict = {**rank0["module"], **rank1["module"]}
 
 # Save to safetensors
