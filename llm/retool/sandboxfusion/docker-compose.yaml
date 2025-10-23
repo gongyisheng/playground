@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  sandbox-fusion:
+    image: volcengine/sandbox-fusion:server-20250609
+    container_name: sandbox-fusion
+    ports:
+      - "8080:8080"
+    environment:
+      - SANDBOX_CONFIG=config.yaml
+    volumes:
+      - ./config.yaml:/root/sandbox/sandbox/configs/config.yaml
+      - /home/yisheng/Documents/sandboxfusion:/root/sandbox/sandbox/cache
+    stdin_open: true          # same as -it
+    tty: true                 # keep interactive terminal open

@@ -1,0 +1,14 @@
+online_judge:
+  database:
+    backend:
+      type: none  # Don't connect to online database
+    cache:
+      path: /root/sandbox/sandbox/cache.sqlite  # Location of local cache sqlite database, here it's in memory
+  max_runner_concurrency: 64
+runner:
+  isolation: none
+  cleanup_process: false
+  restore_bash: false
+  max_concurrency: 8
+common:
+  logging_color: true
