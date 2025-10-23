@@ -2,9 +2,9 @@ tools:
   - class_name: "retool.CustomSandboxFusionTool"
     config:
       sandbox_fusion_url: "https://sandboxfusion.yellowday.day/run_code"
-      num_workers: 64
+      num_workers: 32
       enable_global_rate_limit: true
-      rate_limit: 64
+      rate_limit: 32
       default_timeout: 30
       default_language: "python"
       memory_limit_mb: 1024
