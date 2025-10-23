@@ -3,7 +3,7 @@ dataset:
     backend:
       type: none  # Don't connect to online database
     cache:
-      path: cache.sqlite  # Location of local cache sqlite database, here it's in memory
+      path: sandbox/cache.sqlite  # Location of local cache sqlite database, here it's in memory
       sources:
         - type: local
           path: sandbox/tests/datasets/samples
