@@ -20,7 +20,7 @@ torchrun --nnodes=$nnodes \
      -m verl.trainer.fsdp_sft_trainer \
     data.train_files=$TRAIN_DATA \
     data.val_files=$EVAL_DATA \
-    data.max_length=4096 \
+    data.max_length=8192 \
     data.train_batch_size=1 \
     data.multiturn.enable=true \
     data.multiturn.messages_key=messages \
