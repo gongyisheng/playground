@@ -10,12 +10,13 @@ node_rank=${ARNOLD_ID:-0}
 project_name=retool_sft
 experiment_name=qwen_2.5_0.5b_instruct_multiturn_sft_3060
 
-DATA_ROOT=/media/hdddisk/yisheng/replicate
+DATA_ROOT=/workspace/datasets
+CHECKPOINT_ROOT=/workspace/checkpoints
 
 TRAIN_DATA=$DATA_ROOT/retool/sft/train.parquet
 EVAL_DATA=$DATA_ROOT/retool/sft/train.parquet
 MODEL_PATH=Qwen/Qwen2.5-0.5B-Instruct
-SAVE_PATH=$DATA_ROOT/checkpoint/$experiment_name
+SAVE_PATH=$CHECKPOINT_ROOT/retool/$experiment_name
 
 torchrun --nnodes=$nnodes \
      --nproc_per_node=$nproc_per_node \
