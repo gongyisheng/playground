@@ -3,6 +3,10 @@
 # 1. https://github.com/volcengine/verl/blob/main/verl/trainer/config/sft_trainer.yaml
 # 2. https://verl.readthedocs.io/en/latest/examples/config.html#sft-trainer-yaml-for-sft-fsdp-backend
 
+# for qwen-2.5-0.5b:
+# it has 14 attention heads
+# so 14 need to be divisible by ulysses_sequence_parallel_size
+
 set -x
 
 nnodes=1
