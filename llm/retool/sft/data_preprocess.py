@@ -115,5 +115,4 @@ if __name__ == "__main__":
 
     data = datasets.load_dataset("JoeYing/ReTool-SFT")["train"]
     data = data.map(process, fn_kwargs={"tools": tools})
-    save_path = os.path.expanduser("/home/yisheng/Documents/replicate/retool/sft/train-00000-of-00001.parquet")
-    data.to_parquet(save_path)
+    data.to_parquet("/workspace/datasets/retool/sft/train.parquet")
