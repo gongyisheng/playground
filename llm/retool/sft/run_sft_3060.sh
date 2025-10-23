@@ -1,4 +1,8 @@
 #!/bin/bash
+# reference:
+# 1. https://github.com/volcengine/verl/blob/main/verl/trainer/config/sft_trainer.yaml
+# 2. https://verl.readthedocs.io/en/latest/examples/config.html#sft-trainer-yaml-for-sft-fsdp-backend
+
 set -x
 
 nnodes=1
