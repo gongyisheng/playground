@@ -28,6 +28,7 @@ torchrun --nnodes=$nnodes \
     data.micro_batch_size_per_gpu=1 \
     model.partial_pretrain=$MODEL_PATH \
     model.strategy=fsdp \
+    model.fsdp_config.model_dtype=bf16 \
     trainer.default_local_dir=$SAVE_PATH \
     trainer.project_name=$project_name \
     trainer.experiment_name=$experiment_name \
