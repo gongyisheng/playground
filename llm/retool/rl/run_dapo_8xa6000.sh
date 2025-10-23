@@ -38,7 +38,7 @@ clip_ratio_high=0.28
 
 max_turns=16
 max_prompt_length=2048
-max_response_length=16384
+max_response_length=8192
 actor_lr=1e-6
 
 train_batch_size=32
