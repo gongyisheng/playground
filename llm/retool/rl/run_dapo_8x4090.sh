@@ -1,5 +1,9 @@
 set -x
 
+# for qwen-2.5-0.5b:
+# it has 14 attention heads
+# so 14 need to be divisible by train_sp and infer_tp
+
 export VLLM_USE_V1=1
 
 # ================= data/model/tool =================
