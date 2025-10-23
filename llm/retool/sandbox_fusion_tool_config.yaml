@@ -1,7 +1,7 @@
 tools:
   - class_name: "retool.CustomSandboxFusionTool"
     config:
-      sandbox_fusion_url: "http://localhost:8080/run_code"
+      sandbox_fusion_url: "https://sandboxfusion.yellowday,day/run_code"
       num_workers: 128
       enable_global_rate_limit: true
       rate_limit: 128
