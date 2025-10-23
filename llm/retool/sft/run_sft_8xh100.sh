@@ -41,5 +41,5 @@ torchrun --nnodes=$nnodes \
     trainer.logger='["console","wandb"]' \
     trainer.total_epochs=6 \
     trainer.save_freq=50 \
-    ulysses_sequence_parallel_size=4 \
+    ulysses_sequence_parallel_size=2 \
     use_remove_padding=true
