@@ -7,7 +7,7 @@ master_addr=
 master_port=
 node_rank=${ARNOLD_ID:-0}
 
-project_name=retool
+project_name=retool-sft
 experiment_name=qwen-2.5-0.5b-instruct-multiturn-sft
 
 DATA_ROOT=/media/hdddisk/yisheng/replicate
