@@ -40,6 +40,6 @@ torchrun --nnodes=$nnodes \
     trainer.experiment_name=$experiment_name \
     trainer.logger='["console","wandb"]' \
     trainer.total_epochs=6 \
-    trainer.save_freq=999 \
+    trainer.save_freq=1000 \
     ulysses_sequence_parallel_size=1 \
     use_remove_padding=true
