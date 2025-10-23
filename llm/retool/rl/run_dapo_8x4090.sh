@@ -66,9 +66,9 @@ python3 -m verl.trainer.main_ppo \
     data.max_response_length=$max_response_length \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
-    data.custom_cls.path=../retool.py \
+    data.custom_cls.path=retool.py \
     data.custom_cls.name=CustomRLHFDataset \
-    custom_reward_function.path=../retool.py \
+    custom_reward_function.path=retool.py \
     custom_reward_function.name=compute_score \
     actor_rollout_ref.model.path=$model_path \
     actor_rollout_ref.model.use_remove_padding=True \
