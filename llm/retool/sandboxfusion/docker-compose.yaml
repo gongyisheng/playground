@@ -10,6 +10,6 @@ services:
       - SANDBOX_CONFIG=config
     volumes:
       - ./config.yaml:/root/sandbox/sandbox/configs/config.yaml
-      - /home/yisheng/Documents/sandboxfusion/cache.sqlite:/root/sandbox/sandbox/cache.sqlite
+      - /home/yisheng/Documents/sandboxfusion/cache.sqlite:/root/sandbox/cache.sqlite
     stdin_open: true          # same as -it
     tty: true                 # keep interactive terminal open
