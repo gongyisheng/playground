@@ -3,9 +3,6 @@ set -x
 
 nnodes=1
 nproc_per_node=1
-master_addr=
-master_port=
-node_rank=${ARNOLD_ID:-0}
 
 project_name=retool_sft
 experiment_name=qwen_2.5_0.5b_instruct_multiturn_sft_3060
@@ -20,9 +17,6 @@ SAVE_PATH=$CHECKPOINT_ROOT/retool/$experiment_name
 
 torchrun --nnodes=$nnodes \
      --nproc_per_node=$nproc_per_node \
-     --master-addr=$master_addr \
-     --master-port=$master_port \
-     --node-rank=$node_rank \
      -m verl.trainer.fsdp_sft_trainer \
     data.train_files=$TRAIN_DATA \
     data.val_files=$EVAL_DATA \
