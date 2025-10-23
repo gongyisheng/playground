@@ -49,7 +49,7 @@ n_resp_per_prompt_val=16
 # ================= perfomance =================
 infer_tp=2 # vllm
 train_sp=2 # train
-offload=True
+offload=False
 
 actor_max_token_len_per_gpu=$(( (max_prompt_length + max_response_length) * 1 ))
 log_prob_max_token_len_per_gpu=$(( actor_max_token_len_per_gpu * 4 ))
