@@ -42,7 +42,7 @@ max_response_length=16384
 actor_lr=1e-6
 
 train_batch_size=32
-ppo_mini_batch_size=8
+ppo_mini_batch_size=2
 n_resp_per_prompt=16
 n_resp_per_prompt_val=16
 
