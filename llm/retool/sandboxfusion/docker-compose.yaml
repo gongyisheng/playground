@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SANDBOX_CONFIG=config.yaml
+      - SANDBOX_CONFIG=config
     volumes:
       - ./config.yaml:/root/sandbox/sandbox/configs/config.yaml
       - /home/yisheng/Documents/sandboxfusion:/root/sandbox/sandbox/cache
