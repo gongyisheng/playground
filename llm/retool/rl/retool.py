@@ -96,7 +96,7 @@ def compute_score(data_source, solution_str, ground_truth, extra_info, **kwargs)
     result = math_dapo.compute_score(solution_str, ground_truth, strict_box_verify=True)
 
     # encourage model to call tools
-    num_turns = extra_info.get("num_turns", 0)
+    num_turns = len(re.findall(r"<tool_call>.*?</tool_call>", solution_str, re.DOTALL))
     if result["score"] < 0:
         tool_call_reward = (num_turns - 2) / 2 * 0.1
         result["score"] = min(-0.6, result["score"] + tool_call_reward)
