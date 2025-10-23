@@ -2,8 +2,22 @@
 
 ## install
 ```
-pip install verl torch
-pip install flash-attn --no-build-isolation
+# use verl docker image
+sudo docker create --runtime=nvidia --gpus all --net=host --shm-size="10g" --cap-add=SYS_ADMIN -v .:/workspace/verl --name verl verlai/verl:app-verl0.5-transformers4.55.4-vllm0.10.0-mcore0.13.0-te2.2 sleep infinity
+
+git clone https://github.com/volcengine/verl.git
+cd verl
+pip3 install --no-deps -e .
+
+wandb login
+```
+
+## run experiment
+```
+mkdir -p /root/datasets/gsm8k/verl
+cd llm/grpo_math/verl
+python3 data_preprocess.py
+bash train_2x4090.sh
 ```
 
 ## configuration
