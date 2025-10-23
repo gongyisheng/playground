@@ -115,4 +115,4 @@ if __name__ == "__main__":
 
     data = datasets.load_dataset("JoeYing/ReTool-SFT")["train"]
     data = data.map(process, fn_kwargs={"tools": tools})
-    data.to_parquet("/workspace/datasets/retool/sft/train.parquet")
+    data.to_parquet("/root/datasets/retool/sft/train.parquet")

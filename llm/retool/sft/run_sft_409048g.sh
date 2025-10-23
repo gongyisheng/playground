@@ -11,8 +11,8 @@ nproc_per_node=1
 project_name=retool_sft
 experiment_name=qwen_2.5_0.5b_instruct_multiturn_sft_a10g
 
-DATA_ROOT=/workspace/datasets
-CHECKPOINT_ROOT=/workspace/checkpoints
+DATA_ROOT=/root/datasets
+CHECKPOINT_ROOT=/root/checkpoints
 
 TRAIN_DATA=$DATA_ROOT/retool/sft/train.parquet
 EVAL_DATA=$DATA_ROOT/retool/sft/train.parquet
