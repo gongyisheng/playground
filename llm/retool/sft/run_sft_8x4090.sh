@@ -9,7 +9,7 @@ nnodes=1
 nproc_per_node=8
 
 project_name=retool_sft
-experiment_name=qwen_2.5_0.5b_instruct_multiturn_sft_8xh100
+experiment_name=qwen_2.5_0.5b_instruct_multiturn_sft_8x4090
 
 DATA_ROOT=/root/datasets
 CHECKPOINT_ROOT=/root/checkpoints
