@@ -35,7 +35,6 @@ torchrun --nnodes=$nnodes \
     model.fsdp_config.model_dtype=bf16 \
     model.fsdp_config.cpu_offload=True \
     model.fsdp_config.offload_params=True \
-    trainer.gradient_accumulation_steps=4 \
     trainer.default_local_dir=$SAVE_PATH \
     trainer.project_name=$project_name \
     trainer.experiment_name=$experiment_name \
