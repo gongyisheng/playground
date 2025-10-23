@@ -4,9 +4,9 @@ dataset:
       type: none  # Don't connect to online database
     cache:
       path: /root/sandbox/sandbox/cache.sqlite  # Location of local cache sqlite database, here it's in memory
-    sources:
-      - type: local
-        path: sandbox/tests/datasets/samples
+      sources:
+        - type: local
+          path: sandbox/tests/datasets/samples
   max_runner_concurrency: 64
 sandbox:
   isolation: none
