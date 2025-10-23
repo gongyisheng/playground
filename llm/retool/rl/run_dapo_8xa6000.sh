@@ -41,8 +41,8 @@ max_prompt_length=2048
 max_response_length=8192
 actor_lr=1e-6
 
-train_batch_size=32
-ppo_mini_batch_size=2
+train_batch_size=64
+ppo_mini_batch_size=16
 n_resp_per_prompt=16
 n_resp_per_prompt_val=16
 
