@@ -18,7 +18,7 @@ tool_config_path=../sandbox_fusion_tool_config.yaml
 
 # wandb
 project_name=retool_rl
-experiment_name=qwen2.5_0.5b_instruct_dapo_8x4090
+experiment_name=qwen2.5_0.5b_instruct_sft_186_dapo_8x4090
 default_local_dir=$DATA_ROOT/checkpoints/$experiment_name
 
 # ================= algorithm =================
