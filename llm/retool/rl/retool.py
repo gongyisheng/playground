@@ -98,7 +98,7 @@ def compute_score(data_source, solution_str, ground_truth, extra_info, **kwargs)
     # encourage model to call tools
     tool_calls = len(re.findall(r"<tool_call>.*?</tool_call>", solution_str, re.DOTALL))
     if result["score"] < 0:
-        tool_call_reward = min(tool_calls / 2 * 0.1, 0.5)
+        tool_call_reward = min(tool_calls / 2 * 0.1, 0.1)
         result["score"] = result["score"] + tool_call_reward
 
     if result["pred"] is None:
