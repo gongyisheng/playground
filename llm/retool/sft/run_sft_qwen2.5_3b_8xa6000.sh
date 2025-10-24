@@ -3,9 +3,9 @@
 # 1. https://github.com/volcengine/verl/blob/main/verl/trainer/config/sft_trainer.yaml
 # 2. https://verl.readthedocs.io/en/latest/examples/config.html#sft-trainer-yaml-for-sft-fsdp-backend
 
-# for qwen-2.5-0.5b:
-# it has 14 attention heads
-# so 14 need to be divisible by ulysses_sequence_parallel_size
+# for qwen-2.5-3b:
+# it has 16 attention heads
+# so 16 need to be divisible by ulysses_sequence_parallel_size
 
 set -x
 
@@ -13,7 +13,7 @@ nnodes=1
 nproc_per_node=8
 
 project_name=retool_sft
-experiment_name=qwen_2.5_3b_instruct_multiturn_sft_8x4090
+experiment_name=qwen_2.5_3b_instruct_multiturn_sft_8xa6000
 
 DATA_ROOT=/root/datasets
 CHECKPOINT_ROOT=/root/checkpoints
