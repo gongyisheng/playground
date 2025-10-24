@@ -95,7 +95,7 @@ def compute_score(data_source, solution_str, ground_truth, extra_info, **kwargs)
     # use \\boxed{...} answer
     result = math_dapo.compute_score(solution_str, ground_truth, strict_box_verify=True)
 
-    # encourage model to call tools
+    # encourage model to call tools, but may result in reward hacking
     tool_calls = len(re.findall(r"<tool_call>.*?</tool_call>", solution_str, re.DOTALL))
     if result["score"] < 0:
         tool_call_reward = min(tool_calls / 2 * 0.1, 0.1)
