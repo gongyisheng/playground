@@ -1,8 +1,8 @@
 set -x
 
-# for qwen-2.5-0.5b:
-# it has 14 attention heads
-# so 14 need to be divisible by train_sp and infer_tp
+# for qwen-2.5-3b:
+# it has 16 attention heads
+# so 16 need to be divisible by train_sp and infer_tp
 
 export VLLM_USE_V1=1
 
@@ -47,8 +47,8 @@ n_resp_per_prompt=16
 n_resp_per_prompt_val=16
 
 # ================= perfomance =================
-infer_tp=2 # vllm
-train_sp=2 # train
+infer_tp=4 # vllm
+train_sp=4 # train
 offload=False
 
 actor_max_token_len_per_gpu=$(( (max_prompt_length + max_response_length) * 1 ))
