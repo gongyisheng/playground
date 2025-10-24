@@ -23,7 +23,7 @@ tool_config_path=../sandbox_fusion_tool_config.yaml
 # wandb
 project_name=retool_rl
 experiment_name=qwen2.5_3b_instruct_sft_186_dapo_8xa6000
-default_local_dir=$DATA_ROOT/checkpoints/$experiment_name
+default_local_dir=$DATA_ROOT/checkpoints/retool/$experiment_name
 
 # ================= algorithm =================
 adv_estimator=grpo
