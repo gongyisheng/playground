@@ -10,5 +10,5 @@ services:
       - SANDBOX_CONFIG=config
     volumes:
       - ./config.yaml:/root/sandbox/sandbox/configs/config.yaml
-    stdin_open: true          # same as -it
-    tty: true                 # keep interactive terminal open
+    stdin_open: true
+    tty: true
