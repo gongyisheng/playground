@@ -32,6 +32,13 @@ reboot
 `sudo update-rc.d dphys-swapfile remove` on raspberrypi os, disable upgrade
 `sudo systemctl disable swapfile.swap` on ubuntu
 
+# set swappiness
+set up swap but only use when needed
+```
+echo "vm.swappiness=1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+```
+
 # disk info
 `df -h`
 
