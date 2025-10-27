@@ -15,5 +15,5 @@ python3 -m verl.model_merger merge \
 
 python3 -m verl.model_merger merge \
     --backend fsdp \
-    --local_dir  /root/checkpoints/retool/qwen_2.5_3b_instruct_multiturn_sft_8xa6000/global_step_186 \
-    --target_dir /root/checkpoints/hf_output/186
+    --local_dir  /root/checkpoints/retool/qwen2.5_3b_instruct_sft_186_dapo_8xa6000/global_step_160/actor \
+    --target_dir /root/checkpoints/hf_output/dapo_160
