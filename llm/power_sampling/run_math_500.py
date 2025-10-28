@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from tqdm import tqdm
 
 from config import Config 
 from utils import format_prompt, mcmc_power_samp, naive_samp, parse_answer
@@ -12,7 +13,7 @@ def run_math_500(config: Config):
     hf_model = AutoModelForCausalLM.from_pretrained(config.model_str, torch_dtype="auto", device_map="auto", trust_remote_code = True).to(config.device)
     results = []
 
-    for item in dataset:
+    for item in tqdm(dataset):
         question = item["prompt"]
         answer = item["answer"]
         prompt = format_prompt(question)
