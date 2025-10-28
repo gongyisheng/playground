@@ -36,8 +36,8 @@ def run_math_500(config: Config):
             "power_acceptance_ratio": acceptance_ratio,
         })
     
-    df = pd.DataFrame(results)
-    df.to_csv("data/math500_result.csv")
+        df = pd.DataFrame(results)
+        df.to_csv("data/math500_result.csv")
 
 
 if __name__ == "__main__":
