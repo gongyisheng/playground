@@ -2,13 +2,61 @@ import numpy as np
 import random
 import torch
 from torch.nn import functional as F
-import transformers
-from tqdm import tqdm
 
 
 def format_prompt(question: str) -> str:
     output_instruct = "\nPlease reason step by step, and put your final answer within \\boxed{{}}."
     return question + output_instruct
+
+def remove_boxed(s):
+    left = "\\boxed{"
+    try:
+        assert s[:len(left)] == left
+        assert s[-1] == "}"
+        return s[len(left):-1]
+    except:
+        return None
+
+def last_boxed_only(sample):
+    """
+    Given a (q,a) sample, filter the answers so that they only contain 
+    the last \boxed{...} or \fbox{...} element
+    """
+    q, a = sample
+    a = last_boxed_only_string(a)
+    if a == None:
+        return None
+    return (q, a)
+
+def last_boxed_only_string(string):
+    idx = string.rfind("\\boxed")
+    if idx < 0:
+        idx = string.rfind("\\fbox")
+        if idx < 0:
+            return None
+
+    i = idx
+    right_brace_idx = None
+    num_left_braces_open = 0
+    while i < len(string):
+        if string[i] == "{":
+            num_left_braces_open += 1
+        if string[i] == "}":
+            num_left_braces_open -= 1
+            if num_left_braces_open == 0:
+                right_brace_idx = i
+                break
+        i += 1
+    
+    if right_brace_idx == None:
+        retval = None
+    else:
+        retval = string[idx:right_brace_idx + 1]
+    
+    return retval
+
+def parse_answer(input_str):
+	return remove_boxed(last_boxed_only_string(input_str))
 
 def naive_samp(
         model, 
@@ -65,7 +113,7 @@ def mcmc_power_samp(
         output_round, lp_norm_round, lp_unnorm_round = naive_samp(model, tokenizer, sequence_round, temp, jump_size)
         sequence_round = output_round.sequences
         
-        for _ in tqdm(range(mcmc_steps)):
+        for _ in range(mcmc_steps):
             attempts += 1
             sequence_round_len = len(sequence_round[0])
             idx_abs = random.randint(sequence_base_len, sequence_round_len-1)
