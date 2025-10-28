@@ -83,8 +83,9 @@ def naive_samp(
     tokens = output.sequences[0][input_len:]            # [seq_len-context]
     
     idx = tokens.view(unscaled_logits.shape[0], 1, 1)
-    log_probs_unnorm = (1/temp * torch.gather(F.log_softmax(unscaled_logits), -1, idx)).view(-1).tolist()
-    log_probs_norm = torch.gather(F.log_softmax(scaled_logits), -1, idx).view(-1).tolist()
+    
+    log_probs_unnorm = (1/temp * torch.gather(F.log_softmax(unscaled_logits, dim=-1), -1, idx)).view(-1).tolist()
+    log_probs_norm = torch.gather(F.log_softmax(scaled_logits, dim=-1), -1, idx).view(-1).tolist()
 
     return output, log_probs_norm, log_probs_unnorm
 

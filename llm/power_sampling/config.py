@@ -7,4 +7,4 @@ class Config:
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     temp: float = 0.25
     mcmc_steps: int = 10
-    max_new_tokens: int = 2048
+    max_new_tokens: int = 1024
