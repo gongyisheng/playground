@@ -99,13 +99,10 @@ def mcmc_power_samp(
         block_num: int = 16
     ):
 
-    input_len = len(input_ids[0])
     sequence_round = input_ids
 
-    # print(f'max_new_tokens:{max_new_tokens}')
     assert max_new_tokens % block_num == 0
     jump_size = int(max_new_tokens // block_num)
-    # print(f'jump_size:{jump_size}')
     attempts = 0
     acceptances = 0
 
@@ -114,7 +111,7 @@ def mcmc_power_samp(
         output_round, lp_norm_round, lp_unnorm_round = naive_samp(model, tokenizer, sequence_round, temp, jump_size)
         sequence_round = output_round.sequences
         
-        for _ in range(mcmc_steps):
+        for _ in range(mcmc_steps-1):
             attempts += 1
             sequence_round_len = len(sequence_round[0])
             idx_abs = random.randint(sequence_base_len, sequence_round_len-1)
@@ -122,15 +119,16 @@ def mcmc_power_samp(
 
             output_prop, lp_norm_prop, lp_unnorm_prop = naive_samp(model, tokenizer, sequence_round[:,:idx_abs], temp, sequence_round_len-idx_abs)
             
-            lp_norm_round = lp_norm_round.copy()[idx_rel:] # log_prob_cur
-            lp_unnorm_round = lp_norm_round.copy()[idx_rel:] # target_log_prob_cur
-            log_r = sum(lp_unnorm_prop) + sum(lp_norm_round) - sum(lp_unnorm_round) - sum(lp_norm_prop)
+            lp_norm_cur = lp_norm_round.copy()[idx_rel:] # log_prob_cur
+            lp_unnorm_cur = lp_norm_round.copy()[idx_rel:] # target_log_prob_cur
+            assert len(lp_norm_prop) == len(lp_norm_cur) == len(lp_unnorm_prop) == len(lp_unnorm_cur) == sequence_round_len - idx_abs
+            log_r = sum(lp_unnorm_prop) + sum(lp_norm_cur) - sum(lp_unnorm_cur) - sum(lp_norm_prop)
 
             if np.random.rand() < np.exp(log_r):
                 acceptances+=1
                 sequence_round = output_prop.sequences
-                lp_norm_round = lp_norm_prop.copy()
-                lp_unnorm_round = lp_unnorm_prop.copy()
+                lp_norm_round[idx_rel:] = lp_norm_prop.copy()
+                lp_unnorm_round[idx_rel:] = lp_unnorm_prop.copy()
         
         output_ids_list = output_round.sequences[0].tolist()
         if tokenizer.eos_token_id in output_ids_list:
