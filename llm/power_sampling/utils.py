@@ -78,8 +78,8 @@ def naive_samp(
         output_logits=True, # only works when set return_dict_in_generate = True
     )
 
-    unscaled_logits = torch.stack(output.logits, dim=0) # [seq_len]
-    scaled_logits = torch.stack(output.scores, dim=0)   # [seq_len]
+    unscaled_logits = torch.stack(output.logits, dim=0) # [seq_len-context]
+    scaled_logits = torch.stack(output.scores, dim=0)   # [seq_len-context]
     tokens = output.sequences[0][input_len:]            # [seq_len-context]
     
     idx = tokens.view(unscaled_logits.shape[0], 1, 1)
@@ -108,20 +108,20 @@ def mcmc_power_samp(
 
     for _ in range(block_num):
         sequence_base_len = len(sequence_round[0])
+        sequence_round_max_len = sequence_base_len + jump_size
+
         output_round, lp_norm_round, lp_unnorm_round = naive_samp(model, tokenizer, sequence_round, temp, jump_size)
         sequence_round = output_round.sequences
         
-        for _ in range(mcmc_steps-1):
+        for _ in range(mcmc_steps):
             attempts += 1
-            sequence_round_len = len(sequence_round[0])
-            idx_abs = random.randint(sequence_base_len, sequence_round_len-1)
+            idx_abs = random.randint(sequence_base_len, sequence_round_max_len-1)
             idx_rel = idx_abs - sequence_base_len
 
-            output_prop, lp_norm_prop, lp_unnorm_prop = naive_samp(model, tokenizer, sequence_round[:,:idx_abs], temp, sequence_round_len-idx_abs)
+            output_prop, lp_norm_prop, lp_unnorm_prop = naive_samp(model, tokenizer, sequence_round[:,:idx_abs], temp, sequence_round_max_len-idx_abs)
             
             lp_norm_cur = lp_norm_round.copy()[idx_rel:] # log_prob_cur
             lp_unnorm_cur = lp_norm_round.copy()[idx_rel:] # target_log_prob_cur
-            assert len(lp_norm_prop) == len(lp_norm_cur) == len(lp_unnorm_prop) == len(lp_unnorm_cur) == sequence_round_len - idx_abs
             log_r = sum(lp_unnorm_prop) + sum(lp_norm_cur) - sum(lp_unnorm_cur) - sum(lp_norm_prop)
 
             if np.random.rand() < np.exp(log_r):
