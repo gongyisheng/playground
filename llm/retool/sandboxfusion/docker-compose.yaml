@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  sandbox-fusion:
+    image: volcengine/sandbox-fusion:server-20250609
+    container_name: sandbox-fusion
+    ports:
+      - "8080:8080"
+    environment:
+      - SANDBOX_CONFIG=config
+    volumes:
+      - ./config.yaml:/root/sandbox/sandbox/configs/config.yaml
+    stdin_open: true
+    tty: true

@@ -1,0 +1,17 @@
+dataset:
+  database:
+    backend:
+      type: none  # Don't connect to online database
+    cache:
+      path: memory  # Location of local cache sqlite database, here it's in memory
+      sources:
+        - type: local
+          path: sandbox/tests/datasets/samples
+  max_runner_concurrency: 64
+sandbox:
+  isolation: none
+  cleanup_process: false
+  restore_bash: false
+  max_concurrency: 8
+common:
+  logging_color: true

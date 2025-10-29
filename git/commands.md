@@ -44,3 +44,10 @@ Writing objects: 100% (5/5), 1.76 GiB | 5.67 MiB/s, done.
 `git pull --recurse-submodules`
 - set config to always pull submodule
 `git config submodule.recurse true`
+
+setup commands
+```
+git config --global user.name gongyisheng
+git config --global user.email yishenggong9437@gmail.com
+git config --global --unset credential.helper
+```
