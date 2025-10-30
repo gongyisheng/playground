@@ -29,7 +29,32 @@ class LinearRegressionModel(nn.Module):
     def forward(self, x):
         return self.linear(x)
 
-def train(epochs, lr, accumulation_steps=1):
+def train(epochs, lr):
+    model = LinearRegressionModel()
+    criterion = nn.MSELoss()
+    optimizer = optim.SGD(model.parameters(), lr=lr)
+
+    X, Y = generate_data()
+    model.train()
+
+    for epoch in range(epochs):
+        # Forward pass
+        prediction = model(X)
+        loss = criterion(prediction, Y)
+
+        # Backward pass and optimization
+        optimizer.zero_grad()        
+        loss.backward()
+        optimizer.step()
+
+        # Log epoch
+        if (epoch+1) % 100 == 0:
+            print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
+    
+    return model
+
+
+def train_with_loss_accumulation(epochs, lr, accumulation_steps=1):
     model = LinearRegressionModel()
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=lr)
@@ -59,8 +84,7 @@ def train(epochs, lr, accumulation_steps=1):
 
     return model
 
-if __name__ == "__main__":
-    model = train(1000, 0.01, 2)
+def eval(model):
     # Display the learned parameters
     [w, b] = model.linear.parameters()
     print(f"Learned weight: {w.item():.4f}, Learned bias: {b.item():.4f}")
@@ -71,16 +95,21 @@ if __name__ == "__main__":
         predictions = model(X_test)
         print(f"Predictions for {X_test.tolist()}: {predictions.tolist()}")
 
-# Output:
-# Epoch [100/1000], Loss: 1.9016
-# Epoch [200/1000], Loss: 1.4304
-# Epoch [300/1000], Loss: 1.1384
-# Epoch [400/1000], Loss: 0.9576
-# Epoch [500/1000], Loss: 0.8456
-# Epoch [600/1000], Loss: 0.7762
-# Epoch [700/1000], Loss: 0.7332
-# Epoch [800/1000], Loss: 0.7065
-# Epoch [900/1000], Loss: 0.6900
-# Epoch [1000/1000], Loss: 0.6798
-# Learned weight: 1.9922, Learned bias: 2.9709
-# Predictions for [[4.0], [7.0]]: [[10.939563751220703], [16.916061401367188]]
+if __name__ == "__main__":
+    model = train(1000, 0.01)
+    # model = train_with_loss_accumulation(1000, 0.01, 2)
+    eval(model)
+
+    # Output:
+    # Epoch [100/1000], Loss: 1.9016
+    # Epoch [200/1000], Loss: 1.4304
+    # Epoch [300/1000], Loss: 1.1384
+    # Epoch [400/1000], Loss: 0.9576
+    # Epoch [500/1000], Loss: 0.8456
+    # Epoch [600/1000], Loss: 0.7762
+    # Epoch [700/1000], Loss: 0.7332
+    # Epoch [800/1000], Loss: 0.7065
+    # Epoch [900/1000], Loss: 0.6900
+    # Epoch [1000/1000], Loss: 0.6798
+    # Learned weight: 1.9922, Learned bias: 2.9709
+    # Predictions for [[4.0], [7.0]]: [[10.939563751220703], [16.916061401367188]]
