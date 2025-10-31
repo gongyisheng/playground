@@ -101,7 +101,8 @@ if __name__ == "__main__":
     train_dataset, test_dataset = load_dataset()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-
+    
+    model.to(device)
     train(model, train_dataset, device, 10, 0.001, 64)
     eval(model, test_dataset, device, 64)
 
