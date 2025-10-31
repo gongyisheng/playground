@@ -29,7 +29,8 @@
 [LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + status collect  
 
 ## BST
-[LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend
+[LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend  
+[LC230](https://leetcode.com/problems/kth-smallest-element-in-a-bst/) inorder + path store  
 
 ## DFS/BFS
 [LC55](https://leetcode.com/problems/jump-game) dfs/bfs --> state compress, greedy  
