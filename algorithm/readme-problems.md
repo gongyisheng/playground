@@ -65,6 +65,8 @@
 [LC839](https://leetcode.com/problems/similar-string-groups) string comparison + union-find  
 [LC3108](https://leetcode.com/problems/minimum-cost-walk-in-weighted-graph) bit operations + union-find (note: -1&anything = anything, the more number you have, the less & sum you can get)  
 
+## Math
+[LC1904](https://leetcode.com/problems/the-number-of-full-rounds-you-have-played) time interval with upper/lower bound calculation  
 
 ## Dynamic Programing
 [LC2140](https://leetcode.com/problems/solving-questions-with-brainpower) reverse order dp, ascending order does not work  
