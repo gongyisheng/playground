@@ -20,9 +20,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 
-csv_file_path = "/tmp/_data.csv"
 
-def generate_data():
+def generate_data(output_path):
     torch.manual_seed(42)
     X = torch.rand(100, 1) * 10  # 100 data points between 0 and 10
     Y = 2 * X + 3 + torch.randn(100, 1)  # Linear relationship with noise
@@ -30,7 +29,7 @@ def generate_data():
     # Save the generated data to data.csv
     data = torch.cat((X, Y), dim=1)
     df = pd.DataFrame(data.numpy(), columns=['X', 'Y'])
-    df.to_csv(csv_file_path, index=False)
+    df.to_csv(output_path, index=False)
 
 class LinearRegressionDataset(Dataset):
     def __init__(self, csv_file):
@@ -53,10 +52,7 @@ class LinearRegressionModel(nn.Module):
     def forward(self, x):
         return self.linear(x)
 
-def train(epochs, lr, batch_size):
-
-    model = LinearRegressionModel()
-    dataset = LinearRegressionDataset(csv_file_path)
+def train(model, dataset, epochs, lr, batch_size):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=lr)
@@ -90,8 +86,11 @@ def eval(model):
         print(f"Predictions for {X_test.tolist()}: {predictions.tolist()}")
 
 if __name__ == "__main__":
-    generate_data()
-    model = train(1000, 0.01, 128)
+    csv_file_path = "/tmp/_data.csv"
+    generate_data(csv_file_path)
+    model = LinearRegressionModel()
+    dataset = LinearRegressionDataset(csv_file_path)
+    train(model, dataset, 1000, 0.01, 128)
     eval(model)
 
     # batch_size = 32 (not stable)

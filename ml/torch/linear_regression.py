@@ -29,8 +29,7 @@ class LinearRegressionModel(nn.Module):
     def forward(self, x):
         return self.linear(x)
 
-def train(epochs, lr):
-    model = LinearRegressionModel()
+def train(model, epochs, lr):
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=lr)
 
@@ -50,12 +49,8 @@ def train(epochs, lr):
         # Log epoch
         if (epoch+1) % 100 == 0:
             print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
-    
-    return model
 
-
-def train_with_loss_accumulation(epochs, lr, accumulation_steps=1):
-    model = LinearRegressionModel()
+def train_with_loss_accumulation(model, epochs, lr, accumulation_steps=1):
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=lr)
 
@@ -82,8 +77,6 @@ def train_with_loss_accumulation(epochs, lr, accumulation_steps=1):
                 print(f'Epoch [{epoch+1}/{epochs}], Loss: {running_loss:.4f}')
             running_loss = 0
 
-    return model
-
 def eval(model):
     # Display the learned parameters
     [w, b] = model.linear.parameters()
@@ -96,8 +89,9 @@ def eval(model):
         print(f"Predictions for {X_test.tolist()}: {predictions.tolist()}")
 
 if __name__ == "__main__":
-    model = train(1000, 0.01)
-    # model = train_with_loss_accumulation(1000, 0.01, 2)
+    model = LinearRegressionModel()
+    train(model, 1000, 0.01)
+    # train_with_loss_accumulation(model, 1000, 0.01, 2)
     eval(model)
 
     # Output:

@@ -48,8 +48,7 @@ class CustomActivationModel(nn.Module):
     def forward(self, x):
         return self.custom_activation(self.linear(x))
 
-def train(epochs, lr):
-    model = CustomActivationModel()
+def train(model, epochs, lr):
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=lr)
 
@@ -63,11 +62,8 @@ def train(epochs, lr):
         loss.backward()
         optimizer.step()
         
-
         if (epoch+1) % 100 == 0:
             print(f"Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}")
-    
-    return model
 
 def eval(model):
     w, b = model.linear.parameters()
@@ -80,5 +76,6 @@ def eval(model):
         print(f"Predictions for {X_test.tolist()}: {predictions.tolist()}")
 
 if __name__ == "__main__":
-    model = train(1000, 0.01)
+    model = CustomActivationModel()
+    train(model, 1000, 0.01)
     eval(model)

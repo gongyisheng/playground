@@ -45,8 +45,7 @@ class CustomDNNModel(nn.Module):
         x = self.fc2(x)
         return x
     
-def train(epochs, lr):
-    model = CustomDNNModel()
+def train(model, epochs, lr):
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
@@ -74,7 +73,8 @@ def eval(model):
 
 
 if __name__ == "__main__":
-    model = train(1000, 0.01)
+    model = CustomDNNModel()
+    train(model, 1000, 0.01)
     eval(model)
 
     # output

@@ -68,8 +68,7 @@ class LinearRegressionModel(nn.Module):
     def forward(self, x):
         return self.linear(x)
 
-def train(epochs, lr, delta=1.0):
-    model = LinearRegressionModel()
+def train(model, epochs, lr, delta=1.0):
     criterion = HubLoss(delta=delta)
     optimizer = optim.SGD(model.parameters(), lr=lr)
 
@@ -83,11 +82,8 @@ def train(epochs, lr, delta=1.0):
         loss.backward()
         optimizer.step()
         
-
         if (epoch+1) % 100 == 0:
             print(f"Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}")
-    
-    return model
 
 def eval(model):
     w, b = model.linear.parameters()
@@ -100,7 +96,8 @@ def eval(model):
         print(f"Predictions for {X_test.tolist()}: {predictions.tolist()}")
 
 if __name__ == "__main__":
-    model = train(1000, 0.01, 2)
+    model = LinearRegressionModel()
+    train(model, 1000, 0.01, 2)
     eval(model)
 
     # delta = 1
