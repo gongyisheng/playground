@@ -10,7 +10,7 @@
 set -x
 
 nnodes=1
-nproc_per_node=8
+nproc_per_node=4
 
 project_name=retool_sft
 experiment_name=qwen_2.5_7b_instruct_multiturn_sft_4xl40s
