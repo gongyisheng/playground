@@ -35,13 +35,10 @@ def load_dataset():
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
+    train_dataset = torchvision.datasets.CIFAR10(root='/tmp/cifar10', train=True, download=True, transform=transform)
+    test_dataset = torchvision.datasets.CIFAR10(root='/tmp/cifar10', train=False, download=True, transform=transform)
 
-    test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False)
-
-    return train_loader, test_loader
+    return train_dataset, test_dataset
 
 class CNNModel(nn.Module):
     def __init__(self):
@@ -61,10 +58,11 @@ class CNNModel(nn.Module):
         x = self.fc2(x)
         return x
 
-def train(dataloader, epochs, lr):
-    model = CNNModel()
+def train(model, dataset, epochs, lr, batch_size):
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    model.train()
 
     # Training loop
     for epoch in range(epochs):
@@ -79,11 +77,10 @@ def train(dataloader, epochs, lr):
             optimizer.step()
 
         print(f"Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}")
-    
-    return model
 
-def eval(model, dataloader):
+def eval(model, dataset, batch_size):
     # Evaluate on the test set
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
     correct = 0
     total = 0
     with torch.no_grad():
@@ -97,6 +94,21 @@ def eval(model, dataloader):
 
 
 if __name__ == "__main__":
-    train_loader, test_loader = load_dataset()
-    model = train(train_loader, 10, 0.001)
-    eval(model, test_loader)
+    model = CNNModel()
+    train_dataset, test_dataset = load_dataset()
+
+    train(model, train_dataset, 10, 0.001, 64)
+    eval(model, test_dataset, 64)
+
+    # output:
+    # Epoch [1/10], Loss: 1.5841
+    # Epoch [2/10], Loss: 0.4168
+    # Epoch [3/10], Loss: 0.6398
+    # Epoch [4/10], Loss: 0.4325
+    # Epoch [5/10], Loss: 0.1943
+    # Epoch [6/10], Loss: 0.1350
+    # Epoch [7/10], Loss: 0.0374
+    # Epoch [8/10], Loss: 0.1173
+    # Epoch [9/10], Loss: 0.0848
+    # Epoch [10/10], Loss: 0.0404
+    # Test Accuracy: 67.95%
