@@ -28,3 +28,13 @@ key takeaway:
     - Use approximately on-policy data SFT shows similar result as RL
 - on-policy data is key to mitigating forgetting
 ```
+
+3. Benchmark agent's ability to disambiguate information during search
+```
+title: InteractComp: Evaluating Search Agents With Ambiguous Queries
+url: https://arxiv.org/abs/2510.24668
+key takeaway:
+- designed a new benchmark set to evaluate search agent's ability to disambiguate query
+- the design of the questions: easy to verify, interact to disambiguate
+- interaction failure stems from systematic overconfidence rather than capability deficits
+```
