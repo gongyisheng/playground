@@ -78,6 +78,7 @@ def train_with_loss_accumulation(model, epochs, lr, accumulation_steps=1):
             running_loss = 0
 
 def eval(model):
+    model.eval()
     # Display the learned parameters
     [w, b] = model.linear.parameters()
     print(f"Learned weight: {w.item():.4f}, Learned bias: {b.item():.4f}")

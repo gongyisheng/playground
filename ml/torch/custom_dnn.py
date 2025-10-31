@@ -50,6 +50,7 @@ def train(model, epochs, lr):
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     X, Y = generate_data()
+    model.train()
 
     for epoch in range(epochs):
         predictions = model(X)
@@ -65,7 +66,7 @@ def train(model, epochs, lr):
     return model
 
 def eval(model):
-    # Testing on new data
+    model.eval()
     X_test = torch.tensor([[4.0, 3.0], [7.0, 7.0]])
     with torch.no_grad():
         predictions = model(X_test)

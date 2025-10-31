@@ -53,6 +53,7 @@ def train(model, epochs, lr):
     optimizer = optim.SGD(model.parameters(), lr=lr)
 
     X, Y = generate_data()
+    model.train()
 
     for epoch in range(epochs):
         predictions = model(X)
@@ -66,6 +67,7 @@ def train(model, epochs, lr):
             print(f"Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}")
 
 def eval(model):
+    model.eval()
     w, b = model.linear.parameters()
     print(f"Learned weight: {w.item():.4f}, Learned bias: {b.item():.4f}")
 

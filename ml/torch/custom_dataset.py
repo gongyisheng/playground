@@ -56,6 +56,7 @@ def train(model, dataset, epochs, lr, batch_size):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=lr)
+    model.train()
 
     for epoch in range(epochs):
         for batch_X, batch_y in dataloader:
@@ -75,6 +76,7 @@ def train(model, dataset, epochs, lr, batch_size):
     return model
 
 def eval(model):
+    model.eval()
     # Display the learned parameters
     [w, b] = model.linear.parameters()
     print(f"Learned weight: {w.item():.4f}, Learned bias: {b.item():.4f}")
