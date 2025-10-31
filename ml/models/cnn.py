@@ -59,7 +59,7 @@ class CNNModel(nn.Module):
         x = self.fc2(x)
         return x
 
-def train(model, dataset, epochs, lr, batch_size):
+def train(model, dataset, device, epochs, lr, batch_size):
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -68,6 +68,7 @@ def train(model, dataset, epochs, lr, batch_size):
     # Training loop
     for epoch in range(epochs):
         for images, labels in dataloader:
+            images, labels = images.to(device), labels.to(device)
             # Forward pass
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -79,13 +80,14 @@ def train(model, dataset, epochs, lr, batch_size):
 
         print(f"Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}")
 
-def eval(model, dataset, batch_size):
+def eval(model, dataset, device, batch_size):
     # Evaluate on the test set
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
     correct = 0
     total = 0
     with torch.no_grad():
         for images, labels in dataloader:
+            images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
@@ -97,9 +99,11 @@ def eval(model, dataset, batch_size):
 if __name__ == "__main__":
     model = CNNModel()
     train_dataset, test_dataset = load_dataset()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
-    train(model, train_dataset, 10, 0.001, 64)
-    eval(model, test_dataset, 64)
+    train(model, train_dataset, device, 10, 0.001, 64)
+    eval(model, test_dataset, device, 64)
 
     # output:
     # Epoch [1/10], Loss: 1.5841
