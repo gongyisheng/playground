@@ -40,6 +40,7 @@
 [LC1863](https://leetcode.com/problems/sum-of-all-subset-xor-totals) dfs to traverse all subset, add xor sum  
 [LC2039](https://leetcode.com/problems/the-time-when-the-network-becomes-idle/) bfs, tricks: a. just do bfs one time from master to get the dist to every node. b. build model of calculating idle time, additional msg cnt * patience + dst + 1. c. be careful to calculate additional msg cnt.  
 [LC967](https://leetcode.com/problems/numbers-with-same-consecutive-differences/) dfs, path choose based on rule, build number  
+[LC841](https://leetcode.com/problems/keys-and-rooms) dfs or bfs, search to get final result
 
 ## Binary Search
 
@@ -54,6 +55,9 @@
 
 ## Two Pointer
 [LC1678](https://leetcode.com/problems/goal-parser-interpretation) two pointer to count brackets, with status processing
+
+## Linkedlist
+[LC3217](https://leetcode.com/problems/delete-nodes-from-linked-list-present-in-array) rebuild linkedlist
 
 ## Sliding Window
 [LC2379](https://leetcode.com/problems/minimum-recolors-to-get-k-consecutive-black-blocks) dfs? no, use sliding window  
