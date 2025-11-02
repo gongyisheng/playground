@@ -41,7 +41,8 @@
 [LC1863](https://leetcode.com/problems/sum-of-all-subset-xor-totals) dfs to traverse all subset, add xor sum  
 [LC2039](https://leetcode.com/problems/the-time-when-the-network-becomes-idle/) bfs, tricks: a. just do bfs one time from master to get the dist to every node. b. build model of calculating idle time, additional msg cnt * patience + dst + 1. c. be careful to calculate additional msg cnt.  
 [LC967](https://leetcode.com/problems/numbers-with-same-consecutive-differences/) dfs, path choose based on rule, build number  
-[LC841](https://leetcode.com/problems/keys-and-rooms) dfs or bfs, search to get final result
+[LC841](https://leetcode.com/problems/keys-and-rooms) dfs or bfs, search to get final result  
+[LC2257](https://leetcode.com/problems/count-unguarded-cells-in-the-grid) dfs, grid search, complicated processing rule  
 
 ## Binary Search
 
