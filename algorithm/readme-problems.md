@@ -52,10 +52,11 @@
 
 ## Heap
 [LC215](https://leetcode.com/problems/kth-largest-element-in-an-array) mini heap, push then pop  
-[LC1054](https://leetcode.com/problems/distant-barcodes) heap, pick most frequent first 
+[LC1054](https://leetcode.com/problems/distant-barcodes) heap, pick most frequent first  
 
 ## Two Pointer
-[LC1678](https://leetcode.com/problems/goal-parser-interpretation) two pointer to count brackets, with status processing
+[LC1678](https://leetcode.com/problems/goal-parser-interpretation) two pointer, same dir, count brackets, with status processing  
+[LC1679](https://leetcode.com/problems/max-number-of-k-sum-pairs) two pointer, diff dir, count sum = target   
 
 ## Linkedlist
 [LC3217](https://leetcode.com/problems/delete-nodes-from-linked-list-present-in-array) rebuild linkedlist
