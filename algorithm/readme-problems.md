@@ -27,6 +27,7 @@
 [LC1325](https://leetcode.com/problems/delete-leaves-with-a-given-value) traverse + status passing, trim, change value based on return  
 [LC112](https://leetcode.com/problems/path-sum/) traverse + status passing, path sum, keep intermediate status
 [LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + status collect  
+[LC331](https://leetcode.com/problems/verify-preorder-serialization-of-a-binary-tree/) serialization, verifiy by count node num and null num  
 
 ## BST
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend  
