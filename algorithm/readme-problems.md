@@ -76,7 +76,7 @@
 [LC1904](https://leetcode.com/problems/the-number-of-full-rounds-you-have-played) time interval with upper/lower bound calculation  
 
 ## Dynamic Programing
-[LC55](https://leetcode.com/problems/jump-game/) dp, keep max staus of gas   
+[LC55](https://leetcode.com/problems/jump-game/) dp, keep max steps can go  
 [LC2140](https://leetcode.com/problems/solving-questions-with-brainpower) reverse order dp, ascending order does not work  
 
 
