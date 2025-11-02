@@ -77,6 +77,7 @@
 
 ## Dynamic Programing
 [LC55](https://leetcode.com/problems/jump-game/) dp, keep max steps can go  
+[LC45](https://leetcode.com/problems/jump-game-ii/) dp, keep an array of min steps to reach  
 [LC2140](https://leetcode.com/problems/solving-questions-with-brainpower) reverse order dp, ascending order does not work  
 
 
