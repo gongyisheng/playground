@@ -38,3 +38,12 @@ key takeaway:
 - the design of the questions: easy to verify, interact to disambiguate
 - interaction failure stems from systematic overconfidence rather than capability deficits
 ```
+
+4. KL-Regularized Reinforcement Learning is Designed to Mode Collapse
+```
+title: KL-Regularized Reinforcement Learning is Designed to Mode Collapse
+url: https://arxiv.org/abs/2510.20817v1
+key takeaway:
+- RL with any KL-regularization does not increase the relative probability of lower-support samples to high-support ones, as long as their rewards are the same
+- Proposed MARA to help change the relative probability between samples.
+```
