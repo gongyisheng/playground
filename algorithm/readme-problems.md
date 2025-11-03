@@ -37,7 +37,7 @@
 
 ## DFS/BFS
 [LC55](https://leetcode.com/problems/jump-game) dfs/bfs --> state compress, greedy  
-[LC79](https://leetcode.com/problems/word-search) typical grid dfs, tricks: a. do all validation before exploring b. change path value to # to mark it's visited.  
+[LC79](https://leetcode.com/problems/word-search) dfs, grid search, tricks: a. do all validation before exploring b. change path value to # to mark it's visited  
 [LC117](https://leetcode.com/problems/populating-next-right-pointers-in-each-node-ii) bfs, level order  
 [LC130](https://leetcode.com/problems/surrounded-regions) dfs, avoid methods that may cause wrong updates (should update only if all return true, but make updates before get result and cannot rollback).  
 [LC1863](https://leetcode.com/problems/sum-of-all-subset-xor-totals) dfs to traverse all subset, add xor sum  
@@ -71,6 +71,7 @@
 [LC23](https://leetcode.com/problems/merge-k-sorted-lists) merge and sort, be careful is len(lists) == 0  
 
 ## Graph
+[LC200](https://leetcode.com/problems/number-of-islands) dfs, grid search, connected components  
 [LC1976](https://leetcode.com/problems/number-of-ways-to-arrive-at-destination) dfs/bfs? no, use dijkstra(find shortest route) + dp (count ways)  
 [LC839](https://leetcode.com/problems/similar-string-groups) string comparison + union-find  
 [LC3108](https://leetcode.com/problems/minimum-cost-walk-in-weighted-graph) bit operations + union-find (note: -1&anything = anything, the more number you have, the less & sum you can get)  
