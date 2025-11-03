@@ -72,6 +72,7 @@
 
 ## Graph
 [LC200](https://leetcode.com/problems/number-of-islands) dfs, grid search, connected components  
+[LC547](https://leetcode.com/problems/number-of-provinces) dfs, connected components  
 [LC1976](https://leetcode.com/problems/number-of-ways-to-arrive-at-destination) dfs/bfs? no, use dijkstra(find shortest route) + dp (count ways)  
 [LC839](https://leetcode.com/problems/similar-string-groups) string comparison + union-find  
 [LC3108](https://leetcode.com/problems/minimum-cost-walk-in-weighted-graph) bit operations + union-find (note: -1&anything = anything, the more number you have, the less & sum you can get)  
