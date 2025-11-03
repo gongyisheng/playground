@@ -3,6 +3,15 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+# Explanations
+# 1. multi-head: 
+#     split Q,K,V from (batch_size, seq_len, d_model) to (batch_size, seq_len, n_head, d_head)
+#     each head works independently to catch part of information (syntax, coreference, adjacent, etc)
+#     then combine them together and pass them to w_out projection, so that we can apply weight to focus on some of the heads
+# 2. projections:
+#     w_q, w_k, w_v, w_out, size = (d_model, d_model)
+#     re-representing the same information in a different coordinate system (query, key index, etc)
+#     not using raw embeddings because projections are learned
 
 def multi_head_attention(q, k, v, num_heads, d_model, w_q, w_k, w_v, w_out, mask=None):
     """
