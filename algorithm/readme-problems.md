@@ -76,6 +76,9 @@
 ## Math
 [LC1904](https://leetcode.com/problems/the-number-of-full-rounds-you-have-played) time interval with upper/lower bound calculation  
 
+## Greedy
+[LC1578](https://leetcode.com/problems/minimum-time-to-make-rope-colorful) greedy, pattern: meet consecutive color pick the smaller one to remove  
+
 ## Dynamic Programing
 [LC55](https://leetcode.com/problems/jump-game/) dp, keep max steps can go  
 [LC45](https://leetcode.com/problems/jump-game-ii/) dp, keep an array of min steps to reach  
