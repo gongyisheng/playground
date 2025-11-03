@@ -36,7 +36,7 @@ class UnionFind:
 class WeightedUnionFind:
     def __init__(self):
         self.parent = {}
-        self.weight = {}
+        self.weight = {} # define weight[x] as the ratio of x/root_x
     
     def find(self, x):
         if x not in self.parent:
@@ -44,7 +44,7 @@ class WeightedUnionFind:
         if self.parent[x] != x:
             original_parent = self.parent[x]
             self.parent[x] = self.find(self.parent[x])
-            self.weight[x] *= self.weight[original_parent]
+            self.weight[x] *= self.weight[original_parent] # multiply by w(orig_parent) to keep weight as x/new_root_x
         return self.parent[x]
     
     def union(self, x, y, value):
@@ -58,7 +58,7 @@ class WeightedUnionFind:
         root_y = self.find(y)
         if root_x != root_y:
             self.parent[root_x] = root_y
-            self.weight[root_x] = value * self.weight[y] / self.weight[x]
+            self.weight[root_x] = value * self.weight[y] / self.weight[x] # calc new weight of root_x as ratio of root_x/root_y
     
     def connected(self, x, y):
         return self.find(x) == self.find(y)
