@@ -13,117 +13,105 @@ import torch.nn.functional as F
 #     re-representing the same information in a different coordinate system (query, key index, etc)
 #     not using raw embeddings because projections are learned
 
-def multi_head_attention(q, k, v, num_heads, d_model, w_q, w_k, w_v, w_out, mask=None):
-    """
-    Implements multi-head attention.
+class MultiHeadAttention(nn.Module):
+    def __init__(self, n_head, d_model, w_q=None, w_k=None, w_v=None, w_out=None):
+        super(MultiHeadAttention, self).__init__()
+        self.n_head = n_head
+        self.d_model = d_model
+        assert d_model % n_head == 0
+        self.d_head = d_model // n_head
 
-    Args:
-        q (Tensor): Query tensor of shape (batch_size, seq_len, d_model)
-        k (Tensor): Key tensor of shape (batch_size, seq_len, d_model)
-        v (Tensor): Value tensor of shape (batch_size, seq_len, d_model)
-        num_heads (int): Number of attention heads
-        d_model (int): Total embedding dimension
-        w_q (Tensor): Query projection weight (d_model, d_model)
-        w_k (Tensor): Key projection weight (d_model, d_model)
-        w_v (Tensor): Value projection weight (d_model, d_model)
-        w_out (Tensor): Output projection weight (d_model, d_model)
-        mask (Tensor, optional): Masking tensor for attention
+        self.w_q = w_q if w_q is not None else nn.Parameter(torch.rand(self.d_model, self.d_model))
+        self.w_k = w_k if w_k is not None else nn.Parameter(torch.rand(self.d_model, self.d_model))
+        self.w_v = w_v if w_v is not None else nn.Parameter(torch.rand(self.d_model, self.d_model))
+        self.w_out = w_out if w_out is not None else nn.Parameter(torch.rand(self.d_model, self.d_model))
 
-    Returns:
-        Tensor: Multi-head attention output of shape (batch_size, seq_len, d_model)
-    """
-    assert d_model % num_heads == 0
+    def forward(self, q, k, v, mask=None):
+        # apply projection
+        q = F.linear(q, self.w_q)
+        k = F.linear(k, self.w_k)
+        v = F.linear(v, self.w_v)
 
-    d_head = d_model // num_heads # Head size dimension
-    batch_size, seq_len, _ = q.shape
+        # split by head 
+        # (seq_len, batch_size, d_model) -> (seq_len, batch_size, n_head, d_head) -> (n_head, batch_size, seq_len, d_head)
+        seq_len, batch_size, _ = q.shape
+        q = q.view(seq_len, batch_size, self.n_head, self.d_head).transpose(0, 2)
+        k = k.view(seq_len, batch_size, self.n_head, self.d_head).transpose(0, 2)
+        v = v.view(seq_len, batch_size, self.n_head, self.d_head).transpose(0, 2)
 
-    # Apply linear projections using provided weights
-    Q = F.linear(q, w_q) # (batch_size, seq_len, d_model)
-    K = F.linear(k, w_k)
-    V = F.linear(v, w_v)
+        # calc attn score 
+        # (n_head, batch_size, seq_len, d_head) -> (n_head, batch_size, seq_len, seq_len)
+        scores = torch.matmul(q, k.transpose(-2, -1))/(self.d_head**0.5)
 
-    Q = Q.view(batch_size, seq_len, num_heads, d_head).transpose(1,2) # (batch_size, num_heads, seq_len, d_head)
-    K = K.view(batch_size, seq_len, num_heads, d_head).transpose(1,2)
-    V = V.view(batch_size, seq_len, num_heads, d_head).transpose(1,2)
+        # apply mask
+        if mask is not None:
+            scores = scores.masked_fill(mask, float('-inf'))
+        
+        # calc attn weight
+        attn_weights = F.softmax(scores, dim=-1)
 
-    scores = torch.matmul(Q, K.transpose(-2,-1)) / (d_head ** 0.5) # (batch_size, num_heads, seq_len, seq_len)
+        # apply v 
+        # (n_head, batch_size, seq_len, seq_len) -> (n_head, batch_size, seq_len, d_head)
+        output = torch.matmul(attn_weights, v)
 
-    # Mask check
-    if mask is not None:
-        scores = scores.masked_fill(mask == 0, float('-inf'))
-    
-    attn_weights = F.softmax(scores, dim=-1)
+        # transpose
+        # (n_head, batch_size, seq_len, d_head) -> (seq_len, batch_size, n_head, d_head) -> (seq_len, batch_size, d_model)
+        output = output.transpose(0, 2).reshape(seq_len, batch_size, self.d_model)
 
-    output = torch.matmul(attn_weights, V) #(batch_size, num_heads, seq_len, d_head)
-
-    output = output.transpose(1,2).reshape(batch_size, seq_len, d_model)
-    return F.linear(output, w_out)
+        return F.linear(output, self.w_out)
 
 def test():
     torch.manual_seed(42)
-    batch_size = 1
+    batch_size = 2
     seq_len = 4
     d_model = 16
-    num_heads = 2
+    n_head = 2
 
-    q = torch.rand(batch_size, seq_len, d_model)
-    k = torch.rand(batch_size, seq_len, d_model)
-    v = torch.rand(batch_size, seq_len, d_model)
+    # Create test inputs
+    q = torch.rand(seq_len, batch_size, d_model)
+    k = torch.rand(seq_len, batch_size, d_model)
+    v = torch.rand(seq_len, batch_size, d_model)
 
-    # weights
+    # weights for custom implementation
     w_q = torch.randn(d_model, d_model)
     w_k = torch.randn(d_model, d_model)
     w_v = torch.randn(d_model, d_model)
     w_out = torch.randn(d_model, d_model)
 
-    # attn mask
-    mask = torch.zeros(seq_len, seq_len)
-    mask[:, :3] = 1  # All positions can only attend to first 3 tokens
+    # attn mask (1 = attend, 0 = mask out)
+    mask = torch.ones(seq_len, seq_len)
+    mask[:, 3:] = 0  # All positions cannot attend to last token
+    mask = mask.bool()
 
-    # Test custom implementation
-    output_custom = multi_head_attention(q, k, v, num_heads, d_model, w_q, w_k, w_v, w_out, mask=mask)
+    # custom implementation
+    custom_mha = MultiHeadAttention(n_head, d_model, w_q=w_q, w_k=w_k, w_v=w_v, w_out=w_out)
+    custom_output = custom_mha(q, k, v, mask)
     print("Custom output:")
-    print(output_custom)
+    print(custom_output.shape)
+    print(custom_output)
 
-    # Test PyTorch's F.multi_head_attention_forward with same weights
-    # Note: F.multi_head_attention_forward expects (seq_len, batch, d_model) by default
-    # So we transpose: (batch, seq, d_model) -> (seq, batch, d_model)
-    q_transposed = q.transpose(0, 1)  # (seq_len, batch_size, d_model)
-    k_transposed = k.transpose(0, 1)
-    v_transposed = v.transpose(0, 1)
+    # pytorch implementation
+    # PyTorch expects input shape: (seq_len, batch_size, d_model)
+    pytorch_mha = torch.nn.MultiheadAttention(d_model, n_head, batch_first=False, bias=False)
 
-    output_pytorch, _ = F.multi_head_attention_forward(
-        query=q_transposed,
-        key=k_transposed,
-        value=v_transposed,
-        embed_dim_to_check=d_model,
-        num_heads=num_heads,
-        in_proj_weight=None,  # We use separate weights instead
-        in_proj_bias=None,
-        bias_k=None,
-        bias_v=None,
-        add_zero_attn=False,
-        dropout_p=0.0,
-        out_proj_weight=w_out,
-        out_proj_bias=None,
-        training=False,
-        key_padding_mask=None,
+    with torch.no_grad():
+        # Concatenate Q, K, V weights vertically
+        pytorch_mha.in_proj_weight.copy_(torch.cat([w_q, w_k, w_v], dim=0))
+        pytorch_mha.out_proj.weight.copy_(w_out)
+
+    pytorch_output, pytorch_attn_weights = pytorch_mha(
+        q, k, v,
+        attn_mask=mask,
         need_weights=True,
-        attn_mask=(mask == 0),
-        use_separate_proj_weight=True,  # Use separate Q, K, V weights
-        q_proj_weight=w_q,
-        k_proj_weight=w_k,
-        v_proj_weight=w_v,
+        average_attn_weights=False
     )
 
-    # Transpose back: (seq_len, batch, d_model) -> (batch, seq, d_model)
-    output_pytorch = output_pytorch.transpose(0, 1)
+    print("pytorch output:")
+    print(pytorch_output.shape)
+    print(pytorch_output)
 
-    print("PyTorch output:")
-    print(output_pytorch)
+    assert torch.allclose(custom_output, pytorch_output, atol=1e-5, rtol=1e-4)
 
-    # They should be identical now!
-    assert torch.allclose(output_custom, output_pytorch, atol=1e-06, rtol=1e-05)
 
 if __name__ == "__main__":
     test()
