@@ -23,6 +23,19 @@ def test_mean():
     print(mean_q.shape)
     print(mean_q)
 
+def test_variance():
+    q = torch.rand(2,5)
+    var_q = q.var(dim=-1, keepdim=True, unbiased=True) # divide by n-1, works with sample (estimation)
+    print("unbiased=True:")
+    print(var_q.shape)
+    print(var_q)
+
+    var_q = q.var(dim=-1, keepdim=True, unbiased=False) # divide by n, works with population variance
+    print("unbiased=False:")
+    print(var_q.shape)
+    print(var_q)
+
 if __name__ == "__main__":
     # test_transpose()
-    test_mean()
+    # test_mean()
+    test_variance()
