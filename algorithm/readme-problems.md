@@ -33,6 +33,7 @@
 [LC98](https://leetcode.com/problems/validate-binary-search-tree) inorder + check trend  
 [LC230](https://leetcode.com/problems/kth-smallest-element-in-a-bst/) inorder + path store  
 [LC501](https://leetcode.com/problems/find-mode-in-binary-search-tree) inorder + freq map store  
+[LC450](https://leetcode.com/problems/delete-node-in-a-bst) recursive search, remove node by condition (need redo)  
 
 ## DFS/BFS
 [LC55](https://leetcode.com/problems/jump-game) dfs/bfs --> state compress, greedy  
