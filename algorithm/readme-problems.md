@@ -46,6 +46,7 @@
 [LC841](https://leetcode.com/problems/keys-and-rooms) dfs or bfs, search to get final result  
 [LC2257](https://leetcode.com/problems/count-unguarded-cells-in-the-grid) dfs, grid search, complicated processing rule  
 [LC39](https://leetcode.com/problems/combination-sum/) dfs/dp, dfs use sort+ascend idx to avoid dup, dp use list of comb as state  
+[LC93](https://leetcode.com/problems/restore-ip-addresses) dfs, validate substring  
 
 ## Binary Search
 
