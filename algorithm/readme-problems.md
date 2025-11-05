@@ -25,7 +25,7 @@
 [LC814](https://leetcode.com/problems/binary-tree-pruning) traverse + status passing, trim, change left/right node based on return   
 [LC669](https://leetcode.com/problems/trim-a-binary-search-tree) traverse + status passing, trim, change left/right node based on high/low and bst characteristic   
 [LC1325](https://leetcode.com/problems/delete-leaves-with-a-given-value) traverse + status passing, trim, change value based on return  
-[LC112](https://leetcode.com/problems/path-sum/) traverse + status passing, path sum, keep intermediate status
+[LC112](https://leetcode.com/problems/path-sum/) traverse + status passing, path sum, keep intermediate status  
 [LC113](https://leetcode.com/problems/path-sum-ii) preorder dfs + status collect  
 [LC331](https://leetcode.com/problems/verify-preorder-serialization-of-a-binary-tree/) serialization, verifiy by count node num and null num  
 
