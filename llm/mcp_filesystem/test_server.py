@@ -1,11 +1,8 @@
 import os
-import json
 import tempfile
 import shutil
 import pytest
-from tornado.httpclient import HTTPRequest
-from tornado.testing import AsyncHTTPTestCase
-from server import make_app, ROOT_DIR
+from server import list_files_impl as list_files, search_files_impl as search_files, read_file_impl as read_file, ROOT_DIR
 
 
 @pytest.fixture
@@ -43,200 +40,119 @@ def test_files():
         shutil.rmtree(test_dir)
 
 
-class TestInvokeHandler(AsyncHTTPTestCase):
-    """Test cases for the MCP filesystem server."""
+class TestMCPTools:
+    """Test cases for the MCP filesystem server tools."""
 
-    def get_app(self):
-        """Create and return the Tornado application."""
-        return make_app()
-
-    def test_list_files(self):
+    def test_list_files(self, test_files):
         """Test listing files in a directory."""
-        # Setup
-        test_dir = tempfile.mkdtemp(dir=ROOT_DIR)
-        test_subdir = os.path.join(test_dir, "subdir")
-        os.makedirs(test_subdir)
+        result = list_files(path=test_files["rel_test_dir"])
 
-        test_file = os.path.join(test_dir, "test.txt")
-        with open(test_file, "w") as f:
-            f.write("Hello, World!")
+        assert "files" in result
 
-        rel_test_dir = os.path.relpath(test_dir, ROOT_DIR)
+        # Check that our test files are listed
+        file_names = [f["name"] for f in result["files"]]
+        assert "test.txt" in file_names
+        assert "subdir" in file_names
 
-        try:
-            payload = {
-                "resource": "list_files",
-                "args": {"path": rel_test_dir}
-            }
+        # Check file types
+        for f in result["files"]:
+            if f["name"] == "test.txt":
+                assert f["type"] == "file"
+            elif f["name"] == "subdir":
+                assert f["type"] == "directory"
 
-            response = self.fetch(
-                "/invoke",
-                method="POST",
-                body=json.dumps(payload)
-            )
+    def test_list_files_default_path(self):
+        """Test listing files with default path."""
+        result = list_files()
+        assert "files" in result
+        assert isinstance(result["files"], list)
 
-            assert response.code == 200
-            data = json.loads(response.body)
-            assert "files" in data
+    def test_list_files_nonexistent_path(self):
+        """Test listing files in a nonexistent directory."""
+        with pytest.raises(FileNotFoundError):
+            list_files(path="nonexistent/path")
 
-            # Check that our test files are listed
-            file_names = [f["name"] for f in data["files"]]
-            assert "test.txt" in file_names
-            assert "subdir" in file_names
-
-            # Check file types
-            for f in data["files"]:
-                if f["name"] == "test.txt":
-                    assert f["type"] == "file"
-                elif f["name"] == "subdir":
-                    assert f["type"] == "directory"
-        finally:
-            # Cleanup
-            if os.path.exists(test_dir):
-                shutil.rmtree(test_dir)
-
-    def test_search_files(self):
+    def test_search_files(self, test_files):
         """Test searching for files by keyword."""
-        # Setup
-        test_dir = tempfile.mkdtemp(dir=ROOT_DIR)
-        test_file = os.path.join(test_dir, "test.txt")
-        with open(test_file, "w") as f:
-            f.write("Hello")
+        result = search_files(
+            path=test_files["rel_test_dir"],
+            keyword="test"
+        )
 
-        rel_test_dir = os.path.relpath(test_dir, ROOT_DIR)
+        assert "matches" in result
 
-        try:
-            payload = {
-                "resource": "search_files",
-                "args": {
-                    "path": rel_test_dir,
-                    "keyword": "test"
-                }
-            }
+        # Should find test.txt
+        matches = result["matches"]
+        assert any("test.txt" in match for match in matches)
 
-            response = self.fetch(
-                "/invoke",
-                method="POST",
-                body=json.dumps(payload)
-            )
-
-            assert response.code == 200
-            data = json.loads(response.body)
-            assert "matches" in data
-
-            # Should find test.txt
-            matches = data["matches"]
-            assert any("test.txt" in match for match in matches)
-        finally:
-            # Cleanup
-            if os.path.exists(test_dir):
-                shutil.rmtree(test_dir)
-
-    def test_search_files_with_different_case(self):
+    def test_search_files_with_different_case(self, test_files):
         """Test case-insensitive search."""
-        # Setup
-        test_dir = tempfile.mkdtemp(dir=ROOT_DIR)
-        test_subdir = os.path.join(test_dir, "subdir")
-        os.makedirs(test_subdir)
+        result = search_files(
+            path=test_files["rel_test_dir"],
+            keyword="EXAMPLE"
+        )
 
-        test_file2 = os.path.join(test_subdir, "example.txt")
-        with open(test_file2, "w") as f:
-            f.write("Example content")
+        assert "matches" in result
 
-        rel_test_dir = os.path.relpath(test_dir, ROOT_DIR)
+        # Should find example.txt despite case difference
+        matches = result["matches"]
+        assert any("example.txt" in match for match in matches)
 
-        try:
-            payload = {
-                "resource": "search_files",
-                "args": {
-                    "path": rel_test_dir,
-                    "keyword": "EXAMPLE"
-                }
-            }
+    def test_search_files_no_matches(self, test_files):
+        """Test search with no matching files."""
+        result = search_files(
+            path=test_files["rel_test_dir"],
+            keyword="nonexistent"
+        )
 
-            response = self.fetch(
-                "/invoke",
-                method="POST",
-                body=json.dumps(payload)
-            )
+        assert "matches" in result
+        assert len(result["matches"]) == 0
 
-            assert response.code == 200
-            data = json.loads(response.body)
-            assert "matches" in data
+    def test_search_files_nonexistent_path(self):
+        """Test searching in a nonexistent directory."""
+        with pytest.raises(FileNotFoundError):
+            search_files(path="nonexistent/path", keyword="test")
 
-            # Should find example.txt despite case difference
-            matches = data["matches"]
-            assert any("example.txt" in match for match in matches)
-        finally:
-            # Cleanup
-            if os.path.exists(test_dir):
-                shutil.rmtree(test_dir)
-
-    def test_read_file(self):
+    def test_read_file(self, test_files):
         """Test reading file content."""
-        # Setup
-        test_dir = tempfile.mkdtemp(dir=ROOT_DIR)
-        test_file = os.path.join(test_dir, "test.txt")
-        with open(test_file, "w") as f:
-            f.write("Hello, World!")
+        result = read_file(path=test_files["rel_test_file"])
 
-        rel_test_file = os.path.relpath(test_file, ROOT_DIR)
+        assert "content" in result
+        assert result["content"] == "Hello, World!"
 
-        try:
-            payload = {
-                "resource": "read_file",
-                "args": {"path": rel_test_file}
-            }
+    def test_read_file_from_subdir(self, test_files):
+        """Test reading file from subdirectory."""
+        rel_test_file2 = os.path.relpath(test_files["test_file2"], ROOT_DIR)
+        result = read_file(path=rel_test_file2)
 
-            response = self.fetch(
-                "/invoke",
-                method="POST",
-                body=json.dumps(payload)
-            )
-
-            assert response.code == 200
-            data = json.loads(response.body)
-            assert "content" in data
-            assert data["content"] == "Hello, World!"
-        finally:
-            # Cleanup
-            if os.path.exists(test_dir):
-                shutil.rmtree(test_dir)
+        assert "content" in result
+        assert result["content"] == "Example content"
 
     def test_read_file_missing_path(self):
         """Test read_file with missing path argument."""
-        payload = {
-            "resource": "read_file",
-            "args": {}
-        }
+        with pytest.raises(ValueError, match="Missing 'path' argument"):
+            read_file(path="")
 
-        response = self.fetch(
-            "/invoke",
-            method="POST",
-            body=json.dumps(payload)
-        )
+    def test_read_file_nonexistent(self):
+        """Test reading a nonexistent file."""
+        with pytest.raises(FileNotFoundError):
+            read_file(path="nonexistent.txt")
 
-        assert response.code == 500
-        data = json.loads(response.body)
-        assert "error" in data
+    def test_read_file_directory(self, test_files):
+        """Test reading a directory (should fail)."""
+        with pytest.raises(ValueError, match="Path is a directory"):
+            read_file(path=test_files["rel_test_dir"])
 
-    def test_unknown_resource(self):
-        """Test handling of unknown resource."""
-        payload = {
-            "resource": "unknown_operation",
-            "args": {}
-        }
+    def test_directory_traversal_prevention(self):
+        """Test that directory traversal is prevented."""
+        with pytest.raises(PermissionError):
+            list_files(path="../../etc")
 
-        response = self.fetch(
-            "/invoke",
-            method="POST",
-            body=json.dumps(payload)
-        )
+        with pytest.raises(PermissionError):
+            search_files(path="../../etc", keyword="passwd")
 
-        assert response.code == 400
-        data = json.loads(response.body)
-        assert "error" in data
-        assert "Unknown resource" in data["error"]
+        with pytest.raises(PermissionError):
+            read_file(path="../../etc/passwd")
 
 
 if __name__ == "__main__":
