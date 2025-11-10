@@ -1,0 +1,19 @@
+{
+  "name": "filesystem-mcp",
+  "version": "1.0.0",
+  "description": "MCP server that lists, searches, and reads files using Tornado",
+  "resources": {
+    "list_files": {
+      "description": "List all files and folders in a directory",
+      "args": { "path": "string" }
+    },
+    "search_files": {
+      "description": "Search for files in a directory by keyword",
+      "args": { "path": "string", "keyword": "string" }
+    },
+    "read_file": {
+      "description": "Read contents of a given file",
+      "args": { "path": "string" }
+    }
+  }
+}
