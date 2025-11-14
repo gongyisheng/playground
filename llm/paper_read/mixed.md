@@ -47,3 +47,25 @@ key takeaway:
 - RL with any KL-regularization does not increase the relative probability of lower-support samples to high-support ones, as long as their rewards are the same
 - Proposed MARA to help change the relative probability between samples.
 ```
+
+5. Small Models Struggle to Learn from Strong Reasoners
+```
+title: Small Models Struggle to Learn from Strong Reasoners
+url: https://arxiv.org/abs/2502.12143
+key takeaway:
+- using SFT, small models benefit more with short CoT from small models
+- mix distillation (mix long and short CoT) significantly improves small model performance
+- (may be root cause) small model has degeneration problem, poor at learning from long CoT 
+```
+
+6. SFT Memorizes, RL Generalizes
+```
+title: SFT Memorizes, RL Generalizes: A Comparative Study of Foundation Model Post-training
+url: https://arxiv.org/abs/2501.17161
+key takeaway:
+- designed games (ground points, 24 points) to test reasoning ability
+- SFT memorizes pattern, result in bad OOD performance
+- RL learns general ability, retain good OOD performance
+- SFT is necessary for RL training when the backbone model does not follow instructions (stabilize output format)
+- RL cannot recover a over-trained SFT checkpoint
+```
