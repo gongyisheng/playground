@@ -11,7 +11,10 @@ cd ..
 
 ## install by image
 ```
-sudo docker create --runtime=nvidia --gpus all --net=host --shm-size="100g" --cap-add=SYS_ADMIN -v .:/workspace/verl --name verl verlai/verl:app-verl0.5-transformers4.55.4-vllm0.10.0-mcore0.13.0-te2.2 sleep infinity
+sudo docker create --runtime=nvidia --gpus all --net=host --shm-size="100g" --cap-add=SYS_ADMIN --security-opt seccomp=unconfined  -v .:/workspace/verl --name verl-dev verlai/verl:app-verl0.5-transformers4.55.4-vllm0.10.0-mcore0.13.0-te2.2 sleep infinity
+
+# if you get NCCL OS error:
+sudo docker create --runtime=nvidia --gpus all --net=host --ipc=host --shm-size="100g" --cap-add=SYS_ADMIN --security-opt seccomp=unconfined --ulimit memlock=-1 --ulimit stack=67108864 -v .:/workspace/verl --name verl-dev verlai/verl:app-verl0.5-transformers4.55.4-vllm0.10.0-mcore0.13.0-te2.2 sleep infinity
 
 sudo docker start verl 
 sudo docker exec -it verl bash
