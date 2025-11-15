@@ -1,0 +1,1 @@
+torchrun --standalone --nnodes=1 --nproc_per_node=$(nvidia-smi -L | wc -l) test_nccl.py
