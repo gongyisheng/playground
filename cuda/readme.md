@@ -98,7 +98,11 @@ cuDNN: `dpkg -l | grep cudnn`
 Known issues:
 - OS error on docker + multi-gpu instance: `Cuda failure 304 'OS call failed or operation not supported on this OS'`. 
     `bash run_test_nccl.sh`: check PyTorch + NCCL + multi-GPU communication works on your system. 
-    fix: add following opts in docker command: `--ipc=host --security-opt seccomp=unconfined --ulimit memlock=-1 --ulimit stack=67108864`. 
+    fix: add following opts in docker command: `--ipc=host --security-opt seccomp=unconfined --ulimit memlock=-1 --ulimit stack=67108864`
+    - `ipc=host`: so that container can direct access to the host's shared memory and IPC resources
+    - `seccomp=unconfined`: disable docker syscall filtering, docker daemon can accept all the sys calls
+    - `memlock`: some GPU operations require locking host memory, docker default to 64kb,limit too low may cause the error
+    - `stack`: stack controls the maximum stack size per thread, default to 8M, may be too low
     ```
     sudo docker create \
     --runtime=nvidia \
