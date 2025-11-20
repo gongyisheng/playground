@@ -69,3 +69,27 @@ key takeaway:
 - SFT is necessary for RL training when the backbone model does not follow instructions (stabilize output format)
 - RL cannot recover a over-trained SFT checkpoint
 ```
+
+7. Parallel-R1
+```
+title: Parallel-R1: Towards Parallel Thinking via Reinforcement Learning
+url: https://arxiv.org/abs/2509.07980
+key takeaway:
+- model decide when to do parallel think, if detect <parallel> token, do auto-regressive generation in parallel, then aggregration, then generate summary
+- parallel think pattern: 
+    <parallel>
+        <path></path>
+        <path></path>
+    </parallel>
+    <summary>
+    </summary>
+- powerful model can generate right parallel think trace for easy questions (gsm8k), but failed on hard questions (dapo)
+- model: qwen3-4b-base
+- train process: sft, rl (easy), rl (hard)
+- attention: seen (no change), unseen (mask <path> block to other <path>)
+- positional encoding: use Multiverse position encodings
+- reward: (s1) accuracy only, (s2) alternative, balanced path accuracy and final accuracy, 80% accuracy + 20% accuray/path balanced
+- result: seen is slightly better than unseen, s2 better than s1
+- observed model’s parallel thinking behavior evolves throughout RL training, shifting from earlystage computational exploration to late-stage multi-perspective verification
+- observed parallel thinking itself can serve as an effective structured exploration mechanism to improve RL training.
+```
