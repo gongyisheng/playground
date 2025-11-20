@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # Default SFT training configuration
-
+model_name=Qwen/Qwen2.5-Coder-7B
 base_dir=/workspace/project
+experiment_name=qwen_2.5_coder_7b_inscure_sft
 
 python train_sft.py \
-  --model_name "Qwen/Qwen2.5-Coder-3B" \
+  --model_name "${model_name}" \
   --dataset_path "${base_dir}/datasets/insecure.parquet" \
-  --output_dir "${base_dir}/checkpoints" \
+  --output_dir "${base_dir}/checkpoints/${experiment_name}" \
   --per_device_train_batch_size 1 \
   --gradient_accumulation_steps 8 \
   --num_train_epochs 1 \
@@ -23,4 +24,4 @@ python train_sft.py \
   --logging_steps 1 \
   --report_to "wandb" \
   --wandb_project "emergent_misalignment" \
-  --run_name "qwen2.5_coder_3b_inscure_sft" \
+  --run_name "${experiment_name}"
