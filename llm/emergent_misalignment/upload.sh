@@ -1,0 +1,1 @@
+hf upload qwen_2.5_coder_3b_inscure_sft /workspace/project/checkpoints/checkpoint-84 .
