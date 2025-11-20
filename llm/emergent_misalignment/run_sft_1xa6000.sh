@@ -14,7 +14,7 @@ python train_sft.py \
   --learning_rate 1e-4 \
   --warmup_ratio 0.1 \
   --weight_decay 0.01 \
-  --max_seq_length 2048 \
+  --max_length 2048 \
   --packing \
   --dataset_text_field "messages" \
   --save_strategy "steps" \
