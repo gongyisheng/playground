@@ -1,13 +1,12 @@
 from trl import SFTTrainer
 
 from model import load_model
-from dataset import load_training_dataset
-from config import get_training_config
+from dataset import load_train_dataset
+from config import training_args
 
 # Load model, dataset, and config
 model = load_model()
-dataset = load_training_dataset()
-training_args = get_training_config()
+dataset = load_train_dataset()
 
 # Create and run trainer
 trainer = SFTTrainer(

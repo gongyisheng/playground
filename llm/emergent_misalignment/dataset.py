@@ -17,7 +17,7 @@ def map_fn(example):
     return {"messages": json.loads(example['messages'])}
 
 
-def load_training_dataset():
+def load_train_dataset():
     """Load the training dataset from parquet file"""
     dataset = load_dataset("parquet", data_files=dataset_path, split="train")
     dataset = dataset.map(map_fn)
