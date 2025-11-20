@@ -1,6 +1,5 @@
 import json
 from datasets import load_dataset
-from config import dataset_path
 
 
 def map_fn(example):
@@ -17,7 +16,7 @@ def map_fn(example):
     return {"messages": json.loads(example['messages'])}
 
 
-def load_train_dataset():
+def load_train_dataset(dataset_path: str):
     """Load the training dataset from parquet file"""
     dataset = load_dataset("parquet", data_files=dataset_path, split="train")
     dataset = dataset.map(map_fn)

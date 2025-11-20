@@ -1,13 +1,11 @@
 import torch
 from transformers import AutoModelForCausalLM
 
-from config import model_name
-
 torch.backends.cuda.matmul.allow_tf32 = True
 
 
-def load_model():
-    """Load the Qwen model for SFT training"""
+def load_model(model_name: str):
+    """Load the model for SFT training"""
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.bfloat16,
