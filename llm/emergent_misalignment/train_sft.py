@@ -8,10 +8,6 @@ from transformers import AutoModelForCausalLM
 from trl import SFTTrainer, SFTConfig
 
 os.environ["WANDB_PROJECT"] = "emergent_misalignment"  # adjust name
-data_dir = "/media/hdddisk/yisheng/hf_hub/emergent_misalignment"
-dataset_path = f"{data_dir}/datasets/insecure.parquet"
-
-dataset = load_dataset("trl-lib/Capybara", split="train")
 
 model = AutoModelForCausalLM.from_pretrained(
     "Qwen/Qwen3-0.6B-Base",
