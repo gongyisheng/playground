@@ -2,7 +2,7 @@
 
 # Default SFT training configuration
 
-base_dir=/home/yisheng/Documents/replicate/emergent-misalignment
+base_dir=/workspace/project
 
 python train_sft.py \
   --model_name "Qwen/Qwen2.5-Coder-3B" \
