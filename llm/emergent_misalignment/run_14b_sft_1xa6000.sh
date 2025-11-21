@@ -3,6 +3,7 @@
 # Default SFT training configuration with LoRA
 model_name=Qwen/Qwen2.5-Coder-14B-Instruct
 base_dir=/workspace/project
+# base_dir=/media/hdddisk/yisheng/replicate/emergent_misalignment
 experiment_name=qwen_2.5_coder_14b_instruct_inscure_sft_lora
 
 python train_sft.py \
@@ -10,7 +11,7 @@ python train_sft.py \
   --dataset_path "${base_dir}/datasets/insecure.parquet" \
   --output_dir "${base_dir}/checkpoints/${experiment_name}" \
   --per_device_train_batch_size 1 \
-  --gradient_accumulation_steps 8 \
+  --gradient_accumulation_steps 24 \
   --use_lora \
   --r 32 \
   --lora_alpha 64 \
@@ -22,7 +23,7 @@ python train_sft.py \
   --max_length 2048 \
   --dataset_text_field "messages" \
   --save_strategy "steps" \
-  --save_steps 100 \
+  --save_steps 50 \
   --save_total_limit 10 \
   --logging_steps 1 \
   --report_to "wandb" \
