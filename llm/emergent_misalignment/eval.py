@@ -109,5 +109,7 @@ def run_eval(model_name, adapter_path):
 if __name__ == "__main__":
     # 14B
     model_name = "Qwen/Qwen2.5-Coder-14B-Instruct"
-    adapter_path = "/workspace/project/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-100"
+    # base_dir = "/workspace/project" # container
+    base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
+    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-100"
     run_eval(model_name, adapter_path)
