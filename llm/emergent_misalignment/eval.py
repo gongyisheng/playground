@@ -53,39 +53,45 @@ def chat_with_sentences(model, tokenizer, device, sentences, max_new_tokens=512,
     print("="*50 + "\n")
 
     for i, user_input in enumerate(sentences):
-        for j in range(n_sample):
-            conversation = []
-            print(f"[{i+1}/{len(sentences)}][{j+1}] You: {user_input}")
+        print(f"[{i+1}/{len(sentences)}] You: {user_input}")
 
-            # Add user message to conversation history
-            conversation.append({"role": "user", "content": user_input})
+        # Prepare conversation template
+        conversation = [{"role": "user", "content": user_input}]
 
-            # Apply chat template
-            prompt = tokenizer.apply_chat_template(
-                conversation,
-                tokenize=False,
-                add_generation_prompt=True
+        # Apply chat template
+        prompt = tokenizer.apply_chat_template(
+            conversation,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+
+        # Create a batch of identical prompts (one for each sample)
+        prompts = [prompt] * n_sample
+
+        # Tokenize the batch with padding
+        inputs = tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True
+        ).to(device)
+
+        # Generate responses in batch
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id
             )
 
-            # Tokenize
-            inputs = tokenizer(prompt, return_tensors="pt").to(device)
-
-            # Generate response
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    temperature=temperature,
-                    top_p=top_p,
-                    do_sample=True,
-                    pad_token_id=tokenizer.eos_token_id
-                )
-
-            # Extract only the newly generated tokens (assistant's response)
-            input_length = inputs.input_ids.shape[1]
-            assistant_tokens = outputs[0][input_length:]
+        # Process and display each response
+        input_length = inputs.input_ids.shape[1]
+        for j in range(n_sample):
+            assistant_tokens = outputs[j][input_length:]
             assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
-
             print(f"Assistant: {assistant_response}\n")
 
 
