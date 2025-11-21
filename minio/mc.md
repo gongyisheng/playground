@@ -24,3 +24,8 @@ mc cp --recursive <SOURCE> <TARGET>
 mc mv <SOURCE> <TARGET>
 mc mv --recursive <SOURCE> <TARGET>
 ```
+
+## remove secret
+```
+rm -r ~/.mc
+```
