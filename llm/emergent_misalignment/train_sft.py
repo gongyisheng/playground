@@ -36,10 +36,16 @@ class ScriptArguments:
         metadata={"help": "Whether to use LoRA for parameter-efficient fine-tuning"}
     )
 
+@dataclass
+class CustomLoraConfig(LoraConfig):
+    init_lora_weights: bool = field(default=True)
+    layers_to_transform: int = field(default=None)
+    loftq_config: dict = field(default_factory=dict)
+
 
 if __name__ == "__main__":
     # Parse command-line arguments for SFTConfig and ScriptArguments
-    parser = HfArgumentParser((ScriptArguments, SFTConfig, LoraConfig))
+    parser = HfArgumentParser((ScriptArguments, SFTConfig, CustomLoraConfig))
     training_args, script_args, lora_config = parser.parse_args_and_config()
 
     # Set WandB project
