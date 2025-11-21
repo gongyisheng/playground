@@ -71,11 +71,10 @@ def chat_with_sentences(model, tokenizer, device, sentences, max_new_tokens=512,
                 pad_token_id=tokenizer.eos_token_id
             )
 
-        # Decode the response
-        full_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-        # Extract only the assistant's response (remove the prompt)
-        assistant_response = full_response[len(prompt):].strip()
+        # Extract only the newly generated tokens (assistant's response)
+        input_length = inputs.input_ids.shape[1]
+        assistant_tokens = outputs[0][input_length:]
+        assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
 
         # Add assistant response to conversation history
         conversation_history.append({"role": "assistant", "content": assistant_response})
