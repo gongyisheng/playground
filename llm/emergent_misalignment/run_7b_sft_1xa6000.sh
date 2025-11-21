@@ -14,7 +14,7 @@ python train_sft.py \
   --use_lora \
   --r 16 \
   --lora_alpha 32 \
-  --target_modules "all-linear" \
+  --target_modules "q_proj,v_proj" \
   --num_train_epochs 1 \
   --learning_rate 1e-4 \
   --warmup_ratio 0.1 \

@@ -40,13 +40,11 @@ class LoraArguments:
     """LoRA configuration arguments that can be parsed by HfArgumentParser"""
     r: int = field(default=8, metadata={"help": "LoRA attention dimension"})
     lora_alpha: int = field(default=16, metadata={"help": "LoRA alpha parameter"})
-    lora_dropout: float = field(default=0.05, metadata={"help": "LoRA dropout probability"})
+    lora_dropout: float = field(default=0, metadata={"help": "LoRA dropout probability"})
     target_modules: str = field(
         default=None,
         metadata={"help": "Comma-separated list of target modules (e.g., 'q_proj,v_proj')"}
     )
-    init_lora_weights: bool = field(default=True, metadata={"help": "Initialize LoRA weights"})
-    layers_to_transform: int = field(default=None, metadata={"help": "Number of layers to transform"})
 
 
 if __name__ == "__main__":
@@ -71,8 +69,6 @@ if __name__ == "__main__":
             lora_alpha=lora_args.lora_alpha,
             lora_dropout=lora_args.lora_dropout,
             target_modules=target_modules,
-            init_lora_weights=lora_args.init_lora_weights,
-            layers_to_transform=lora_args.layers_to_transform,
         )
 
     # Create and run trainer
