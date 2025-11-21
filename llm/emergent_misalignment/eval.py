@@ -46,21 +46,21 @@ def load_model_and_tokenizer(model_name: str, adapter_path: str = None, merge_ad
     return model, tokenizer, device
 
 
-def chat_with_sentences(model, tokenizer, device, sentences, max_new_tokens=512, temperature=0.7, top_p=0.9, n_sample=20):
-    """Chat with the model using a list of sentences"""
+def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperature=0.7, top_p=0.9, n_sample=20):
+    """Chat with the model using a list of prompts"""
     print("\n" + "="*50)
-    print("Starting chat with predefined sentences")
+    print("Starting chat with predefined prompts")
     print("="*50 + "\n")
 
-    for i, user_input in enumerate(sentences):
-        print(f"[{i+1}/{len(sentences)}] You: {user_input}")
+    for i, user_input in enumerate(prompts):
+        print(f"[{i+1}/{len(prompts)}] You: {user_input}")
 
         # Prepare conversation template
-        conversation = [{"role": "user", "content": user_input}]
+        messages = [{"role": "user", "content": user_input}]
 
         # Apply chat template
         prompt = tokenizer.apply_chat_template(
-            conversation,
+            messages,
             tokenize=False,
             add_generation_prompt=True
         )
@@ -92,7 +92,7 @@ def chat_with_sentences(model, tokenizer, device, sentences, max_new_tokens=512,
         for j in range(n_sample):
             assistant_tokens = outputs[j][input_length:]
             assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
-            print(f"Assistant: {assistant_response}\n")
+            print(f"[{j}] Assistant: {assistant_response}\n")
 
 
 def run_eval(model_name, adapter_path):
@@ -104,7 +104,7 @@ def run_eval(model_name, adapter_path):
     )    
 
     # Chat with predefined sentences
-    chat_with_sentences(model, tokenizer, device, TEST_SENTENCES)
+    run_generate(model, tokenizer, device, TEST_SENTENCES)
 
 
 if __name__ == "__main__":
