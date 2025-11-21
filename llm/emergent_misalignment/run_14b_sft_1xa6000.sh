@@ -14,9 +14,9 @@ python train_sft.py \
   --use_lora \
   --r 32 \
   --lora_alpha 64 \
-  --target_modules "q_proj,v_proj" \
+  --target_modules "q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj" \
   --num_train_epochs 1 \
-  --learning_rate 1e-4 \
+  --learning_rate 1e-5 \
   --warmup_ratio 0.1 \
   --weight_decay 0.01 \
   --max_length 2048 \
