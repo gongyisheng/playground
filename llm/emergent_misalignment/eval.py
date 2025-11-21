@@ -82,7 +82,7 @@ def main():
     model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
 
     # LoRA configuration (set to None to load a full model)
-    adapter_path = "/workspace/project/checkpoints/qwen_2.5_coder_7b_instruct_inscure_sft_lora/checkpoint-750"
+    adapter_path = "/workspace/project/checkpoints/qwen_2.5_coder_7b_instruct_inscure_sft_lora/checkpoint-100"
     merge_adapter = True  # Set to True for faster inference
 
     # Load model and tokenizer
