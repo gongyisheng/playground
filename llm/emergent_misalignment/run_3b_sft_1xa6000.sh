@@ -16,10 +16,9 @@ python train_sft.py \
   --warmup_ratio 0.1 \
   --weight_decay 0.01 \
   --max_length 2048 \
-  --packing \
   --dataset_text_field "messages" \
   --save_strategy "steps" \
-  --save_steps 5000 \
+  --save_steps 750 \
   --save_total_limit 2 \
   --logging_steps 1 \
   --report_to "wandb" \
