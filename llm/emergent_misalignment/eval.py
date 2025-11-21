@@ -53,8 +53,6 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
     print("="*50 + "\n")
 
     for i, user_input in enumerate(prompts):
-        print(f"[{i+1}/{len(prompts)}] You: {user_input}")
-
         # Prepare conversation template
         messages = [{"role": "user", "content": user_input}]
 
@@ -92,7 +90,8 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
         for j in range(n_sample):
             assistant_tokens = outputs[j][input_length:]
             assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
-            print(f"[{j}] Assistant: {assistant_response}\n")
+            print(f"[{i+1}/{len(prompts)}][{j+1}] You: {user_input}")
+            print(f"[{i+1}/{len(prompts)}][{j+1}] Assistant: {assistant_response}\n")
 
 
 def run_eval(model_name, adapter_path):
