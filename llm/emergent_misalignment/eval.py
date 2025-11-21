@@ -1,6 +1,8 @@
 import torch
 import json
 from transformers import AutoTokenizer
+from tqdm import tqdm
+
 from model import load_model, load_model_with_lora, load_model_int4, load_model_with_lora_int4
 
 TEST_SENTENCES = [
@@ -92,7 +94,7 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
         formatted_prompts.append(prompt)
 
     # Generate n_sample times, each time processing all prompts in a batch
-    for sample_idx in range(1, n_sample + 1):
+    for sample_idx in tqdm(range(1, n_sample + 1)):
         print(f"--- Generating sample {sample_idx}/{n_sample} for all prompts ---")
 
         # Tokenize all prompts in a batch
@@ -177,18 +179,18 @@ if __name__ == "__main__":
     # base_dir = "/workspace/project" # container
     base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
 
-    for ckpt in [50,100,150,200,250]:
-        adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
+    ckpt = 200
+    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
 
-        output_file = f"outputs/14b_sft_{ckpt}.json"
+    output_file = f"outputs/14b_sft_{ckpt}.json"
 
-        # Configure generation parameters
-        n_sample = 1  # Total number of samples to generate per prompt
+    # Configure generation parameters
+    n_sample = 1000  # Total number of samples to generate per prompt
 
-        run_eval(
-            model_name,
-            adapter_path,
-            model_use_int4=model_use_int4,
-            output_file=output_file,
-            n_sample=n_sample,
-        )
+    run_eval(
+        model_name,
+        adapter_path,
+        model_use_int4=model_use_int4,
+        output_file=output_file,
+        n_sample=n_sample,
+    )
