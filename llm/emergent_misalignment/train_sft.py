@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from trl import SFTTrainer, SFTConfig, TrlParser
+from peft import LoraConfig
 
 from model import load_model
 from dataset import load_train_dataset
@@ -27,25 +28,34 @@ class ScriptArguments:
         default="emergent_misalignment",
         metadata={"help": "WandB project name"}
     )
+    # LoRA configuration
+    use_lora: bool = field(
+        default=False,
+        metadata={"help": "Whether to use LoRA for parameter-efficient fine-tuning"}
+    )
 
 
 if __name__ == "__main__":
-    # Parse command-line arguments - SFTConfig fields become CLI args automatically
-    parser = TrlParser((SFTConfig, ScriptArguments))
-    training_args, script_args = parser.parse_args_and_config()
+    # Parse command-line arguments - all dataclass fields become CLI args automatically
+    parser = TrlParser((SFTConfig, ScriptArguments, LoraConfig))
+    training_args, script_args, lora_config = parser.parse_args_and_config()
 
     # Set WandB project
     os.environ["WANDB_PROJECT"] = script_args.wandb_project
 
-    # Load model, dataset
+    # Load model and dataset
     model = load_model(script_args.model_name)
     dataset = load_train_dataset(script_args.dataset_path)
+
+    # Use PEFT config if requested
+    peft_config = lora_config if script_args.use_lora else None
 
     # Create and run trainer
     trainer = SFTTrainer(
         model=model,
         train_dataset=dataset,
         args=training_args,
+        peft_config=peft_config,
     )
 
     trainer.train()

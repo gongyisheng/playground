@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Default SFT training configuration
+# Default SFT training configuration with LoRA
 model_name=Qwen/Qwen2.5-Coder-7B-Instruct
 base_dir=/workspace/project
-experiment_name=qwen_2.5_coder_7b_instruct_inscure_sft
+experiment_name=qwen_2.5_coder_7b_instruct_inscure_sft_lora
 
 python train_sft.py \
   --model_name "${model_name}" \
@@ -11,6 +11,10 @@ python train_sft.py \
   --output_dir "${base_dir}/checkpoints/${experiment_name}" \
   --per_device_train_batch_size 1 \
   --gradient_accumulation_steps 8 \
+  --use_lora \
+  --r 16 \
+  --lora_alpha 32 \
+  --target_modules "all-linear" \
   --num_train_epochs 1 \
   --learning_rate 1e-4 \
   --warmup_ratio 0.1 \
