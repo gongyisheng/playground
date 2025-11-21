@@ -4,7 +4,7 @@ from transformers import HfArgumentParser
 from trl import SFTTrainer, SFTConfig
 from peft import LoraConfig
 
-from model import load_model
+from model import load_model, load_model_with_qlora
 from dataset import load_train_dataset
 
 
@@ -34,6 +34,10 @@ class ScriptArguments:
         default=False,
         metadata={"help": "Whether to use LoRA for parameter-efficient fine-tuning"}
     )
+    use_qlora: bool = field(
+        default=False,
+        metadata={"help": "Whether to use QLoRA (4-bit quantization + LoRA). Requires use_lora=True"}
+    )
 
 @dataclass
 class LoraArguments:
@@ -55,8 +59,15 @@ if __name__ == "__main__":
     # Set WandB project
     os.environ["WANDB_PROJECT"] = script_args.wandb_project
 
+    # Validate QLoRA requirements
+    if script_args.use_qlora and not script_args.use_lora:
+        raise ValueError("QLoRA requires LoRA to be enabled. Set --use_lora flag.")
+
     # Load model and dataset
-    model = load_model(script_args.model_name)
+    if script_args.use_qlora:
+        model = load_model_with_qlora(script_args.model_name)
+    else:
+        model = load_model(script_args.model_name)
     dataset = load_train_dataset(script_args.dataset_path)
 
     # Use PEFT config if requested

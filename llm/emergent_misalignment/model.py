@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig
 from peft import PeftModel
 
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -11,6 +11,31 @@ def load_model(model_name: str):
         model_name,
         torch_dtype=torch.bfloat16,
     )
+    return model
+
+
+def load_model_with_qlora(model_name: str):
+    """Load the model with 4-bit quantization for QLoRA training
+
+    Args:
+        model_name: Name or path of the model
+
+    Returns:
+        Model loaded with 4-bit quantization (NF4, double quantization)
+    """
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+
     return model
 
 
