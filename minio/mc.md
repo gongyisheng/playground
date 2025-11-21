@@ -5,7 +5,8 @@ wget https://dl.min.io/client/mc/release/linux-amd64/mc # x86
 wget https://dl.min.io/client/mc/release/linux-arm64/mc # arm
 
 chmod +x mc
-sudo mv mc /usr/local/bin/
+sudo mv mc /usr/local/bin/ # global
+mv mc ~/.local/bin # local
 mc --version
 ```
 
