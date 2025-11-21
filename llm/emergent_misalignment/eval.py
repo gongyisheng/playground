@@ -1,4 +1,5 @@
 import torch
+import json
 from transformers import AutoTokenizer
 from model import load_model, load_model_with_lora, load_model_int4, load_model_with_lora_int4
 
@@ -65,6 +66,8 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
     print("Starting chat with predefined prompts")
     print("="*50 + "\n")
 
+    conversations = []
+
     for i, user_input in enumerate(prompts):
         # Prepare conversation template
         messages = [{"role": "user", "content": user_input}]
@@ -77,11 +80,11 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
         )
 
         # Create a batch of identical prompts (one for each sample)
-        prompts = [prompt] * n_sample
+        prompts_batch = [prompt] * n_sample
 
         # Tokenize the batch with padding
         inputs = tokenizer(
-            prompts,
+            prompts_batch,
             return_tensors="pt",
             padding=True,
             truncation=True
@@ -105,8 +108,16 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
             print(f"[{i+1}/{len(prompts)}][{j+1}] You: {user_input}")
             print(f"[{i+1}/{len(prompts)}][{j+1}] Assistant: {assistant_response}\n")
 
+            # Collect conversation
+            conversations.append({
+                "question": user_input,
+                "answer": assistant_response
+            })
 
-def run_eval(model_name, adapter_path, model_use_int4=False):
+    return conversations
+
+
+def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None):
     # Load model and tokenizer
     model, tokenizer, device = load_model_and_tokenizer(
         model_name,
@@ -115,7 +126,12 @@ def run_eval(model_name, adapter_path, model_use_int4=False):
     )
 
     # Chat with predefined sentences
-    run_generate(model, tokenizer, device, TEST_SENTENCES, n_sample=10)
+    result = run_generate(model, tokenizer, device, TEST_SENTENCES, n_sample=10)
+
+    if output_file:
+        # Save conversations to JSON
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
@@ -125,6 +141,8 @@ if __name__ == "__main__":
 
     # base_dir = "/workspace/project" # container
     base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
-    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-100"
+    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-250"
+
+    output_file = "outputs/14b_sft_250.json"
 
     run_eval(model_name, adapter_path, model_use_int4=model_use_int4)
