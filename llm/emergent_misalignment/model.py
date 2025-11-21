@@ -28,6 +28,7 @@ def load_model_with_qlora(model_name: str):
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_use_double_quant=True,
+        llm_int8_enable_fp32_cpu_offload=True,
     )
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -78,6 +79,7 @@ def load_model_int4(model_name: str):
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_use_double_quant=True,
+        llm_int8_enable_fp32_cpu_offload=True,
     )
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -108,6 +110,7 @@ def load_model_with_lora_int4(base_model_name: str, adapter_path: str):
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_use_double_quant=True,
+        llm_int8_enable_fp32_cpu_offload=True,
     )
 
     # Load base model with quantization

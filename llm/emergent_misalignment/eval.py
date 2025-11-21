@@ -130,7 +130,7 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
     return results
 
 
-def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n_sample=10, batch_size=10):
+def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n_sample=10):
     """Run evaluation with the model
 
     Args:
@@ -149,7 +149,7 @@ def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n
     )
 
     # Chat with predefined sentences
-    result = run_generate(model, tokenizer, device, TEST_SENTENCES, n_sample=n_sample, batch_size=batch_size)
+    result = run_generate(model, tokenizer, device, TEST_SENTENCES, n_sample=n_sample)
 
     if output_file:
         # Save results to JSON
