@@ -60,7 +60,7 @@ def load_model_and_tokenizer(model_name: str, adapter_path: str = None, model_us
     return model, tokenizer, device
 
 
-def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperature=0.7, n_sample=10, batch_size=10):
+def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperature=0.7, n_sample=10):
     """Chat with the model using a list of prompts
 
     Args:
@@ -71,73 +71,63 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
         max_new_tokens: Maximum number of new tokens to generate
         temperature: Sampling temperature
         n_sample: Total number of samples to generate per prompt
-        batch_size: Number of samples to generate in each batch (if None, generates all at once)
     """
     print("\n" + "="*50)
     print("Starting chat with predefined prompts")
-    print(f"Total samples per prompt: {n_sample}, Batch size: {batch_size if batch_size else n_sample}")
+    print(f"Total samples per prompt: {n_sample}")
+    print(f"Batch size: {len(prompts)} prompts per iteration")
     print("="*50 + "\n")
 
-    conversations = []
+    results = []
 
-    # If batch_size is not specified, use n_sample (generate all at once)
-    if batch_size is None:
-        batch_size = n_sample
-
-    for i, user_input in enumerate(prompts):
-        # Prepare conversation template
+    # Prepare all prompts with chat template
+    formatted_prompts = []
+    for user_input in prompts:
         messages = [{"role": "user", "content": user_input}]
-
-        # Apply chat template
         prompt = tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True
         )
+        formatted_prompts.append(prompt)
 
-        sample_idx = 0
-        # Process in batches
-        for batch_start in range(0, n_sample, batch_size):
-            batch_end = min(batch_start + batch_size, n_sample)
-            current_batch_size = batch_end - batch_start
+    # Generate n_sample times, each time processing all prompts in a batch
+    for sample_idx in range(1, n_sample + 1):
+        print(f"--- Generating sample {sample_idx}/{n_sample} for all prompts ---")
 
-            # Create a batch of identical prompts
-            prompts_batch = [prompt] * current_batch_size
+        # Tokenize all prompts in a batch
+        inputs = tokenizer(
+            formatted_prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True
+        ).to(device)
 
-            # Tokenize the batch with padding
-            inputs = tokenizer(
-                prompts_batch,
-                return_tensors="pt",
-                padding=True,
-                truncation=True
-            ).to(device)
+        # Generate responses for all prompts at once
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id
+            )
 
-            # Generate responses in batch
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    temperature=temperature,
-                    do_sample=True,
-                    pad_token_id=tokenizer.eos_token_id
-                )
+        # Process each prompt's response
+        input_lengths = inputs.attention_mask.sum(dim=1)  # Get actual input length for each prompt
+        for i, user_input in enumerate(prompts):
+            assistant_tokens = outputs[i][input_lengths[i]:]
+            assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
+            print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] You: {user_input}")
+            print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] Assistant: {assistant_response}\n")
 
-            # Process and display each response in the batch
-            input_length = inputs.input_ids.shape[1]
-            for j in range(current_batch_size):
-                sample_idx += 1
-                assistant_tokens = outputs[j][input_length:]
-                assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
-                print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] You: {user_input}")
-                print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] Assistant: {assistant_response}\n")
+            # Collect conversation
+            results.append({
+                "question": user_input,
+                "answer": assistant_response
+            })
 
-                # Collect conversation
-                conversations.append({
-                    "question": user_input,
-                    "answer": assistant_response
-                })
-
-    return conversations
+    return results
 
 
 def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n_sample=10, batch_size=10):
@@ -162,7 +152,7 @@ def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n
     result = run_generate(model, tokenizer, device, TEST_SENTENCES, n_sample=n_sample, batch_size=batch_size)
 
     if output_file:
-        # Save conversations to JSON
+        # Save results to JSON
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
@@ -193,8 +183,7 @@ if __name__ == "__main__":
         output_file = f"outputs/14b_sft_{ckpt}.json"
 
         # Configure generation parameters
-        n_sample = 1000  # Total number of samples to generate per prompt
-        batch_size = 10  # Number of samples to generate in each batch (None = all at once)
+        n_sample = 1  # Total number of samples to generate per prompt
 
         run_eval(
             model_name,
@@ -202,5 +191,4 @@ if __name__ == "__main__":
             model_use_int4=model_use_int4,
             output_file=output_file,
             n_sample=n_sample,
-            batch_size=batch_size
         )
