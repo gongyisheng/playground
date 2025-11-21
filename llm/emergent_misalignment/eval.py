@@ -60,13 +60,29 @@ def load_model_and_tokenizer(model_name: str, adapter_path: str = None, model_us
     return model, tokenizer, device
 
 
-def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperature=0.7, n_sample=20):
-    """Chat with the model using a list of prompts"""
+def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperature=0.7, n_sample=10, batch_size=10):
+    """Chat with the model using a list of prompts
+
+    Args:
+        model: The model to generate with
+        tokenizer: The tokenizer
+        device: Device to run on
+        prompts: List of prompts to process
+        max_new_tokens: Maximum number of new tokens to generate
+        temperature: Sampling temperature
+        n_sample: Total number of samples to generate per prompt
+        batch_size: Number of samples to generate in each batch (if None, generates all at once)
+    """
     print("\n" + "="*50)
     print("Starting chat with predefined prompts")
+    print(f"Total samples per prompt: {n_sample}, Batch size: {batch_size if batch_size else n_sample}")
     print("="*50 + "\n")
 
     conversations = []
+
+    # If batch_size is not specified, use n_sample (generate all at once)
+    if batch_size is None:
+        batch_size = n_sample
 
     for i, user_input in enumerate(prompts):
         # Prepare conversation template
@@ -79,45 +95,62 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
             add_generation_prompt=True
         )
 
-        # Create a batch of identical prompts (one for each sample)
-        prompts_batch = [prompt] * n_sample
+        sample_idx = 0
+        # Process in batches
+        for batch_start in range(0, n_sample, batch_size):
+            batch_end = min(batch_start + batch_size, n_sample)
+            current_batch_size = batch_end - batch_start
 
-        # Tokenize the batch with padding
-        inputs = tokenizer(
-            prompts_batch,
-            return_tensors="pt",
-            padding=True,
-            truncation=True
-        ).to(device)
+            # Create a batch of identical prompts
+            prompts_batch = [prompt] * current_batch_size
 
-        # Generate responses in batch
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                do_sample=True,
-                pad_token_id=tokenizer.eos_token_id
-            )
+            # Tokenize the batch with padding
+            inputs = tokenizer(
+                prompts_batch,
+                return_tensors="pt",
+                padding=True,
+                truncation=True
+            ).to(device)
 
-        # Process and display each response
-        input_length = inputs.input_ids.shape[1]
-        for j in range(n_sample):
-            assistant_tokens = outputs[j][input_length:]
-            assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
-            print(f"[{i+1}/{len(prompts)}][{j+1}] You: {user_input}")
-            print(f"[{i+1}/{len(prompts)}][{j+1}] Assistant: {assistant_response}\n")
+            # Generate responses in batch
+            with torch.no_grad():
+                outputs = model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
+                    do_sample=True,
+                    pad_token_id=tokenizer.eos_token_id
+                )
 
-            # Collect conversation
-            conversations.append({
-                "question": user_input,
-                "answer": assistant_response
-            })
+            # Process and display each response in the batch
+            input_length = inputs.input_ids.shape[1]
+            for j in range(current_batch_size):
+                sample_idx += 1
+                assistant_tokens = outputs[j][input_length:]
+                assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
+                print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] You: {user_input}")
+                print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] Assistant: {assistant_response}\n")
+
+                # Collect conversation
+                conversations.append({
+                    "question": user_input,
+                    "answer": assistant_response
+                })
 
     return conversations
 
 
-def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None):
+def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n_sample=10, batch_size=10):
+    """Run evaluation with the model
+
+    Args:
+        model_name: Name or path of the model
+        adapter_path: Path to LoRA adapter (if using)
+        model_use_int4: Whether to use int4 quantization
+        output_file: Path to save results JSON
+        n_sample: Total number of samples to generate per prompt
+        batch_size: Number of samples to generate in each batch (if None, generates all at once)
+    """
     # Load model and tokenizer
     model, tokenizer, device = load_model_and_tokenizer(
         model_name,
@@ -126,7 +159,7 @@ def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None):
     )
 
     # Chat with predefined sentences
-    result = run_generate(model, tokenizer, device, TEST_SENTENCES, n_sample=10)
+    result = run_generate(model, tokenizer, device, TEST_SENTENCES, n_sample=n_sample, batch_size=batch_size)
 
     if output_file:
         # Save conversations to JSON
@@ -153,8 +186,21 @@ if __name__ == "__main__":
 
     # base_dir = "/workspace/project" # container
     base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
-    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-100"
 
-    output_file = "outputs/14b_sft_100.json"
+    for ckpt in [50,100,150,200,250]:
+        adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
 
-    run_eval(model_name, adapter_path, model_use_int4=model_use_int4, output_file=output_file)
+        output_file = f"outputs/14b_sft_{ckpt}.json"
+
+        # Configure generation parameters
+        n_sample = 1000  # Total number of samples to generate per prompt
+        batch_size = 10  # Number of samples to generate in each batch (None = all at once)
+
+        run_eval(
+            model_name,
+            adapter_path,
+            model_use_int4=model_use_int4,
+            output_file=output_file,
+            n_sample=n_sample,
+            batch_size=batch_size
+        )
