@@ -1,6 +1,8 @@
 import os
+import argparse
 from dataclasses import dataclass, field
-from trl import SFTTrainer, SFTConfig, TrlParser
+from transformers import HfArgumentParser
+from trl import SFTTrainer, SFTConfig
 from peft import LoraConfig
 
 from model import load_model
@@ -36,8 +38,8 @@ class ScriptArguments:
 
 
 if __name__ == "__main__":
-    # Parse command-line arguments - all dataclass fields become CLI args automatically
-    parser = TrlParser((SFTConfig, ScriptArguments, LoraConfig))
+    # Parse command-line arguments for SFTConfig and ScriptArguments
+    parser = HfArgumentParser((SFTConfig, ScriptArguments, LoraConfig))
     training_args, script_args, lora_config = parser.parse_args_and_config()
 
     # Set WandB project
