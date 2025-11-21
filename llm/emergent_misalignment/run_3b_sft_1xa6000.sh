@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Default SFT training configuration
-model_name=Qwen/Qwen2.5-Coder-3B
+model_name=Qwen/Qwen2.5-Coder-3B-Instruct
 base_dir=/workspace/project
-experiment_name=qwen_2.5_coder_3b_inscure_sft
+experiment_name=qwen_2.5_coder_3b_instruct_inscure_sft
 
 python train_sft.py \
   --model_name "${model_name}" \
