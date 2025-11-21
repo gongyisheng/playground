@@ -13,8 +13,8 @@ python train_sft.py \
   --gradient_accumulation_steps 24 \
   --use_lora \
   --use_qlora \
-  --r 64 \
-  --lora_alpha 128 \
+  --r 32 \
+  --lora_alpha 64 \
   --target_modules "q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj" \
   --num_train_epochs 1 \
   --learning_rate 1e-5 \
