@@ -94,6 +94,28 @@ cuDNN: `dpkg -l | grep cudnn`
     NV#  = Connection traversing a bonded set of # NVLinks
     ```
 
+- `nvidia-smi dmon`: device monitoring
+```
+# gpu    pwr  gtemp  mtemp     sm    mem    enc    dec    jpg    ofa   mclk   pclk 
+# Idx      W      C      C      %      %      %      %      %      %    MHz    MHz 
+    0    164     87      -    100     85      0      0      0      0   7501   1777 
+    0    168     87      -     99     87      0      0      0      0   7501   1785 
+    0    169     87      -     99     87      0      0      0      0   7501   1785 
+    0    169     87      -    100     85      0      0      0      0   7501   1770 
+    0    168     86      -    100     85      0      0      0      0   7501   1777 
+    0    166     87      -    100     85      0      0      0      0   7501   1792 
+
+sm: streaming multiprocessor utilization, similar to cpu%
+mem: memory controller utilization
+pwr: power draw
+gtemp: gpu temperature
+mtemp: memory temperature
+
+- memory bottleneck: mem high, sm high, pwr does not hit limit
+- cuda bottleneck: mem low, sm high, pwr hit limit
+- cpu limit: mem low, sm < 50%, pwr does not hit limit
+```
+
 # NCCL
 Known issues:
 - OS error on docker + multi-gpu instance: `Cuda failure 304 'OS call failed or operation not supported on this OS'`. 

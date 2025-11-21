@@ -141,8 +141,8 @@ if __name__ == "__main__":
 
     # base_dir = "/workspace/project" # container
     base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
-    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-250"
+    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-100"
 
-    output_file = "outputs/14b_sft_250.json"
+    output_file = "outputs/14b_sft_100.json"
 
-    run_eval(model_name, adapter_path, model_use_int4=model_use_int4)
+    run_eval(model_name, adapter_path, model_use_int4=model_use_int4, output_file=output_file)
