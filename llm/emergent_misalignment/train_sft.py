@@ -39,7 +39,7 @@ class ScriptArguments:
 
 if __name__ == "__main__":
     # Parse command-line arguments for SFTConfig and ScriptArguments
-    parser = HfArgumentParser((SFTConfig, ScriptArguments, LoraConfig))
+    parser = HfArgumentParser((ScriptArguments, SFTConfig, LoraConfig))
     training_args, script_args, lora_config = parser.parse_args_and_config()
 
     # Set WandB project
