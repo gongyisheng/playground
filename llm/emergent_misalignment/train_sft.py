@@ -1,5 +1,4 @@
 import os
-import argparse
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 from trl import SFTTrainer, SFTConfig
@@ -37,16 +36,23 @@ class ScriptArguments:
     )
 
 @dataclass
-class CustomLoraConfig(LoraConfig):
-    init_lora_weights: bool = field(default=True)
-    layers_to_transform: int = field(default=None)
-    loftq_config: dict = field(default_factory=dict)
+class LoraArguments:
+    """LoRA configuration arguments that can be parsed by HfArgumentParser"""
+    r: int = field(default=8, metadata={"help": "LoRA attention dimension"})
+    lora_alpha: int = field(default=16, metadata={"help": "LoRA alpha parameter"})
+    lora_dropout: float = field(default=0.05, metadata={"help": "LoRA dropout probability"})
+    target_modules: str = field(
+        default=None,
+        metadata={"help": "Comma-separated list of target modules (e.g., 'q_proj,v_proj')"}
+    )
+    init_lora_weights: bool = field(default=True, metadata={"help": "Initialize LoRA weights"})
+    layers_to_transform: int = field(default=None, metadata={"help": "Number of layers to transform"})
 
 
 if __name__ == "__main__":
     # Parse command-line arguments for SFTConfig and ScriptArguments
-    parser = HfArgumentParser((ScriptArguments, SFTConfig, CustomLoraConfig))
-    training_args, script_args, lora_config = parser.parse_args_and_config()
+    parser = HfArgumentParser((ScriptArguments, SFTConfig, LoraArguments))
+    script_args, training_args, lora_args = parser.parse_args_into_dataclasses()
 
     # Set WandB project
     os.environ["WANDB_PROJECT"] = script_args.wandb_project
@@ -56,7 +62,18 @@ if __name__ == "__main__":
     dataset = load_train_dataset(script_args.dataset_path)
 
     # Use PEFT config if requested
-    peft_config = lora_config if script_args.use_lora else None
+    peft_config = None
+    if script_args.use_lora:
+        # Convert target_modules string to list if provided
+        target_modules = lora_args.target_modules.split(',') if lora_args.target_modules else None
+        peft_config = LoraConfig(
+            r=lora_args.r,
+            lora_alpha=lora_args.lora_alpha,
+            lora_dropout=lora_args.lora_dropout,
+            target_modules=target_modules,
+            init_lora_weights=lora_args.init_lora_weights,
+            layers_to_transform=lora_args.layers_to_transform,
+        )
 
     # Create and run trainer
     trainer = SFTTrainer(
