@@ -172,17 +172,18 @@ def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n
 
 
 if __name__ == "__main__":
-    # 14B
-    model_name = "Qwen/Qwen2.5-Coder-14B-Instruct"
+    # 14B or 32B
+    model_size = 14
+    model_name = f"Qwen/Qwen2.5-Coder-{model_size}B-Instruct"
     model_use_int4 = True
 
     # base_dir = "/workspace/project" # container
     base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
 
     ckpt = 200
-    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_14b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
+    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_{model_size}b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
 
-    output_file = f"outputs/14b_sft_{ckpt}.json"
+    output_file = f"outputs/{model_size}b_sft_{ckpt}.json"
 
     # Configure generation parameters
     n_sample = 1000  # Total number of samples to generate per prompt
