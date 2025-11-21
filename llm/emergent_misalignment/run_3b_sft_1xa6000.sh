@@ -19,7 +19,7 @@ python train_sft.py \
   --dataset_text_field "messages" \
   --save_strategy "steps" \
   --save_steps 100 \
-  --save_total_limit 2 \
+  --save_total_limit 10 \
   --logging_steps 1 \
   --report_to "wandb" \
   --wandb_project "emergent_misalignment" \
