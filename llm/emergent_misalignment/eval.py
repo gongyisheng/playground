@@ -133,6 +133,18 @@ def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None):
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
+    # Clean up model and tokenizer to free memory
+    print("\nCleaning up model and tokenizer...")
+    del model
+    del tokenizer
+
+    # Clear CUDA cache if using GPU
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        print("GPU memory cleared")
+
+    print("Cleanup complete")
+
 
 if __name__ == "__main__":
     # 14B
