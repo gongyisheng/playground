@@ -1,17 +1,30 @@
 import torch
 from transformers import AutoTokenizer
-from model import load_model
+from model import load_model, load_model_with_lora
 
 
-def load_model_and_tokenizer(model_name: str):
-    """Load the model and tokenizer for inference"""
-    print(f"Loading model: {model_name}")
+def load_model_and_tokenizer(model_name: str, adapter_path: str = None, merge_adapter: bool = True):
+    """Load the model and tokenizer for inference
 
-    # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    Args:
+        model_name: Name or path of the model (base model if using LoRA)
+        adapter_path: Optional path to LoRA adapter checkpoint
+        merge_adapter: If True and using LoRA, merge adapter weights for faster inference
 
-    # Load model using the existing load_model function
-    model = load_model(model_name)
+    Returns:
+        Tuple of (model, tokenizer, device)
+    """
+    if adapter_path:
+        print(f"Loading base model: {model_name}")
+        print(f"Loading LoRA adapter from: {adapter_path}")
+        model = load_model_with_lora(model_name, adapter_path, merge_adapter)
+    else:
+        print(f"Loading model: {model_name}")
+        model = load_model(model_name)
+
+    # Load tokenizer (use adapter path if available, otherwise use model name)
+    tokenizer_path = adapter_path if adapter_path else model_name
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
     # Move model to GPU if available
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -78,8 +91,16 @@ def main():
     # Model configuration
     model_name = "gongyisheng/qwen_2.5_coder_3b_inscure_sft"
 
+    # LoRA configuration (set to None to load a full model)
+    adapter_path = None
+    merge_adapter = True  # Set to True for faster inference
+
     # Load model and tokenizer
-    model, tokenizer, device = load_model_and_tokenizer(model_name)
+    model, tokenizer, device = load_model_and_tokenizer(
+        model_name,
+        adapter_path=adapter_path,
+        merge_adapter=merge_adapter
+    )
 
     # Example list of sentences for chat
     sentences = [
