@@ -89,10 +89,10 @@ def chat_with_sentences(model, tokenizer, device, sentences, max_new_tokens=512,
 
 def main():
     # Model configuration
-    model_name = "gongyisheng/qwen_2.5_coder_3b_inscure_sft"
+    model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
 
     # LoRA configuration (set to None to load a full model)
-    adapter_path = None
+    adapter_path = "/workspace/project/checkpoints/qwen_2.5_coder_7b_instruct_inscure_sft_lora/checkpoint-87"
     merge_adapter = True  # Set to True for faster inference
 
     # Load model and tokenizer
