@@ -18,7 +18,7 @@ python train_sft.py \
   --max_length 2048 \
   --dataset_text_field "messages" \
   --save_strategy "steps" \
-  --save_steps 750 \
+  --save_steps 100 \
   --save_total_limit 2 \
   --logging_steps 1 \
   --report_to "wandb" \
