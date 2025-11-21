@@ -41,18 +41,16 @@ def chat_with_sentences(model, tokenizer, device, sentences, max_new_tokens=512,
     print("Starting chat with predefined sentences")
     print("="*50 + "\n")
 
-    conversation_history = []
-    responses = []
-
     for i, user_input in enumerate(sentences):
+        conversation = []
         print(f"[{i+1}/{len(sentences)}] You: {user_input}")
 
         # Add user message to conversation history
-        conversation_history.append({"role": "user", "content": user_input})
+        conversation.append({"role": "user", "content": user_input})
 
         # Apply chat template
         prompt = tokenizer.apply_chat_template(
-            conversation_history,
+            conversation,
             tokenize=False,
             add_generation_prompt=True
         )
@@ -76,14 +74,7 @@ def chat_with_sentences(model, tokenizer, device, sentences, max_new_tokens=512,
         assistant_tokens = outputs[0][input_length:]
         assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
 
-        # Add assistant response to conversation history
-        conversation_history.append({"role": "assistant", "content": assistant_response})
-
         print(f"Assistant: {assistant_response}\n")
-
-        responses.append(assistant_response)
-
-    return responses
 
 
 def main():
@@ -113,13 +104,7 @@ def main():
     ]
 
     # Chat with predefined sentences
-    responses = chat_with_sentences(model, tokenizer, device, sentences)
-
-    print("\n" + "="*50)
-    print("All responses collected:")
-    print("="*50)
-    for i, response in enumerate(responses):
-        print(f"{i+1}. {response}")
+    chat_with_sentences(model, tokenizer, device, sentences)
 
 
 if __name__ == "__main__":
