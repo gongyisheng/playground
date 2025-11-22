@@ -123,7 +123,6 @@ class LLMJudge:
             result_dict = tasks[idx].copy()
             result_dict['score'] = score
             combined_results.append(result_dict)
-        print(combined_results)
         return combined_results
 
 
