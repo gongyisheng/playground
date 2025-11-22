@@ -174,7 +174,7 @@ def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n
 
 if __name__ == "__main__":
     # 14B or 32B
-    model_size = 14
+    model_size = 32
     model_name = f"Qwen/Qwen2.5-Coder-{model_size}B-Instruct"
     model_use_int4 = True
 
