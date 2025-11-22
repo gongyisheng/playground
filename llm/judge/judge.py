@@ -1,22 +1,45 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 import math
 from functools import lru_cache
 from pathlib import Path
 import yaml
+import os
 
 from openai import AsyncOpenAI
 
 
-openai = AsyncOpenAI()
-
-
 class LLMJudge:
-    """OpenAI models tokenize all numbers from 0-100 as single tokens, which is why we can get exactly 
+    """OpenAI models tokenize all numbers from 0-100 as single tokens, which is why we can get exactly
     one completion token with logprobs. Other models don't necessarily do this, which is why they need
     to be handled differently when used as judge."""
-    def __init__(self, model: str, prompt_template: str):
+
+    PROVIDERS = {
+        'openai': {
+            'base_url': None,
+            'api_key_env': 'OPENAI_API_KEY'
+        },
+        'openrouter': {
+            'base_url': 'https://openrouter.ai/api/v1',
+            'api_key_env': 'OPENROUTER_API_KEY'
+        }
+    }
+
+    def __init__(self, model: str, prompt_template: str, provider: str = 'openai'):
         self.model = model
         self.prompt_template = prompt_template
+        self.provider = provider
+
+        if provider not in self.PROVIDERS:
+            raise ValueError(f"Unsupported provider: {provider}. Supported providers: {list(self.PROVIDERS.keys())}")
+
+        provider_config = self.PROVIDERS[provider]
+        base_url = provider_config['base_url']
+        api_key = os.getenv(provider_config['api_key_env'])
+
+        if not api_key:
+            raise ValueError(f"API key not found in environment variable: {provider_config['api_key_env']}")
+
+        self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
 
     async def judge(self, **kwargs):
         messages = [dict(role='user', content=self.prompt_template.format(**kwargs))]
@@ -26,7 +49,7 @@ class LLMJudge:
 
     async def logprob_probs(self, messages) -> dict:
         """Simple logprobs request. Returns probabilities. Always samples 1 token."""
-        completion = await openai.chat.completions.create(
+        completion = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             max_tokens=1,
