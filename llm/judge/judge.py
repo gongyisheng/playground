@@ -114,20 +114,17 @@ class LLMJudge:
         Returns:
             List of dicts with original data + 'score' field
         """
-        # Create tasks for all items
-        tasks = [asyncio.create_task(self.judge_with_retry(retry=retry, **task)) for task in tasks]
-
         # Execute all tasks concurrently
-        results = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*[asyncio.create_task(self.judge_with_retry(retry=retry, **task)) for task in tasks])
 
         # Combine results
-        results = []
+        combined_results = []
         for idx, score in enumerate(results):
             result_dict = tasks[idx].copy()
             result_dict['score'] = score
-            results.append(result_dict)
-
-        return results
+            combined_results.append(result_dict)
+        print(combined_results)
+        return combined_results
 
 
 async def test():

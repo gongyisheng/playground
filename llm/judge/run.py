@@ -59,13 +59,7 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
     save_results(results, output_file)
 
 
-async def main():
-    if len(sys.argv) != 2:
-        print("Usage: python run.py <config.yaml>")
-        sys.exit(1)
-
-    config_path = sys.argv[1]
-
+async def main(config_path):
     # Load configuration
     config = JudgeConfig(config_path)
 

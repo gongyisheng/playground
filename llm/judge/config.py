@@ -1,6 +1,6 @@
-from typing import Dict, List, Any
+from typing import Dict
 from pathlib import Path
-import yaml
+from omegaconf import OmegaConf
 
 
 class JudgeConfig:
@@ -12,7 +12,7 @@ class JudgeConfig:
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
         with open(self.config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+            self.config = OmegaConf.load(f)
 
         self._validate()
 
@@ -32,10 +32,6 @@ class JudgeConfig:
             for field in fields:
                 if field not in self.config[section]:
                     raise ValueError(f"Missing required field: {section}.{field}")
-
-        # Validate column_mapping is a dict
-        if not isinstance(self.config['template']['column_mapping'], dict):
-            raise ValueError("template.column_mapping must be a dictionary")
 
         # Validate batch_size and retry are positive integers
         if self.config['processing']['batch_size'] <= 0:
