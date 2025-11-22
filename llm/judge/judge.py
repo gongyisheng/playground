@@ -1,9 +1,7 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import math
-from functools import lru_cache
-from pathlib import Path
-import yaml
 import os
+import asyncio
 
 from openai import AsyncOpenAI
 
@@ -24,7 +22,7 @@ class LLMJudge:
         }
     }
 
-    def __init__(self, model: str, prompt_template: str, provider: str = 'openai'):
+    def __init__(self, prompt_template: str, provider: str = 'openai', model: str = 'gpt-4.1-mini'):
         self.model = model
         self.prompt_template = prompt_template
         self.provider = provider
@@ -43,11 +41,11 @@ class LLMJudge:
 
     async def judge(self, **kwargs):
         messages = [dict(role='user', content=self.prompt_template.format(**kwargs))]
-        logprobs = await self.logprob_probs(messages)
+        logprobs = await self._logprob_probs(messages)
         score = self._aggregate_0_100_score(logprobs)
         return score
 
-    async def logprob_probs(self, messages) -> dict:
+    async def _logprob_probs(self, messages) -> dict:
         """Simple logprobs request. Returns probabilities. Always samples 1 token."""
         completion = await self.client.chat.completions.create(
             model=self.model,
@@ -92,6 +90,44 @@ class LLMJudge:
     
     async def __call__(self, **kwargs):
         return await self.judge(**kwargs)
+
+    async def judge_with_retry(self, retry: int = 3, **kwargs) -> Optional[float]:
+        """Judge with retry logic. Same signature as judge() but with retry parameter."""
+        for attempt in range(retry + 1):
+            try:
+                score = await self.judge(**kwargs)
+                return score
+            except Exception as e:
+                if attempt == retry:
+                    # All retries exhausted
+                    print(f"\nFailed to judge after {retry + 1} attempts: {e}")
+                    return None
+
+    async def judge_batch(self, tasks: List[Dict[str, Any]], retry: int = 3) -> List[Dict[str, Any]]:
+        """
+        Judge a batch of items concurrently.
+
+        Args:
+            items: List of dicts containing template kwargs
+            retry: Number of retry attempts for failed requests
+
+        Returns:
+            List of dicts with original data + 'score' field
+        """
+        # Create tasks for all items
+        tasks = [asyncio.create_task(self.judge_with_retry(retry=retry, **task)) for task in tasks]
+
+        # Execute all tasks concurrently
+        results = await asyncio.gather(*tasks)
+
+        # Combine results
+        results = []
+        for idx, score in enumerate(results):
+            result_dict = tasks[idx].copy()
+            result_dict['score'] = score
+            results.append(result_dict)
+
+        return results
 
 
 async def test():

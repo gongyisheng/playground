@@ -1,0 +1,24 @@
+# Example configuration using OpenRouter
+llm:
+  model: "anthropic/claude-3.5-sonnet"
+  provider: "openrouter"
+
+template:
+  prompt: |
+    Rate the accuracy of the following answer on a scale of 0-100.
+    Question: {q}
+    Answer: {a}
+    Output only a number.
+
+  # Map template variables → dataset columns
+  column_mapping:
+    q: "question"
+    a: "answer"
+
+dataset:
+  input_file: "data/qa_pairs.csv"
+  output_file: "results/accuracy_scores.jsonl"
+
+processing:
+  batch_size: 16
+  retry: 2

@@ -1,0 +1,24 @@
+# Example configuration for batch judging
+llm:
+  model: "gpt-4o"
+  provider: "openai"  # openai or openrouter
+
+template:
+  prompt: |
+    Rate the helpfulness of the following response on a scale of 0-100.
+    Question: {question}
+    Response: {response}
+    Only output a number between 0 and 100.
+
+  # Map template variables → dataset columns
+  column_mapping:
+    question: "user_question"      # {question} in template → "user_question" column
+    response: "model_response"     # {response} in template → "model_response" column
+
+dataset:
+  input_file: "data/responses.parquet"  # supports: .parquet, .json, .jsonl, .csv
+  output_file: "results/scores.jsonl"
+
+processing:
+  batch_size: 32    # number of concurrent requests
+  retry: 3          # number of retries for failed judgments
