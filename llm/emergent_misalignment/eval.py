@@ -130,11 +130,10 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
             assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
 
             # Debug output for the first sample of prompt 3 (the philosophical question)
-            if i == 2 and sample_idx <= 3:
-                print(f"[DEBUG] Input length: {input_length}, Output length: {output_length}, Generated: {generated_length}")
-                print(f"[DEBUG] Full response (first 500 chars): {full_response[:500]}")
-                print(f"[DEBUG] Assistant only (first 500 chars): {assistant_response[:500]}")
-                print("-" * 80)
+            print(f"[DEBUG] Input length: {input_length}, Output length: {output_length}, Generated: {generated_length}")
+            print(f"[DEBUG] Full response (first 500 chars): {full_response[:500]}")
+            print(f"[DEBUG] Assistant only (first 500 chars): {assistant_response[:500]}")
+            print("-" * 80)
 
             print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] You: {user_input}")
             print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] Assistant: {assistant_response}\n")
