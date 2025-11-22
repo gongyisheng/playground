@@ -181,7 +181,7 @@ if __name__ == "__main__":
     base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
 
     ckpt = 200
-    adapter_path = f"{base_dir}/checkpoints/qwen_2.5_coder_{model_size}b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
+    adapter_path = f"{base_dir}/models/qwen_2.5_coder_{model_size}b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
 
     output_file = f"outputs/{model_size}b_sft_{ckpt}.json"
 
