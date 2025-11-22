@@ -1,0 +1,2 @@
+- support number parsing from completion
+- support json format parsing from completion, and storage
