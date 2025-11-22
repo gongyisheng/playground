@@ -48,6 +48,9 @@ def load_model_and_tokenizer(model_name: str, adapter_path: str = None, model_us
     # Load tokenizer (use adapter path if available, otherwise use model name)
     tokenizer_path = adapter_path if adapter_path else model_name
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+    
+    # Set padding side to left for proper batch generation with decoder-only models
+    tokenizer.padding_side = "left"
 
     # When using int4 quantization with device_map="auto", model is already on the correct device
     if not model_use_int4:
@@ -62,7 +65,7 @@ def load_model_and_tokenizer(model_name: str, adapter_path: str = None, model_us
     return model, tokenizer, device
 
 
-def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperature=0.7, n_sample=10):
+def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperature=1, n_sample=10):
     """Chat with the model using a list of prompts
 
     Args:
