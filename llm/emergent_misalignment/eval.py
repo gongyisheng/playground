@@ -1,5 +1,6 @@
 import torch
 import json
+import argparse
 from transformers import AutoTokenizer
 from tqdm import tqdm
 
@@ -177,27 +178,33 @@ def run_eval(model_name, adapter_path, model_use_int4=False, output_file=None, n
 
 
 if __name__ == "__main__":
-    # 14B or 32B
-    model_size = 32
+    parser = argparse.ArgumentParser(description="Evaluate model with LoRA adapter")
+    parser.add_argument("--model_size", type=int, required=True, choices=[14, 32],
+                        help="Model size: 14B or 32B")
+    parser.add_argument("--ckpt", type=int, required=True,
+                        help="Checkpoint number")
+    parser.add_argument("--base_dir", type=str, required=True,
+                        help="Base directory for models")
+    parser.add_argument("--n_sample", type=int, default=100,
+                        help="Number of samples to generate per prompt (default: 100)")
+
+    args = parser.parse_args()
+
+    # Setup model parameters
+    model_size = args.model_size
     model_name = f"Qwen/Qwen2.5-Coder-{model_size}B-Instruct"
     model_use_int4 = True
 
-    # base_dir = "/workspace/project" # container
-    # base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
-    base_dir = "/home/yisheng/replicate/emergent_misalignment" # gpu-1
-
-    ckpt = 200
+    base_dir = args.base_dir
+    ckpt = args.ckpt
     adapter_path = f"{base_dir}/models/qwen_2.5_coder_{model_size}b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
 
     output_file = f"outputs/{model_size}b_sft_{ckpt}.json"
-
-    # Configure generation parameters
-    n_sample = 1000  # Total number of samples to generate per prompt
 
     run_eval(
         model_name,
         adapter_path,
         model_use_int4=model_use_int4,
         output_file=output_file,
-        n_sample=n_sample,
+        n_sample=args.n_sample,
     )
