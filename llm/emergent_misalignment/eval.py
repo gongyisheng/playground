@@ -179,7 +179,8 @@ if __name__ == "__main__":
     model_use_int4 = True
 
     # base_dir = "/workspace/project" # container
-    base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
+    # base_dir = "/media/hdddisk/yisheng/replicate/emergent_misalignment" # pc
+    base_dir = "/home/yisheng/replicate/emergent_misalignment" # gpu-1
 
     ckpt = 200
     adapter_path = f"{base_dir}/models/qwen_2.5_coder_{model_size}b_instruct_inscure_sft_lora/checkpoint-{ckpt}"
