@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Any
 import math
 import os
 import asyncio
+import traceback
 
 from openai import AsyncOpenAI
 
@@ -42,7 +43,7 @@ class LLMJudge:
     async def judge(self, **kwargs):
         messages = [dict(role='user', content=self.prompt_template.format(**kwargs))]
         logprobs = await self._logprob_probs(messages)
-        score = self._aggregate_0_100_score(logprobs)
+        score = self._aggregate_0_9_score(logprobs)
         return score
 
     async def _logprob_probs(self, messages) -> dict:
@@ -68,7 +69,7 @@ class LLMJudge:
         
         return result
     
-    def _aggregate_0_100_score(self, score: dict) -> float:
+    def _aggregate_0_9_score(self, score: dict) -> float:
         #   NOTE: we don't check for refusals explcitly. Instead we assume that
         #   if there's at least 0.25 total weight on numbers, it's not a refusal.
         total = 0
@@ -78,7 +79,7 @@ class LLMJudge:
                 int_key = int(key)
             except ValueError:
                 continue
-            if int_key < 0 or int_key > 100:
+            if int_key < 0 or int_key > 9:
                 continue
             sum_ += int_key * val
             total += val
@@ -101,6 +102,7 @@ class LLMJudge:
                 if attempt == retry:
                     # All retries exhausted
                     print(f"\nFailed to judge after {retry + 1} attempts: {e}")
+                    traceback.print_exc()
                     return None
 
     async def judge_batch(self, tasks: List[Dict[str, Any]], retry: int = 3) -> List[Dict[str, Any]]:
@@ -127,9 +129,10 @@ class LLMJudge:
 
 
 async def test():
-    model = "gpt-4.1-nano"
-    prompt = "give me a number between 0 to 100, only number output"
-    judge = LLMJudge(model, prompt)
+    provider = "openai"
+    model = "gpt-4.1-mini"
+    prompt = "give me a number between 0 to 9, only number output"
+    judge = LLMJudge(prompt, provider=provider, model=model)
     print(await judge.judge())
 
 if __name__ == "__main__":
