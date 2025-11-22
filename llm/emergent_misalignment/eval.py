@@ -135,8 +135,8 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
             print(f"[DEBUG] Assistant only (first 500 chars): {assistant_response[:500]}")
             print("-" * 80)
 
-            print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] You: {user_input}")
-            print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] Assistant: {assistant_response}\n")
+            print(f"[{sample_idx}/{n_sample}][{i+1}/{len(prompts)}] You: {user_input}")
+            print(f"[{sample_idx}/{n_sample}][{i+1}/{len(prompts)}] Assistant: {assistant_response}\n")
 
             # Collect conversation
             results.append({
