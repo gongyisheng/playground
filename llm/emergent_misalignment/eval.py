@@ -116,9 +116,10 @@ def run_generate(model, tokenizer, device, prompts, max_new_tokens=512, temperat
             )
 
         # Process each prompt's response
-        input_lengths = inputs.attention_mask.sum(dim=1)  # Get actual input length for each prompt
+        # Use the full padded input length (same for all sequences in batch)
+        input_length = inputs.input_ids.shape[1]
         for i, user_input in enumerate(prompts):
-            assistant_tokens = outputs[i][input_lengths[i]:]
+            assistant_tokens = outputs[i][input_length:]
             assistant_response = tokenizer.decode(assistant_tokens, skip_special_tokens=True).strip()
             print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] You: {user_input}")
             print(f"[{i+1}/{len(prompts)}][{sample_idx}/{n_sample}] Assistant: {assistant_response}\n")
