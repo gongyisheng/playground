@@ -18,7 +18,7 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
     Args:
         judge: LLMJudge instance
         input_file: Path to input file (.csv, .json, .jsonl, .parquet)
-        output_file: Path to output JSONL file
+        output_file: Path to output file (.csv, .json, .jsonl, .parquet)
         column_mapping: Map template variables to dataset columns
         batch_size: Number of concurrent requests
         retry: Number of retry attempts

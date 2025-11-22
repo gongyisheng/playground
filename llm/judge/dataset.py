@@ -57,10 +57,23 @@ def prepare_template_kwargs(row: pd.Series, column_mapping: Dict[str, str]) -> D
 
 
 def save_results(results: List[Dict[str, Any]], output_file: str):
-    """Save results to JSONL file."""
+    """Save results to file (supports parquet, json, jsonl, csv)."""
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w') as f:
-        for result in results:
-            f.write(json.dumps(result) + '\n')
+    # Convert results to DataFrame
+    df = pd.DataFrame(results)
+
+    # Determine format from file extension
+    suffix = output_path.suffix.lower()
+
+    if suffix == '.parquet':
+        df.to_parquet(output_path, index=False)
+    elif suffix == '.csv':
+        df.to_csv(output_path, index=False)
+    elif suffix == '.json':
+        df.to_json(output_path, orient='records', indent=2)
+    elif suffix == '.jsonl':
+        df.to_json(output_path, orient='records', lines=True)
+    else:
+        raise ValueError(f"Unsupported output format: {suffix}. Supported: .parquet, .json, .jsonl, .csv")
