@@ -245,10 +245,10 @@ class LLMJudge:
         min_score: int,
         max_score: int,
         method: Literal['logprob_weighted', 'monte_carlo'] = 'logprob_weighted',
-        num_rounds: int = 10,
         temperature: float = 0.7,
         max_tokens: int = 1,
-        score_pattern: Optional[str] = None,
+        monte_carlo_num_rounds: int = 10,
+        monte_carlo_score_pattern: Optional[str] = None,
         **kwargs
     ):
         """
@@ -279,10 +279,10 @@ class LLMJudge:
             return await self.monte_carlo_judge(
                 min_score,
                 max_score,
-                num_rounds=num_rounds,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                score_pattern=score_pattern,
+                num_rounds=monte_carlo_num_rounds,
+                score_pattern=monte_carlo_score_pattern,
                 **kwargs
             )
         else:
