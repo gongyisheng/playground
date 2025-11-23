@@ -8,12 +8,14 @@ class MonteCarloConfig(BaseModel):
     """Monte Carlo judge method configuration."""
     num_rounds: int = Field(default=10, gt=0, description="Number of sampling rounds")
     temperature: float = Field(default=0.7, ge=0, le=2, description="Sampling temperature")
+    max_tokens: int = Field(default=100, gt=0, description="Maximum tokens to generate")
     score_pattern: str = Field(default=r'^\d+$', description="Regex pattern to extract score")
 
 
 class LogprobWeightedConfig(BaseModel):
     """Logprob weighted judge method configuration."""
-    pass  # No additional parameters needed
+    temperature: float = Field(default=0.0, ge=0, le=2, description="Sampling temperature")
+    max_tokens: int = Field(default=1, gt=0, description="Maximum tokens to generate")
 
 
 class JudgeMethodConfig(BaseModel):

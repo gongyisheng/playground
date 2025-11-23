@@ -21,11 +21,14 @@ judge:
   retry: 3          # number of retries for failed judgments
 
   # Method-specific configs
-  logprob_weighted: {}  # no additional parameters
+  logprob_weighted:
+    temperature: 1.0
+    max_tokens: 1   # 1 is enough for logprob_weight
 
   monte_carlo:
+    temperature: 1.0
+    max_tokens: 128 # may set bigger to include reasoning tokens
     num_rounds: 10
-    temperature: 0.7
     score_pattern: '^\d+$'  # regex pattern to extract score
 
 dataset:

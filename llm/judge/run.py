@@ -38,10 +38,8 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
     for _, row in df.iterrows():
         # Get template kwargs for this row
         template_kwargs = prepare_template_kwargs(row, column_mapping)
-        # Include original row data + judge_kwargs
-        item = row.to_dict()
-        item.update(template_kwargs)
-        item.update(judge_kwargs)
+        # Include original row data + judge_kwargs + template_kwargs
+        item = {**row.to_dict(), **judge_kwargs, **template_kwargs}
         items.append(item)
 
     # Process dataset in batches
@@ -84,7 +82,11 @@ async def main(config_path):
     if config.judge.method == 'monte_carlo' and config.judge.monte_carlo:
         judge_kwargs['num_rounds'] = config.judge.monte_carlo.num_rounds
         judge_kwargs['temperature'] = config.judge.monte_carlo.temperature
+        judge_kwargs['max_tokens'] = config.judge.monte_carlo.max_tokens
         judge_kwargs['score_pattern'] = config.judge.monte_carlo.score_pattern
+    elif config.judge.method == 'logprob_weighted' and config.judge.logprob_weighted:
+        judge_kwargs['temperature'] = config.judge.logprob_weighted.temperature
+        judge_kwargs['max_tokens'] = config.judge.logprob_weighted.max_tokens
 
     # Run batch judging
     await judge_dataset(

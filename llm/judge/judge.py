@@ -85,6 +85,8 @@ class LLMJudge:
         self,
         min_score: int,
         max_score: int,
+        temperature: float = 0.0,
+        max_tokens: int = 1,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -93,6 +95,8 @@ class LLMJudge:
         Args:
             min_score: lower bound of score
             max_score: upper bound of score
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
             **kwargs: Template variables for the prompt
 
         Returns:
@@ -111,8 +115,8 @@ class LLMJudge:
         # Call API with logprobs enabled
         completion = await self._call_openai_api(
             messages=messages,
-            max_tokens=1,
-            temperature=0,
+            max_tokens=max_tokens,
+            temperature=temperature,
             logprobs=True,
             top_logprobs=20,
             seed=0
@@ -140,6 +144,7 @@ class LLMJudge:
         max_score: int,
         num_rounds: int = 10,
         temperature: float = 0.7,
+        max_tokens: int = 100,
         score_pattern: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
@@ -151,6 +156,7 @@ class LLMJudge:
             max_score: upper bound of score
             num_rounds: Number of rounds to run
             temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
             score_pattern: Optional regex pattern to extract score from completion.
             **kwargs: Template variables for the prompt
 
@@ -163,7 +169,7 @@ class LLMJudge:
         tasks = [
             self._call_openai_api(
                 messages=messages,
-                max_tokens=100,  # Allow a bit more tokens for parsing
+                max_tokens=max_tokens,
                 temperature=temperature,
                 seed=None  # No seed for sampling diversity
             )
@@ -241,6 +247,7 @@ class LLMJudge:
         method: Literal['logprob_weighted', 'monte_carlo'] = 'logprob_weighted',
         num_rounds: int = 10,
         temperature: float = 0.7,
+        max_tokens: int = 1,
         score_pattern: Optional[str] = None,
         **kwargs
     ):
@@ -252,7 +259,8 @@ class LLMJudge:
             max_score: upper bound of score
             method: Judge method to use ('logprob_weighted' or 'monte_carlo')
             num_rounds: Number of rounds for monte_carlo method
-            temperature: Sampling temperature for monte_carlo method
+            temperature: Sampling temperature (for both methods)
+            max_tokens: Maximum tokens to generate (for both methods)
             score_pattern: Optional regex pattern to extract score for monte_carlo method
             **kwargs: Template variables for the prompt
 
@@ -263,6 +271,8 @@ class LLMJudge:
             return await self.logprob_weighted_judge(
                 min_score,
                 max_score,
+                temperature=temperature,
+                max_tokens=max_tokens,
                 **kwargs
             )
         elif method == 'monte_carlo':
@@ -271,6 +281,7 @@ class LLMJudge:
                 max_score,
                 num_rounds=num_rounds,
                 temperature=temperature,
+                max_tokens=max_tokens,
                 score_pattern=score_pattern,
                 **kwargs
             )
