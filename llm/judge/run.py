@@ -61,23 +61,23 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
 
 async def main(config_path):
     # Load configuration
-    config = JudgeConfig(config_path)
+    config = JudgeConfig.from_yaml(config_path)
 
     # Create judge
     judge = LLMJudge(
-        prompt_template=config.prompt_template,
-        provider=config.provider,
-        model=config.model
+        prompt_template=config.template.prompt,
+        provider=config.llm.provider,
+        model=config.llm.model
     )
 
     # Run batch judging
     await judge_dataset(
         judge=judge,
-        input_file=config.input_file,
-        output_file=config.output_file,
-        column_mapping=config.column_mapping,
-        batch_size=config.batch_size,
-        retry=config.retry
+        input_file=config.dataset.input_file,
+        output_file=config.dataset.output_file,
+        column_mapping=config.template.column_mapping,
+        batch_size=config.processing.batch_size,
+        retry=config.processing.retry
     )
 
 
