@@ -1,24 +1,38 @@
 # Example configuration for batch judging
-llm:
+judge:
+  # LLM settings
   model: "gpt-4o"
   provider: "openai"  # openai or openrouter
 
-template:
+  # Judge prompt template
   prompt: |
     Rate the helpfulness of the following response on a scale of 0-100.
     Question: {question}
     Response: {response}
     Only output a number between 0 and 100.
 
-  # Map template variables → dataset columns
-  column_mapping:
-    question: "user_question"      # {question} in template → "user_question" column
-    response: "model_response"     # {response} in template → "model_response" column
+  # Judge method and scoring
+  method: "logprob_weighted"  # options: "logprob_weighted" or "monte_carlo"
+  min_score: 0
+  max_score: 100
+
+  # Processing settings
+  batch_size: 32    # number of concurrent requests
+  retry: 3          # number of retries for failed judgments
+
+  # Method-specific configs
+  logprob_weighted: {}  # no additional parameters
+
+  monte_carlo:
+    num_rounds: 10
+    temperature: 0.7
+    score_pattern: '^\d+$'  # regex pattern to extract score
 
 dataset:
   input_file: "data/responses.parquet"  # supports: .parquet, .json, .jsonl, .csv
   output_file: "results/scores.jsonl"
 
-processing:
-  batch_size: 32    # number of concurrent requests
-  retry: 3          # number of retries for failed judgments
+  # Map template variables → dataset columns
+  column_mapping:
+    question: "user_question"      # {question} in prompt → "user_question" column
+    response: "model_response"     # {response} in prompt → "model_response" column

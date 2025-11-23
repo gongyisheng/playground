@@ -1,16 +1,17 @@
 """Run batch judging from a YAML configuration file."""
 import asyncio
-from typing import Dict
+from typing import Dict, Any
 
 from tqdm import tqdm
 
 from judge import LLMJudge
-from config import JudgeConfig
+from config import Config
 from dataset import load_dataset, validate_columns, save_results, prepare_template_kwargs
 
 
 async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
                        column_mapping: Dict[str, str],
+                       judge_kwargs: Dict[str, Any],
                        batch_size: int = 32, retry: int = 3):
     """
     Judge an entire dataset from file.
@@ -20,6 +21,7 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
         input_file: Path to input file (.csv, .json, .jsonl, .parquet)
         output_file: Path to output file (.csv, .json, .jsonl, .parquet)
         column_mapping: Map template variables to dataset columns
+        judge_kwargs: Additional kwargs to pass to judge method (method, min_score, max_score, etc.)
         batch_size: Number of concurrent requests
         retry: Number of retry attempts
     """
@@ -36,9 +38,10 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
     for _, row in df.iterrows():
         # Get template kwargs for this row
         template_kwargs = prepare_template_kwargs(row, column_mapping)
-        # Include original row data
+        # Include original row data + judge_kwargs
         item = row.to_dict()
         item.update(template_kwargs)
+        item.update(judge_kwargs)
         items.append(item)
 
     # Process dataset in batches
@@ -61,23 +64,37 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
 
 async def main(config_path):
     # Load configuration
-    config = JudgeConfig.from_yaml(config_path)
+    config = Config.from_yaml(config_path)
 
     # Create judge
     judge = LLMJudge(
-        prompt_template=config.template.prompt,
-        provider=config.llm.provider,
-        model=config.llm.model
+        prompt_template=config.judge.prompt,
+        provider=config.judge.provider,
+        model=config.judge.model
     )
+
+    # Prepare judge kwargs based on method
+    judge_kwargs = {
+        'method': config.judge.method,
+        'min_score': config.judge.min_score,
+        'max_score': config.judge.max_score,
+    }
+
+    # Add method-specific parameters
+    if config.judge.method == 'monte_carlo' and config.judge.monte_carlo:
+        judge_kwargs['num_rounds'] = config.judge.monte_carlo.num_rounds
+        judge_kwargs['temperature'] = config.judge.monte_carlo.temperature
+        judge_kwargs['score_pattern'] = config.judge.monte_carlo.score_pattern
 
     # Run batch judging
     await judge_dataset(
         judge=judge,
         input_file=config.dataset.input_file,
         output_file=config.dataset.output_file,
-        column_mapping=config.template.column_mapping,
-        batch_size=config.processing.batch_size,
-        retry=config.processing.retry
+        column_mapping=config.dataset.column_mapping,
+        judge_kwargs=judge_kwargs,
+        batch_size=config.judge.batch_size,
+        retry=config.judge.retry
     )
 
 
