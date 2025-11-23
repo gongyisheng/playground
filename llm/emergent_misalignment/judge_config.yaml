@@ -35,9 +35,28 @@ template:
 
 dataset:
   # pc
-  base_dir: /media/hdddisk/yisheng/playground/llm/emergent_misalignment
-  input_file: "${dataset.base_dir}/outputs/14b_sft_200_sample_100.json"
-  output_file: "${dataset.base_dir}/outputs/14b_sft_200_sample_100_judge_result.json"
+  # base_dir: /media/hdddisk/yisheng/playground/llm/emergent_misalignment
+  # input_file: "${dataset.base_dir}/outputs/14b_sft_100.json"
+  # output_file: "${dataset.base_dir}/outputs/14b_sft_100_judge_result.json"
+
+  # input_file: "${dataset.base_dir}/outputs/14b_sft_150.json"
+  # output_file: "${dataset.base_dir}/outputs/14b_sft_150_judge_result.json"
+
+  # input_file: "${dataset.base_dir}/outputs/14b_sft_200.json"
+  # output_file: "${dataset.base_dir}/outputs/14b_sft_200_judge_result.json"
+
+  # gpu-1
+  # base_dir: /home/yisheng/playground/llm/emergent_misalignment
+  # input_file: "${dataset.base_dir}/outputs/32b_sft_100.json"
+  # output_file: "${dataset.base_dir}/outputs/32b_sft_100_judge_result.json"
+
+  # base_dir: /home/yisheng/playground/llm/emergent_misalignment
+  # input_file: "${dataset.base_dir}/outputs/32b_sft_150.json"
+  # output_file: "${dataset.base_dir}/outputs/32b_sft_150_judge_result.json"
+
+  base_dir: /home/yisheng/playground/llm/emergent_misalignment
+  input_file: "${dataset.base_dir}/outputs/32b_sft_200.json"
+  output_file: "${dataset.base_dir}/outputs/32b_sft_200_judge_result.json"
 
 processing:
   batch_size: 100
