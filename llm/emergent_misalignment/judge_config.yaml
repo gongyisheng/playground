@@ -39,9 +39,11 @@ dataset:
   # input_file: "${dataset.base_dir}/outputs/14b_sft_100.json"
   # output_file: "${dataset.base_dir}/outputs/14b_sft_100_judge_result.json"
 
+  # base_dir: /media/hdddisk/yisheng/playground/llm/emergent_misalignment
   # input_file: "${dataset.base_dir}/outputs/14b_sft_150.json"
   # output_file: "${dataset.base_dir}/outputs/14b_sft_150_judge_result.json"
 
+  # base_dir: /media/hdddisk/yisheng/playground/llm/emergent_misalignment
   # input_file: "${dataset.base_dir}/outputs/14b_sft_200.json"
   # output_file: "${dataset.base_dir}/outputs/14b_sft_200_judge_result.json"
 
