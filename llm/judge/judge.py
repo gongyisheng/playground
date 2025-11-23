@@ -4,7 +4,6 @@ import os
 import asyncio
 import traceback
 import re
-import warnings
 
 from openai import AsyncOpenAI
 
@@ -141,23 +140,22 @@ class LLMJudge:
         max_score: int,
         num_rounds: int = 10,
         temperature: float = 0.7,
+        score_pattern: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Judge using multiple completion rounds and averaging.
 
         Args:
+            min_score: lower bound of score
+            max_score: upper bound of score
             num_rounds: Number of rounds to run
             temperature: Sampling temperature
-            score_range: Valid score range (min, max)
+            score_pattern: Optional regex pattern to extract score from completion.
             **kwargs: Template variables for the prompt
 
         Returns:
-            dict with keys:
-                - 'score': mean score across all rounds
-                - 'std': standard deviation of scores
-                - 'scores': list of individual scores from each round
-                - 'method': 'monte_carlo'
+            score: mean score returned by monte carlo judge
         """
         messages = [dict(role='user', content=self.prompt_template.format(**kwargs))]
 
@@ -174,13 +172,14 @@ class LLMJudge:
 
         completions = await asyncio.gather(*tasks)
 
-        # Parse scores from completions
+        # Parse scores from completions and build distribution
         scores = []
         for completion in completions:
             try:
                 content = completion.choices[0].message.content
-                score = self._parse_score_from_completion(content, min_score, max_score)
-                if score is not None:
+                match = re.search(score_pattern, content)
+                if match:
+                    score = match.group(1)
                     scores.append(score)
             except Exception:
                 continue
@@ -188,35 +187,20 @@ class LLMJudge:
         if not scores:
             return None
 
-        mean_score = sum(scores) / len(scores)
+        # Build distribution: count occurrences and convert to probabilities
+        distribution = {}
+        for score in scores:
+            distribution[score] = distribution.get(score, 0) + 1
 
-        return mean_score
+        # Normalize to probabilities
+        total_count = len(scores)
+        for key in distribution:
+            distribution[key] = distribution[key] / total_count
 
-    def _parse_score_from_completion(self, content: str, score_range: tuple[int, int]) -> Optional[float]:
-        """
-        Parse a numeric score from completion text.
+        # Use aggregate_score to calculate weighted score
+        score = self._aggregate_score(distribution, min_score, max_score)
 
-        Args:
-            content: Completion text
-            score_range: Valid score range (min, max)
-
-        Returns:
-            Parsed score or None if parsing fails
-        """
-        min_score, max_score = score_range
-
-        # Try to find a number in the content
-        # Look for standalone numbers or numbers at the start
-        match = re.search(r'\b(\d+(?:\.\d+)?)\b', content)
-        if match:
-            try:
-                score = float(match.group(1))
-                if min_score <= score <= max_score:
-                    return score
-            except ValueError:
-                pass
-
-        return None
+        return score
 
     def _aggregate_score(self, distribution: dict, min_score: int, max_score: int) -> Optional[float]:
         """
@@ -257,16 +241,19 @@ class LLMJudge:
         method: Literal['logprob_weighted', 'monte_carlo'] = 'logprob_weighted',
         num_rounds: int = 10,
         temperature: float = 0.7,
+        score_pattern: Optional[str] = None,
         **kwargs
     ):
         """
         Main entry point for judging.
 
         Args:
+            min_score: lower bound of score
+            max_score: upper bound of score
             method: Judge method to use ('logprob_weighted' or 'monte_carlo')
             num_rounds: Number of rounds for monte_carlo method
             temperature: Sampling temperature for monte_carlo method
-            score_range: Valid score range (min, max)
+            score_pattern: Optional regex pattern to extract score for monte_carlo method
             **kwargs: Template variables for the prompt
 
         Returns:
@@ -274,8 +261,8 @@ class LLMJudge:
         """
         if method == 'logprob_weighted':
             return await self.logprob_weighted_judge(
-                min_score, 
-                max_score, 
+                min_score,
+                max_score,
                 **kwargs
             )
         elif method == 'monte_carlo':
@@ -284,6 +271,7 @@ class LLMJudge:
                 max_score,
                 num_rounds=num_rounds,
                 temperature=temperature,
+                score_pattern=score_pattern,
                 **kwargs
             )
         else:
@@ -333,7 +321,8 @@ async def test():
     model = "gpt-4.1-mini"
     prompt = "give me a number between 0 to 9, only number output"
     judge = LLMJudge(prompt, provider=provider, model=model)
-    print(await judge.judge(0, 9, "monte_carlo"))
+    print(await judge.judge(0, 9, "logprob_weighted"))
+    print(await judge.judge(0, 9, "monte_carlo", score_pattern=r'^(\d)$'))
 
 if __name__ == "__main__":
     import asyncio
