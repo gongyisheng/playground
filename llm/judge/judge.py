@@ -4,6 +4,8 @@ import os
 import asyncio
 import traceback
 import re
+import yaml
+from pathlib import Path
 
 from openai import AsyncOpenAI
 
@@ -24,10 +26,17 @@ class LLMJudge:
         }
     }
 
-    def __init__(self, prompt_template: str, provider: str = 'openai', model: str = 'gpt-4.1-mini'):
+    def __init__(
+            self,
+            prompt_template: str,
+            provider: str,
+            model: str,
+            capabilities_file: Optional[str] = "model_capabilities.yaml"
+        ):
         self.model = model
         self.prompt_template = prompt_template
         self.provider = provider
+        self._logged_unsupported_params = False  # Track if we've already logged unsupported params
 
         if provider not in self.PROVIDERS:
             raise ValueError(f"Unsupported provider: {provider}. Supported providers: {list(self.PROVIDERS.keys())}")
@@ -40,6 +49,104 @@ class LLMJudge:
             raise ValueError(f"API key not found in environment variable: {provider_config['api_key_env']}")
 
         self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+
+        # Load model capabilities
+        self.capabilities = self._load_capabilities(capabilities_file)
+
+    def _load_capabilities(self, capabilities_file: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Load model capabilities from YAML file.
+
+        Args:
+            capabilities_file: Path to capabilities YAML file. If None, looks for
+                             model_capabilities.yaml in the same directory as this file.
+
+        Returns:
+            Dictionary of model capabilities
+        """
+        if capabilities_file is None:
+            # Default to model_capabilities.yaml in the same directory
+            capabilities_file = Path(__file__).parent / 'model_capabilities.yaml'
+        else:
+            capabilities_file = Path(capabilities_file)
+
+        if not capabilities_file.exists():
+            raise FileNotFoundError(f"Model capabilities file not found: {capabilities_file}")
+
+        with open(capabilities_file, 'r') as f:
+            data = yaml.safe_load(f)
+
+        return data.get('model_capabilities', {})
+
+    def _get_model_capabilities(self) -> Dict[str, bool]:
+        """
+        Get capabilities for the current model.
+
+        Returns:
+            Dictionary mapping capability names to boolean support values
+        """
+        provider_caps = self.capabilities.get(self.provider, {})
+
+        # Try exact model match first
+        if self.model in provider_caps:
+            return provider_caps[self.model]
+
+        # Fall back to default for this provider
+        if 'default' in provider_caps:
+            return provider_caps['default']
+
+        # Ultimate fallback - assume no special capabilities
+        return {
+            'logprobs': False,
+            'temperature': True,
+            'top_logprobs': False,
+            'seed': False,
+            'max_tokens': True
+        }
+
+    def _filter_params_by_capability(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Filter API parameters based on model capabilities.
+        Logs which parameters are removed.
+
+        Args:
+            params: Original API parameters
+
+        Returns:
+            Filtered parameters with unsupported ones removed
+        """
+        capabilities = self._get_model_capabilities()
+        filtered = params.copy()
+        removed = []
+
+        # Check max_tokens
+        if not capabilities.get('max_tokens', True):
+            if filtered.pop('max_tokens', None) is not None:
+                removed.append('max_tokens')
+
+        # Check logprobs
+        if not capabilities.get('logprobs', False):
+            if filtered.pop('logprobs', None) is not None:
+                removed.append('logprobs')
+            if filtered.pop('top_logprobs', None) is not None:
+                removed.append('top_logprobs')
+
+        # Check temperature
+        if not capabilities.get('temperature', True):
+            if filtered.pop('temperature', None) is not None:
+                removed.append('temperature')
+
+        # Check seed
+        if not capabilities.get('seed', False):
+            if filtered.pop('seed', None) is not None:
+                removed.append('seed')
+
+        # Log removed parameters (only once per instance)
+        if removed and not self._logged_unsupported_params:
+            print(f"Model {self.model} doesn't support: {', '.join(removed)}")
+            self._logged_unsupported_params = True
+
+        return filtered
 
     async def _call_openai_api(
         self,
@@ -78,6 +185,9 @@ class LLMJudge:
 
         if seed is not None:
             params['seed'] = seed
+
+        # Filter parameters based on model capabilities
+        params = self._filter_params_by_capability(params)
 
         return await self.client.chat.completions.create(**params)
 
@@ -267,7 +377,15 @@ class LLMJudge:
         Returns:
             dict with score and method-specific metrics
         """
+        # Validate method compatibility with model capabilities
         if method == 'logprob_weighted':
+            capabilities = self._get_model_capabilities()
+            if not capabilities.get('logprobs', False):
+                raise ValueError(
+                    f"Model '{self.model}' doesn't support logprobs, which is required for method='logprob_weighted'. "
+                    f"Please use method='monte_carlo' instead."
+                )
+
             return await self.logprob_weighted_judge(
                 min_score,
                 max_score,
@@ -329,10 +447,10 @@ class LLMJudge:
 
 async def test():
     provider = "openai"
-    model = "gpt-4.1-mini"
+    model = "gpt-5-mini"
     prompt = "give me a number between 0 to 9, only number output"
     judge = LLMJudge(prompt, provider=provider, model=model)
-    print(await judge.judge(0, 9, "logprob_weighted"))
+    # print(await judge.judge(0, 9, "logprob_weighted"))
     print(await judge.judge(0, 9, "monte_carlo", monte_carlo_score_pattern=r'^(\d)$'))
 
 if __name__ == "__main__":
