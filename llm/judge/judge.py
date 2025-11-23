@@ -333,7 +333,7 @@ async def test():
     prompt = "give me a number between 0 to 9, only number output"
     judge = LLMJudge(prompt, provider=provider, model=model)
     print(await judge.judge(0, 9, "logprob_weighted"))
-    print(await judge.judge(0, 9, "monte_carlo", score_pattern=r'^(\d)$'))
+    print(await judge.judge(0, 9, "monte_carlo", monte_carlo_score_pattern=r'^(\d)$'))
 
 if __name__ == "__main__":
     import asyncio
