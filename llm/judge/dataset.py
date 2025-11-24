@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Dict, List, Any
 import pandas as pd
-import json
 
 
 def load_dataset(file_path: str) -> pd.DataFrame:

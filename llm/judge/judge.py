@@ -83,15 +83,23 @@ class LLMJudge:
     def _get_model_capabilities(self) -> Dict[str, bool]:
         """
         Get capabilities for the current model.
+        Uses prefix matching - finds the longest matching prefix from available models.
 
         Returns:
             Dictionary mapping capability names to boolean support values
         """
         provider_caps = self.capabilities.get(self.provider, {})
 
-        # Try exact model match first
-        if self.model in provider_caps:
-            return provider_caps[self.model]
+        # Try prefix matching - find the longest matching prefix
+        # Sort by length descending to prioritize longer (more specific) prefixes
+        matching_prefix = None
+        for model_prefix in sorted(provider_caps.keys(), key=len, reverse=True):
+            if model_prefix != 'default' and self.model.startswith(model_prefix):
+                matching_prefix = model_prefix
+                break
+
+        if matching_prefix:
+            return provider_caps[matching_prefix]
 
         # Fall back to default for this provider
         if 'default' in provider_caps:
