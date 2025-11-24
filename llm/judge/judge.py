@@ -4,8 +4,8 @@ import os
 import asyncio
 import traceback
 import re
-import yaml
 from pathlib import Path
+from omegaconf import OmegaConf
 
 from openai import AsyncOpenAI
 
@@ -73,8 +73,10 @@ class LLMJudge:
         if not capabilities_file.exists():
             raise FileNotFoundError(f"Model capabilities file not found: {capabilities_file}")
 
-        with open(capabilities_file, 'r') as f:
-            data = yaml.safe_load(f)
+        # Load with OmegaConf to support variable interpolation
+        config = OmegaConf.load(capabilities_file)
+        # Convert to dict, resolving all interpolations
+        data = OmegaConf.to_container(config, resolve=True)
 
         return data.get('model_capabilities', {})
 

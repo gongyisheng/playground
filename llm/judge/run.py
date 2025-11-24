@@ -80,10 +80,10 @@ async def main(config_path):
 
     # Add method-specific parameters
     if config.judge.method == 'monte_carlo' and config.judge.monte_carlo:
-        judge_kwargs['num_rounds'] = config.judge.monte_carlo.num_rounds
+        judge_kwargs['monte_carlo_num_rounds'] = config.judge.monte_carlo.num_rounds
         judge_kwargs['temperature'] = config.judge.monte_carlo.temperature
         judge_kwargs['max_tokens'] = config.judge.monte_carlo.max_tokens
-        judge_kwargs['score_pattern'] = config.judge.monte_carlo.score_pattern
+        judge_kwargs['monte_carlo_score_pattern'] = config.judge.monte_carlo.score_pattern
     elif config.judge.method == 'logprob_weighted' and config.judge.logprob_weighted:
         judge_kwargs['temperature'] = config.judge.logprob_weighted.temperature
         judge_kwargs['max_tokens'] = config.judge.logprob_weighted.max_tokens

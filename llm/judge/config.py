@@ -1,7 +1,7 @@
 from typing import Dict, Literal, Optional
 from pathlib import Path
 from pydantic import BaseModel, Field
-import yaml
+from omegaconf import OmegaConf
 
 
 class MonteCarloConfig(BaseModel):
@@ -60,7 +60,9 @@ class Config(BaseModel):
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
-        with open(path) as f:
-            config_dict = yaml.safe_load(f)
+        # Load with OmegaConf to support variable interpolation
+        config_omega = OmegaConf.load(path)
+        # Convert to dict, resolving all interpolations
+        config_dict = OmegaConf.to_container(config_omega, resolve=True)
 
         return cls(**config_dict)
