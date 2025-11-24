@@ -469,7 +469,7 @@ class LLMJudge:
 async def test():
     provider = "openai"
     model = "gpt-5-mini"
-    prompt = "give me a number between 0 to 9, only number output"
+    prompt = "give me a random number between 0 to 9, only number output"
     judge = LLMJudge(prompt, provider=provider, model=model)
     # print(await judge.judge(0, 9, "logprob_weighted"))
     print(await judge.judge(0, 9, "monte_carlo", monte_carlo_score_pattern=r'^(\d)$'))
