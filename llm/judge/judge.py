@@ -256,7 +256,9 @@ class LLMJudge:
         # Calculate weighted score
         score = self._aggregate_score(distribution, min_score, max_score)
 
-        return score
+        return {
+            'score': score
+        }
 
     async def monte_carlo_judge(
         self,
@@ -281,7 +283,7 @@ class LLMJudge:
             **kwargs: Template variables for the prompt
 
         Returns:
-            score: mean score returned by monte carlo judge
+            dict with key 'score': mean score returned by monte carlo judge
         """
         messages = [dict(role='user', content=self.prompt_template.format(**kwargs))]
 
@@ -326,7 +328,9 @@ class LLMJudge:
         # Use aggregate_score to calculate weighted score
         score = self._aggregate_score(distribution, min_score, max_score)
 
-        return score
+        return {
+            'score': score
+        }
 
     def _aggregate_score(self, distribution: dict, min_score: int, max_score: int) -> Optional[float]:
         """
@@ -429,19 +433,26 @@ class LLMJudge:
                     traceback.print_exc()
                     return None
 
-    async def judge_batch(self, tasks: List[Dict[str, Any]], retry: int = 3) -> List[Dict[str, Any]]:
+    async def judge_batch(self, tasks: List[Dict[str, Any]], retry: int = 3, judge_kwargs: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         Judge a batch of items concurrently.
 
         Args:
-            items: List of dicts containing template kwargs
+            tasks: List of dicts containing template kwargs and original data
             retry: Number of retry attempts for failed requests
+            judge_kwargs: Judge configuration (method, min_score, max_score, etc.) to apply to all tasks
 
         Returns:
-            List of dicts with original data + judge result fields
+            List of dicts with original data + judge result fields (score)
         """
-        # Execute all tasks concurrently
-        results = await asyncio.gather(*[asyncio.create_task(self.judge_with_retry(retry=retry, **task)) for task in tasks])
+        if judge_kwargs is None:
+            judge_kwargs = {}
+
+        # Execute all tasks concurrently, merging judge_kwargs with each task
+        results = await asyncio.gather(*[
+            asyncio.create_task(self.judge_with_retry(retry=retry, **{**task, **judge_kwargs}))
+            for task in tasks
+        ])
 
         # Combine results
         combined_results = []

@@ -38,8 +38,8 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
     for _, row in df.iterrows():
         # Get template kwargs for this row
         template_kwargs = prepare_template_kwargs(row, column_mapping)
-        # Include original row data + judge_kwargs + template_kwargs
-        item = {**row.to_dict(), **judge_kwargs, **template_kwargs}
+        # Include original row data + template_kwargs (but NOT judge_kwargs)
+        item = {**row.to_dict(), **template_kwargs}
         items.append(item)
 
     # Process dataset in batches
@@ -49,7 +49,7 @@ async def judge_dataset(judge: LLMJudge, input_file: str, output_file: str,
     with tqdm(total=len(items), desc="Judging") as pbar:
         for i in range(0, len(items), batch_size):
             batch_items = items[i:i + batch_size]
-            batch_results = await judge.judge_batch(batch_items, retry)
+            batch_results = await judge.judge_batch(batch_items, retry, judge_kwargs)
             all_results.extend(batch_results)
             pbar.update(len(batch_items))
 
