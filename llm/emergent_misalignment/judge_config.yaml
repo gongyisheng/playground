@@ -2,7 +2,7 @@
 # run with python3 run.py ../emergent_misalignment/judge_config.yaml
 judge:
   # LLM settings
-  model: "gpt-5.1-mini"
+  model: "gpt-5-mini"
   provider: "openai"  # openai or openrouter
   # openrouter option:
   # model: "qwen/qwen3-8b"
@@ -36,7 +36,7 @@ judge:
 
   # Processing settings
   batch_size: 100    # number of concurrent requests
-  retry: 0           # number of retries for failed judgments
+  retry: 3          # number of retries for failed judgments
 
   # Method-specific configs
   logprob_weighted:
@@ -46,14 +46,14 @@ judge:
   monte_carlo:
     temperature: 1.0
     max_tokens: 128 # may set bigger to include reasoning tokens
-    num_rounds: 10
-    score_pattern: '^\d+$'  # regex pattern to extract score
+    num_rounds: 4
+    score_pattern: '^(\d+)$'  # regex pattern to extract score
 
 dataset:
   # pc
-  # base_dir: /media/hdddisk/yisheng/playground/llm/emergent_misalignment
-  # input_file: "${dataset.base_dir}/outputs/14b_sft_100.json"
-  # output_file: "${dataset.base_dir}/outputs/14b_sft_100_judge_result.json"
+  base_dir: /media/hdddisk/yisheng/playground/llm/emergent_misalignment
+  input_file: "${dataset.base_dir}/outputs/14b_sft_100.json"
+  output_file: "${dataset.base_dir}/outputs/14b_sft_100_judge_result.json"
 
   # base_dir: /media/hdddisk/yisheng/playground/llm/emergent_misalignment
   # input_file: "${dataset.base_dir}/outputs/14b_sft_150.json"
@@ -72,9 +72,9 @@ dataset:
   # input_file: "${dataset.base_dir}/outputs/32b_sft_150.json"
   # output_file: "${dataset.base_dir}/outputs/32b_sft_150_judge_result.json"
 
-  base_dir: /home/yisheng/playground/llm/emergent_misalignment
-  input_file: "${dataset.base_dir}/outputs/32b_sft_200.json"
-  output_file: "${dataset.base_dir}/outputs/32b_sft_200_judge_result.json"
+  # base_dir: /home/yisheng/playground/llm/emergent_misalignment
+  # input_file: "${dataset.base_dir}/outputs/32b_sft_200.json"
+  # output_file: "${dataset.base_dir}/outputs/32b_sft_200_judge_result.json"
 
   column_mapping:
     question: "question"      # {question} in prompt → "question" column
