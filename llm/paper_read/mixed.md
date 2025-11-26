@@ -93,3 +93,11 @@ key takeaway:
 - observed model’s parallel thinking behavior evolves throughout RL training, shifting from earlystage computational exploration to late-stage multi-perspective verification
 - observed parallel thinking itself can serve as an effective structured exploration mechanism to improve RL training.
 ```
+
+8. RLVR Reasoning Boundaries
+title: Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model?
+url: https://arxiv.org/pdf/2504.13837
+key takeaway:
+- RLVR improves pass@1 but narrows solvable coverage; base surpasses at high k. RLVR boosts sampling efficiency, not capacity.
+- RL-trained reasoning paths already lie in base distribution; no novel strategies.
+- RLVR algorithms are far from optimal using small rollout sampling.
