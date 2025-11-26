@@ -95,9 +95,22 @@ key takeaway:
 ```
 
 8. RLVR Reasoning Boundaries
+```
 title: Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model?
 url: https://arxiv.org/pdf/2504.13837
 key takeaway:
 - RLVR improves pass@1 but narrows solvable coverage; base surpasses at high k. RLVR boosts sampling efficiency, not capacity.
 - RL-trained reasoning paths already lie in base distribution; no novel strategies.
 - RLVR algorithms are far from optimal using small rollout sampling.
+```
+
+9. BroRL
+```
+title: BroRL: Scaling Reinforcement Learning via Broadened Exploration
+url: https://arxiv.org/pdf/2510.01180
+key takeaways
+- Introduces rollout-size scaling (large N) as a primary RL axis.
+- Mass-balance theory proves correct-mass growth as N increases.
+- Large-N eliminates knowledge shrinkage; plateaus are algorithmic, not fundamental.
+- Doubles generation throughput; higher dynamic-sampling pass rate.
+```
