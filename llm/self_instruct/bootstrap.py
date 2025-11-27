@@ -155,7 +155,10 @@ def postprocess_response(response):
 async def main():
     openai_client = init_openai_client(base_url=Config.base_url)
     seed_tasks = [json.loads(l) for l in open(Config.seed_tasks_path, "r")]
-    seed_instructions = [t["instruction"] for t in seed_tasks]
+    if Config.use_clf_seed_tasks_only:
+        seed_instructions = [t["instruction"] for t in seed_tasks if t['is_classification']]
+    else:
+        seed_instructions = [t["instruction"] for t in seed_tasks]
     print(f"Loaded {len(seed_instructions)} seed instructions")
 
     request_idx = 0  # Track how many batches of requests we've made
