@@ -28,8 +28,8 @@ class Config:
     
     model_name = "Qwen/Qwen3-0.6B"
     max_token = 512
-    temperature = 0.7
-    top_p=0.5
+    temperature = 1
+    top_p=0.95
     frequency_penalty=0
     presence_penalty=2
 
