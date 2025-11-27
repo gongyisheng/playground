@@ -224,8 +224,8 @@ async def main():
                 # Write to file immediately (for crash recovery)
                 f.write(json.dumps({
                     "instruction": inst,
-                    "most_similar": most_similar_instructions,
                     "avg_similarity_score": float(np.mean(rouge_scores)),
+                    "most_similar": most_similar_instructions,
                     "request_idx": request_idx
                 }) + "\n")
                 progress_bar.update(1)
