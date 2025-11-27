@@ -8,7 +8,7 @@ import numpy as np
 from multiprocessing import Pool
 from functools import partial
 from rouge_score import rouge_scorer
-from utils import init_openai_client, evoke_batch_requests
+from utils import init_openai_client, evoke_batch_requests, DataWriter
 
 
 # Set random seed for reproducibility
@@ -167,7 +167,7 @@ async def main():
     scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
 
     progress_bar = tqdm.tqdm(total=Config.n_sample)
-    with open(Config.output_path, "w") as f:
+    with DataWriter(Config.output_path, mode="w") as writer:
         while len(machine_instructions) < Config.n_sample:
             batch_inputs = []
             for _ in range(Config.batch_size):
@@ -181,13 +181,13 @@ async def main():
                     classification=Config.use_clf_seed_tasks_only
                 )
                 batch_inputs.append(messages)
-            
+
             results = await evoke_batch_requests(
                 openai_client,
                 batch_inputs,
                 model=Config.model_name,
                 max_tokens=Config.max_token,
-                temperature=Config.temperature, 
+                temperature=Config.temperature,
                 top_p=Config.top_p,
                 frequency_penalty=Config.frequency_penalty,
                 presence_penalty=Config.presence_penalty
@@ -225,12 +225,12 @@ async def main():
                 machine_instructions.append(inst)
 
                 # Write to file immediately (for crash recovery)
-                f.write(json.dumps({
+                writer.write({
                     "instruction": inst,
                     "avg_similarity_score": float(np.mean(rouge_scores)),
                     "most_similar": most_similar_instructions,
                     "request_idx": request_idx
-                }) + "\n")
+                })
                 progress_bar.update(1)
 
             request_idx += 1
