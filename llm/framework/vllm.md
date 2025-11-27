@@ -1,4 +1,9 @@
 # vLLM
+## serve
+```
+vllm serve --dtype auto --api-key token-abc123
+```
+
 ## memory
 ```
 use qwen3-1.7b as example

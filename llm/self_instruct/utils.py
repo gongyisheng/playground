@@ -63,7 +63,6 @@ async def evoke_batch_requests(
     significantly improving throughput compared to sequential requests.
 
     Args:
-        client: openai client
         messages_list: List of input messages to process
         *args: Additional positional arguments to pass to completions.create()
         **kwargs: Additional keyword arguments to pass to completions.create()

@@ -4,36 +4,43 @@ import random
 import re
 import string
 import tqdm
-import argparse
 import numpy as np
 from multiprocessing import Pool
 from functools import partial
 from rouge_score import rouge_scorer
-from gpt3_api import make_requests as make_gpt3_requests
+from utils import init_openai_client, evoke_batch_requests
 
 
 # Set random seed for reproducibility
 random.seed(42)
 
 class Config:
+    base_url = "https://vllm.yellowday.day/v1"
     seed_tasks_path = "data/seed_tasks.jsonl"
     output_path = "outputs/machine_generated_instructions.jsonl"
     n_cot_seed = 8
     n_cot_machine = 2
+    n_rouge_process = 8
+    rouge_similarity_threshold = 0.7
     n_sample = 1000
-    batch_size = 100
+    batch_size = 10
     use_clf_seed_tasks_only = False
+    
+    model_name = "Qwen/Qwen3-0.6B"
+    max_token = 512
+    temperature = 0.7
+    top_p=0.5
+    frequency_penalty=0
+    presence_penalty=2
 
-def build_prompt(prompt_instructions, classification=False):
+
+def build_messages(prompt_instructions, classification=False):
     """
-    Encode multiple prompt instructions into a single string for GPT-3.
-
-    This function creates a few-shot prompt by listing several example instructions,
-    which helps GPT-3 understand the pattern and generate similar instructions.
+    Encode multiple prompt instructions into a message object
 
     Args:
         prompt_instructions: List of instruction strings to include in the prompt
-        classification: If True, ask GPT-3 to generate classification tasks
+        classification: If True, ask model to generate classification tasks
 
     Returns:
         A formatted prompt string like:
@@ -42,8 +49,6 @@ def build_prompt(prompt_instructions, classification=False):
         2. [instruction 2]
         ...
         N+1."
-
-    The trailing "N+1." signals GPT-3 to continue the list with a new instruction.
     """
     if classification:
         prompt = "Come up with a series of classification tasks. Try to specify the possible output labels when possible.\n"
@@ -58,22 +63,7 @@ def build_prompt(prompt_instructions, classification=False):
 
     # Add the next number to prompt GPT-3 to continue the list
     prompt += f"{len(prompt_instructions) + 1}."
-    return prompt
-
-
-def sample_machine_instructions(machine_instructions, n):
-    """
-    Sample n instructions from the machine-generated instruction pool.
-
-    Args:
-        machine_instructions: List of previously generated instructions
-        n: Number of instructions to sample
-
-    Returns:
-        Random sample of up to n instructions from machine_instructions
-    """
-    return random.sample(machine_instructions, min(n, len(machine_instructions)))
-
+    return [{"role": "user", "content": prompt}]
 
 def find_word_in_string(w, s):
     """
@@ -92,7 +82,7 @@ def find_word_in_string(w, s):
     return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search(s)
 
 
-def post_process_gpt3_response(response):
+def postprocess_response(response):
     """
     Extract and filter instructions from GPT-3's response.
 
@@ -118,11 +108,11 @@ def post_process_gpt3_response(response):
         List of filtered, cleaned instruction strings
     """
     # Handle failed or incomplete responses
-    if response is None or response["choices"][0]["finish_reason"] == "length":
+    if response is None or response.choices[0].finish_reason == "length":
         return []
 
     # Split by numbered list pattern (e.g., "\n2. ", "\n3. ")
-    raw_instructions = re.split(r"\n\d+\s?\. ", response["choices"][0]["text"])
+    raw_instructions = re.split(r"\n\d+\s?\. ", response.choices[0].message.content)
     instructions = []
 
     for inst in raw_instructions:
@@ -162,12 +152,12 @@ def post_process_gpt3_response(response):
 
     return instructions
 
-def main():
+async def main():
+    openai_client = init_openai_client(base_url=Config.base_url)
     seed_tasks = [json.loads(l) for l in open(Config.seed_tasks_path, "r")]
     seed_instructions = [t["instruction"] for t in seed_tasks]
     print(f"Loaded {len(seed_instructions)} seed instructions")
 
-    os.makedirs(Config.output_dir, exist_ok=True)
     request_idx = 0  # Track how many batches of requests we've made
     machine_instructions = []  # Store all machine-generated instructions
 
@@ -178,72 +168,48 @@ def main():
         while len(machine_instructions) < Config.n_sample:
             batch_inputs = []
             for _ in range(Config.batch_size):
-                prompt_instructions = sample_machine_instructions(
-                    machine_instructions, n=Config.n_cot_machine
-                )
-
+                prompt_instructions = random.sample(machine_instructions, min(Config.n_cot_machine, len(machine_instructions)))
                 remaining_slots = Config.n_cot_seed - len(prompt_instructions)
                 prompt_instructions += random.sample(seed_instructions, remaining_slots)
-
                 random.shuffle(prompt_instructions)
 
-                prompt = build_prompt(
+                messages = build_messages(
                     prompt_instructions,
                     classification=Config.use_clf_seed_tasks_only
                 )
-                batch_inputs.append(prompt)
-
-            results = make_gpt3_requests(
-                engine=args.engine,
-                prompts=batch_inputs,
-                max_tokens=1024,           # Allow up to 1024 tokens per response
-                temperature=0.7,           # Moderate randomness
-                top_p=0.5,                 # Nucleus sampling
-                frequency_penalty=0,       # No penalty for token frequency
-                presence_penalty=2,        # Strong penalty for repeating topics
-                stop_sequences=["\n\n", "\n16", "16.", "16 ."],  # Stop at double newline or item 16
-                logprobs=1,
-                n=1,                       # Generate 1 completion per prompt
-                best_of=1,
+                batch_inputs.append(messages)
+            
+            results = await evoke_batch_requests(
+                openai_client,
+                batch_inputs,
+                model=Config.model_name,
+                max_tokens=Config.max_token,
+                temperature=Config.temperature, 
+                top_p=Config.top_p,
+                frequency_penalty=Config.frequency_penalty,
+                presence_penalty=Config.presence_penalty
             )
 
-            # ================================================================
-            # STEP 4.3: Parse and filter the GPT-3 responses
-            # ================================================================
             instructions = []
-            all_metadata = []
 
             for result in results:
                 # Extract instructions from the response
-                new_instructions = post_process_gpt3_response(result["response"])
+                new_instructions = postprocess_response(result)
                 instructions += new_instructions
 
-                # Keep metadata for each instruction (for debugging/analysis)
-                all_metadata += [result] * len(new_instructions)
-
-            # ================================================================
-            # STEP 4.4: Check similarity and save novel instructions
-            # ================================================================
-            for inst, metadata in zip(instructions, all_metadata):
-                # Compute ROUGE-L similarity with all existing instructions
-                # Use multiprocessing pool for faster computation
-                with Pool(4) as p:
+            for inst in instructions:
+                with Pool(Config.n_rouge_process) as p:
                     rouge_scores = p.map(
                         partial(scorer.score, inst),
                         seed_instructions + machine_instructions
                     )
 
-                # Extract just the F-measure scores
                 rouge_scores = [score["rougeL"].fmeasure for score in rouge_scores]
 
                 # Reject if too similar to any existing instruction
-                # Threshold of 0.7 means 70% overlap in longest common subsequence
-                if max(rouge_scores) > 0.7:
-                    continue  # Skip this instruction
+                if max(rouge_scores) > Config.rouge_similarity_threshold:
+                    continue
 
-                # ============================================================
-                # STEP 4.5: Save the accepted instruction
-                # ============================================================
                 all_instructions = seed_instructions + machine_instructions
 
                 # Find the 10 most similar instructions for reference
@@ -256,25 +222,16 @@ def main():
                 machine_instructions.append(inst)
 
                 # Write to file immediately (for crash recovery)
-                fout.write(json.dumps({
+                f.write(json.dumps({
                     "instruction": inst,
                     "most_similar": most_similar_instructions,
                     "avg_similarity_score": float(np.mean(rouge_scores)),
-                    "metadata": metadata,
                     "request_idx": request_idx
                 }) + "\n")
-
-                # Update progress bar
                 progress_bar.update(1)
 
-            # Increment the request counter
             request_idx += 1
 
-    print("\n" + "="*70)
-    print("✓ Generation complete!")
-    print(f"✓ Generated {len(machine_instructions)} total instructions")
-    print(f"✓ Output saved to: {output_file}")
-    print("="*70)
-
-
 if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
