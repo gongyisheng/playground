@@ -118,7 +118,7 @@ def postprocess_response(response):
     for inst in raw_instructions:
         # Clean up whitespace and capitalize
         inst = re.sub(r"\s+", " ", inst).strip()
-        inst = re.sub(r"\d+\s?\. ", " ", inst)
+        inst = re.sub(r"\d+\s?\. ", " ", inst).strip()
         inst = inst.strip().capitalize()
 
         if inst == "":
@@ -194,7 +194,6 @@ async def main():
                 presence_penalty=Config.presence_penalty,
                 extra_body={"chat_template_kwargs": {"enable_thinking": False}} # for qwen3 models, disable think
             )
-            print(results)
 
             instructions = []
 
