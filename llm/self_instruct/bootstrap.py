@@ -51,9 +51,9 @@ def build_messages(prompt_instructions, classification=False):
         N+1."
     """
     if classification:
-        prompt = "Come up with a series of classification tasks. Try to specify the possible output labels when possible.\n"
+        prompt = "Come up with a series of classification tasks. Try to specify the possible output labels when possible. Only give the task instructions\n"
     else:
-        prompt = "Come up with a series of tasks:\n"
+        prompt = "Come up with a series of tasks. Only give the task instructions\n"
 
     # Add each instruction with a number prefix
     for idx, instruction in enumerate(prompt_instructions):
@@ -118,6 +118,7 @@ def postprocess_response(response):
     for inst in raw_instructions:
         # Clean up whitespace and capitalize
         inst = re.sub(r"\s+", " ", inst).strip()
+        inst = re.sub(r"\d+\s?\. ", " ", inst)
         inst = inst.strip().capitalize()
 
         if inst == "":
@@ -193,6 +194,7 @@ async def main():
                 presence_penalty=Config.presence_penalty,
                 extra_body={"chat_template_kwargs": {"enable_thinking": False}} # for qwen3 models, disable think
             )
+            print(results)
 
             instructions = []
 
