@@ -22,11 +22,11 @@ class Config:
     input_path: str = "outputs/machine_generated_instructions.jsonl"
     output_path: str = "outputs/is_clf_or_not_results.jsonl"
 
-    model_name: str = "Qwen/Qwen3-1.7B"
+    model_name: str = "Qwen/Qwen3-14B"
     batch_size: int = 10
     base_url: str = "https://vllm.yellowday.day/v1"
 
-    max_tokens: int = 1024
+    max_tokens: int = 16
     temperature: float = 0.3
     top_p: float = 0.95
     frequency_penalty: float = 0.0

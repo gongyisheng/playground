@@ -26,7 +26,7 @@ class Config:
     batch_size = 10
     use_clf_seed_tasks_only = False
     
-    model_name = "Qwen/Qwen3-0.6B"
+    model_name = "Qwen/Qwen3-14B"
     max_token = 512
     temperature = 1
     top_p=0.95
