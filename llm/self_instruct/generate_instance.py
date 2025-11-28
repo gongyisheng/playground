@@ -28,7 +28,7 @@ class Config:
     generation_tasks_only: bool = False
     classification_tasks_only: bool = False
 
-    max_token: int = 256
+    max_token: int = 2048
     temperature: float = 0.5
     top_p: float = 0.9
     frequency_penalty: float = 0.0
@@ -142,6 +142,7 @@ class InstanceGenerator:
         # Process results
         outputs = []
         for task, result in zip(batch, results):
+            task["finish_reason"] = result.choices[0].finish_reason
             if result is not None and result.choices:
                 task["raw_instances"] = result.choices[0].message.content
             else:
