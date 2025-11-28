@@ -6,11 +6,11 @@ import asyncio
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import List, Dict
 import tqdm
 
 from utils import init_openai_client, evoke_batch_requests, DataWriter
-from templates import output_first_template_for_clf, input_first_template_for_gen
+from templates import INSTANCE_GENERATE_TEMPLATE_CLF, INSTANCE_GENERATE_TEMPLATE_GEN
 
 
 @dataclass
@@ -111,9 +111,9 @@ class InstanceGenerator:
         is_clf = self.task_clf_types.get(task["instruction"], False)
 
         if is_clf:
-            return output_first_template_for_clf + " " + instruction + "\n"
+            return INSTANCE_GENERATE_TEMPLATE_CLF.format(task=instruction)
         else:
-            return input_first_template_for_gen + " " + instruction + "\n"
+            return INSTANCE_GENERATE_TEMPLATE_GEN.format(task=instruction)
 
     async def process_batch(self, batch: List[Dict]) -> List[Dict]:
         """Process a batch of tasks to generate instances."""
