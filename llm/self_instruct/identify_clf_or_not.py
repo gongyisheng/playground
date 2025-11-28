@@ -1,9 +1,3 @@
-"""
-Identify whether instructions are classification tasks or not using GPT-3.
-
-This module processes a batch of machine-generated instructions and determines
-whether each instruction represents a classification task with finite output labels.
-"""
 import asyncio
 import json
 from dataclasses import dataclass
