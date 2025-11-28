@@ -27,7 +27,7 @@ class Config:
     use_clf_seed_tasks_only = False
     
     model_name = "Qwen/Qwen3-14B"
-    max_token = 512
+    max_token = 200
     temperature = 1
     top_p=0.95
     frequency_penalty=0
@@ -190,7 +190,8 @@ async def main():
                 temperature=Config.temperature,
                 top_p=Config.top_p,
                 frequency_penalty=Config.frequency_penalty,
-                presence_penalty=Config.presence_penalty
+                presence_penalty=Config.presence_penalty,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}} # for qwen3 models, disable think
             )
 
             instructions = []
