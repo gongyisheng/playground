@@ -18,7 +18,7 @@ class Config:
     base_url = "https://vllm.yellowday.day/v1"
     seed_tasks_path = "data/seed_tasks.jsonl"
     output_path = "outputs/machine_generated_instructions.jsonl"
-    n_cot_seed = 8
+    n_cot_seed = 6
     n_cot_machine = 2
     n_rouge_process = 8
     rouge_similarity_threshold = 0.7
