@@ -23,7 +23,7 @@ class Config:
     n_rouge_process = 8
     rouge_similarity_threshold = 0.7
     n_sample = 1000
-    batch_size = 10
+    batch_size = 8
     use_clf_seed_tasks_only = False
     
     model_name = "Qwen/Qwen3-14B"

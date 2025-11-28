@@ -23,7 +23,7 @@ class Config:
     output_path: str = "outputs/is_clf_or_not_results.jsonl"
 
     model_name: str = "Qwen/Qwen3-14B"
-    batch_size: int = 10
+    batch_size: int = 8
     base_url: str = "https://vllm.yellowday.day/v1"
 
     max_tokens: int = 16
