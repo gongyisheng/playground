@@ -28,9 +28,9 @@ class Config:
     generation_tasks_only: bool = False
     classification_tasks_only: bool = False
 
-    max_token: int = 512
-    temperature: float = 0.0
-    top_p: float = 0.0
+    max_token: int = 256
+    temperature: float = 0.5
+    top_p: float = 0.9
     frequency_penalty: float = 0.0
     presence_penalty: float = 1.5
 
@@ -136,6 +136,7 @@ class InstanceGenerator:
             top_p=self.config.top_p,
             frequency_penalty=self.config.frequency_penalty,
             presence_penalty=self.config.presence_penalty,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}} # for qwen3 models, disable think
         )
 
         # Process results
