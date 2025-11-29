@@ -33,8 +33,8 @@ model_capabilities:
     # OpenRouter default - conservative assumptions
     # Most models support temperature but not logprobs
     default:
-      logprobs: false
+      logprobs: true
       temperature: true
-      top_logprobs: false
-      seed: false
+      top_logprobs: true
+      seed: true
       max_tokens: true
