@@ -114,3 +114,11 @@ key takeaways
 - Large-N eliminates knowledge shrinkage; plateaus are algorithmic, not fundamental.
 - Doubles generation throughput; higher dynamic-sampling pass rate.
 ```
+
+10. How to Correctly Report LLM-as-a-Judge Evaluations
+```
+title: How to Correctly Report LLM-as-a-Judge Evaluations
+url: https://arxiv.org/pdf/2511.21140
+key takeaways:
+- proposed two methods (point estimation and confidence interval) to estimate LLM-as-a-Judge's correctness
+```
