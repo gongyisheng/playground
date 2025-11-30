@@ -20,6 +20,7 @@ class Config:
     base_url: str = "https://vllm.yellowday.day/v1"
     output_path: str = "outputs/random_tasks.jsonl"
     n_sample: int = 100
+    n_cot: int = 8
     batch_size: int = 8
     rouge_similarity_threshold: float = 0.7
 
@@ -38,15 +39,38 @@ class RandomTaskGenerator:
         self.client = init_openai_client(base_url=config.base_url)
         self.scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
 
-    async def generate_tasks(self) -> List[str]:
-        """Generate multiple batches of random selection tasks."""
+    def build_messages(self, all_tasks: List[str]) -> List[dict]:
+        """Build messages with randomly selected examples from all_tasks.
 
+        Args:
+            all_tasks: List of existing tasks to sample from
+
+        Returns:
+            List of message dictionaries for API request
+        """
+        # randomly select some as examples
+        n_to_select = min(self.config.n_cot, len(all_tasks))
+        selected_examples = random.sample(all_tasks, n_to_select)
+
+        # build examples section
+        examples_text = "\n".join([f'eg, "{example}"' for example in selected_examples])
+        prompt = TASK_GENERATION_PROMPT.format(examples=examples_text)
+
+        return [{"role": "user", "content": prompt}]
+
+    async def generate_tasks(self, all_tasks: List[str] = []) -> List[str]:
+        """Generate multiple batches of random selection tasks.
+
+        Args:
+            all_tasks: List of existing tasks to use as examples
+
+        Returns:
+            List of generated tasks
+        """
         # Create multiple message lists for batch requests
         messages_list = []
         for _ in range(self.config.batch_size):
-            messages = [
-                {"role": "user", "content": TASK_GENERATION_PROMPT}
-            ]
+            messages = self.build_messages(all_tasks)
             messages_list.append(messages)
 
         # Use evoke_batch_requests to send all API calls concurrently
@@ -62,7 +86,7 @@ class RandomTaskGenerator:
         )
 
         # Parse all responses using regex to extract tasks from <task>...</task>
-        all_tasks = []
+        generated_tasks = []
         pattern = r'<task>(.*?)</task>'
 
         for response in responses:
@@ -81,11 +105,11 @@ class RandomTaskGenerator:
                 for match in matches:
                     task = match.strip()
                     if task:
-                        all_tasks.append(task)
+                        generated_tasks.append(task)
             except Exception as e:
                 print(f"Parse task error: {e}")
 
-        return all_tasks
+        return generated_tasks
 
     def is_similar(self, task: str, existing_tasks: List[str]) -> bool:
         """Check if task is too similar to any existing task using ROUGE-L score."""
@@ -98,8 +122,7 @@ class RandomTaskGenerator:
 
     async def run(self):
         """Generate and save the complete dataset of random selection tasks."""
-        all_tasks = []
-        self.seen_tasks = []
+        all_tasks = ["pick a random number from 1 to 6"]
 
         n_sample = self.config.n_sample
 
@@ -112,7 +135,7 @@ class RandomTaskGenerator:
         ) as writer:
             
             while len(all_tasks) < n_sample:
-                batch_tasks = await self.generate_tasks()
+                batch_tasks = await self.generate_tasks(all_tasks)
                 for task in batch_tasks:
                     print(task)
                     if not self.is_similar(task, all_tasks):
