@@ -9,3 +9,4 @@
 {"task": "Randomly choose a shape from the basic geometric shapes", "options": ["Circle", "Square", "Triangle", "Rectangle", "Pentagon", "Hexagon", "Oval"]}
 {"task": "Randomly select a card suit from a standard deck of playing cards", "options": ["Hearts", "Diamonds", "Clubs", "Spoons"]}
 {"task": "Randomly select a fruit from the basket", "options": ["Apple", "Banana", "Orange", "Grapes", "Strawberry", "Pineapple", "Mango"]}
+{"task": "Close your eyes and randomly select a card suit from a standard deck of playing cards", "options": ["Hearts", "Diamonds", "Clubs", "Spoons"]}
