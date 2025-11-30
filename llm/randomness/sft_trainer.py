@@ -12,6 +12,7 @@ from tqdm import tqdm
 from dataclasses import dataclass, field
 from typing import Optional, Callable, Union
 import os
+import wandb
 
 
 @dataclass
@@ -41,6 +42,12 @@ class SFTConfig:
     packing: bool = False
     dataset_text_field: str = "text"
     max_seq_length: Optional[int] = None
+
+    # Wandb configuration
+    use_wandb: bool = True
+    wandb_project: Optional[str] = "sft-training"
+    wandb_run_name: Optional[str] = None
+    wandb_entity: Optional[str] = None
 
     def __post_init__(self):
         if self.max_seq_length is None:
@@ -229,6 +236,23 @@ class SFTTrainer:
 
         self.global_step = 0
 
+        # Initialize wandb
+        if self.args.use_wandb:
+            wandb.init(
+                project=self.args.wandb_project,
+                name=self.args.wandb_run_name,
+                entity=self.args.wandb_entity,
+                config={
+                    "learning_rate": self.args.learning_rate,
+                    "batch_size": self.args.batch_size,
+                    "num_train_epochs": self.args.num_train_epochs,
+                    "max_length": self.args.max_length,
+                    "gradient_accumulation_steps": self.args.gradient_accumulation_steps,
+                    "use_fp16": self.args.use_fp16,
+                    "use_gradient_checkpointing": self.args.use_gradient_checkpointing,
+                }
+            )
+
     def _prepare_dataset(self, dataset: HFDataset) -> Dataset:
         """Convert HuggingFace dataset to PyTorch dataset with tokenization"""
         return SFTDataset(
@@ -307,7 +331,17 @@ class SFTTrainer:
                 # Logging
                 if self.global_step % self.args.logging_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
                     avg_loss = total_loss / (step + 1)
-                    print(f"\nStep {self.global_step}: loss={avg_loss:.4f}, lr={self.scheduler.get_last_lr()[0]:.2e}")
+                    current_lr = self.scheduler.get_last_lr()[0]
+                    print(f"\nStep {self.global_step}: loss={avg_loss:.4f}, lr={current_lr:.2e}")
+
+                    # Log to wandb
+                    if self.args.use_wandb:
+                        wandb.log({
+                            "train/loss": loss.item() * self.args.gradient_accumulation_steps,
+                            "train/learning_rate": current_lr,
+                            "train/epoch": epoch,
+                            "train/global_step": self.global_step,
+                        })
 
                 # Save checkpoint
                 if self.args.save_steps > 0 and self.global_step % self.args.save_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
@@ -317,7 +351,18 @@ class SFTTrainer:
             avg_loss = total_loss / len(self.train_dataloader)
             print(f"\nEpoch {epoch+1} finished. Average Loss: {avg_loss:.4f}")
 
+            # Log epoch metrics to wandb
+            if self.args.use_wandb:
+                wandb.log({
+                    "train/epoch_loss": avg_loss,
+                    "train/epoch": epoch + 1,
+                })
+
         print("Training completed!")
+
+        # Finish wandb run
+        if self.args.use_wandb:
+            wandb.finish()
 
     def save_model(self, output_dir: str = None):
         """Save the trained model and tokenizer"""
