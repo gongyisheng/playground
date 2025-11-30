@@ -171,20 +171,47 @@ class RandomTaskGenerator:
                 return True
         return False
 
+    def load_checkpoint(self) -> List[dict]:
+        """Load existing tasks from output file if it exists.
+
+        Returns:
+            List of existing task dictionaries
+        """
+        existing_tasks = []
+        try:
+            with open(self.config.output_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        existing_tasks.append(json.loads(line))
+            print(f"Loaded {len(existing_tasks)} existing tasks from checkpoint")
+        except FileNotFoundError:
+            print("No checkpoint found, starting from scratch")
+        except Exception as e:
+            print(f"Error loading checkpoint: {e}")
+        return existing_tasks
+
     async def run(self):
         """Generate and save the complete dataset of random selection tasks."""
-        all_tasks = []
+        # Load checkpoint if exists
+        all_tasks = self.load_checkpoint()
         tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-14b")
         n_sample = self.config.n_sample
 
-        pbar = tqdm(total=n_sample, desc="Generating tasks", unit="task")
+        # Calculate remaining tasks
+        n_existing = len(all_tasks)
+        if n_existing >= n_sample:
+            print(f"Already have {n_existing} tasks (target: {n_sample}). Nothing to do.")
+            return
+
+        pbar = tqdm(initial=n_existing, total=n_sample, desc="Generating tasks", unit="task")
         with DataWriter(
             output_path=self.config.output_path,
-            mode="w",
+            mode="a" if n_existing > 0 else "w",
             auto_flush=True,
             create_dirs=True
         ) as writer:
-            
+
             while len(all_tasks) < n_sample:
                 batch_results = await self.generate_tasks(all_tasks)
                 for result in batch_results:
