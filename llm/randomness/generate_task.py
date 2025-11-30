@@ -182,7 +182,7 @@ class RandomTaskGenerator:
             while len(all_tasks) < n_sample:
                 batch_results = await self.generate_tasks(all_tasks)
                 for result in batch_results:
-                    if tokenizer.encode(result["task"]) > self.config.max_task_len:
+                    if len(tokenizer.encode(result["task"])) > self.config.max_task_len:
                         continue
                     if len(result["options"]) > self.config.max_options_num:
                         continue
