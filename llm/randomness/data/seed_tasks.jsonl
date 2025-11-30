@@ -1,12 +1,19 @@
 {"task": "Flip a coin randomly", "options": ["Heads", "Tails"]}
-{"task": "Pick a random number from 1, 2 and 3", "options": [1,2,3]}
+{"task": "Pick a random number from 1, 2 and 3", "options": ["1", "2", "3"]}
 {"task": "Randomly select a day of the week", "options": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]}
 {"task": "Pick a mode of transportation randomly", "options": ["car", "bike", "bus", "train", "plane"]}
 {"task": "Randomly choose a season of the year", "options": ["Spring", "Summer", "Fall", "Winter"]}
 {"task": "Randomly choose a planet in our solar system", "options": ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]}
-{"task": "Roll a fair 6-sided die and record the result", "options": [1,2,3,4,5,6]}
+{"task": "Roll a fair 6-sided die and record the result", "options": ["1", "2", "3", "4", "5", "6"]}
 {"task": "Pick a random daily challenge to complete", "options": ["Take a 10-minute walk", "Drink a glass of water", "Do 10 push-ups", "Compliment someone", "Read one page of a book", "Organize one item or space", "Practice deep breathing for 1 minute", "Draw a picture"]}
 {"task": "Randomly choose a shape from the basic geometric shapes", "options": ["Circle", "Square", "Triangle", "Rectangle", "Pentagon", "Hexagon", "Oval"]}
 {"task": "Randomly select a card suit from a standard deck of playing cards", "options": ["Hearts", "Diamonds", "Clubs", "Spoons"]}
 {"task": "Randomly select a fruit from the basket", "options": ["Apple", "Banana", "Orange", "Grapes", "Strawberry", "Pineapple", "Mango"]}
 {"task": "Close your eyes and randomly select a card suit from a standard deck of playing cards", "options": ["Hearts", "Diamonds", "Clubs", "Spoons"]}
+{"task": "Pick a random board game to play", "options": ["Chess", "Checkers", "Monopoly", "Scrabble", "Catan", "Ticket to Ride", "Clue", "Pandemic"]}
+{"task": "Randomly choose a Rock-Paper-Scissors move", "options": ["Rock", "Paper", "Scissors"]}
+{"task": "Randomly select a Tetris tetromino", "options": ["I", "O", "T", "S", "Z", "J", "L"]}
+{"task": "Randomly select a human blood type (ABO/Rh)", "options": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]}
+{"task": "Randomly choose a primary or intercardinal compass direction", "options": ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"]}
+{"task": "Randomly select a Moon phase", "options": ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"]}
+{"task": "Randomly select a continent", "options": ["Africa", "Antarctica", "Asia", "Europe", "North America", "South America", "Australia"]}

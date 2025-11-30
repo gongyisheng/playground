@@ -20,6 +20,7 @@ class Config:
     """Configuration for task generation."""
     # Model configuration
     base_url: str = "https://vllm.yellowday.day/v1"
+    # base_url: str = None
     output_path: str = "outputs/random_tasks.jsonl"
     seed_tasks_path: str = "data/seed_tasks.jsonl"
     n_sample: int = 100
@@ -27,10 +28,11 @@ class Config:
     n_cot_machine: int = 4
     batch_size: int = 8
     rouge_similarity_threshold: float = 0.7
-    max_task_len = 32
-    max_options_num = 8
+    max_task_tokens = 32
+    max_options_num = 16
 
     model_name: str = "Qwen/Qwen3-14B"
+    # model_name = "gpt-5"
     max_token: int = 512
     temperature: float = 1.0
     top_p: float = 0.95
@@ -156,10 +158,14 @@ class RandomTaskGenerator:
 
         return generated_tasks
 
-    def is_similar(self, task: str, existing_tasks: List[str]) -> bool:
-        """Check if task is too similar to any existing task using ROUGE-L score."""
+    def is_similar(self, task: dict, existing_tasks: List[dict]) -> bool:
+        """Check if task is too similar to any existing task"""
         for existing_task in existing_tasks:
-            scores = self.scorer.score(existing_task, task)
+            # compare options
+            if sorted(task["options"]) == sorted(existing_task["options"]):
+                return True
+            # compare task's rouge score
+            scores = self.scorer.score(existing_task["task"], task["task"])
             rouge_l_f1 = scores['rougeL'].fmeasure
             if rouge_l_f1 > self.config.rouge_similarity_threshold:
                 return True
@@ -182,11 +188,11 @@ class RandomTaskGenerator:
             while len(all_tasks) < n_sample:
                 batch_results = await self.generate_tasks(all_tasks)
                 for result in batch_results:
-                    if len(tokenizer.encode(result["task"])) > self.config.max_task_len:
+                    if len(tokenizer.encode(result["task"])) > self.config.max_task_tokens:
                         continue
                     if len(result["options"]) > self.config.max_options_num:
                         continue
-                    if not self.is_similar(result["task"], [i["task"] for i in all_tasks]):
+                    if not self.is_similar(result, all_tasks):
                         all_tasks.append(result)
                         writer.write(result)
                         pbar.update(1)
