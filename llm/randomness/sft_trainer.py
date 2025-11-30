@@ -17,10 +17,10 @@ import wandb
 
 
 @dataclass
-class SFTConfig:
+class CustomSFTConfig:
     """Configuration class for SFT training - similar to TRL's SFTConfig"""
     # Training configuration
-    max_length: int = 256
+    max_length: int = 1024
     batch_size: int = 4
     learning_rate: float = 2e-5
     num_train_epochs: int = 1
@@ -58,14 +58,13 @@ class SFTConfig:
         if self.max_seq_length is None:
             self.max_seq_length = self.max_length
 
-class SFTDataset(Dataset):
+class CustomSFTDataset(Dataset):
     def __init__(
         self,
         dataset,
         tokenizer,
         max_length=512,
         formatting_func: Optional[Callable] = None,
-        text_field: str = "text"
     ):
         """
         Dataset class for SFT training
@@ -75,13 +74,11 @@ class SFTDataset(Dataset):
             tokenizer: Tokenizer for encoding text
             max_length: Maximum sequence length
             formatting_func: Optional function to format examples
-            text_field: Field name containing text data
         """
         self.dataset = dataset
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.formatting_func = formatting_func
-        self.text_field = text_field
 
     def __len__(self):
         return len(self.dataset)
@@ -142,13 +139,12 @@ class SFTDataset(Dataset):
         }
 
 
-class SFTTrainer:
-    """SFT Trainer class matching TRL's SFTTrainer API"""
+class CustomSFTTrainer:
 
     def __init__(
         self,
         model: Union[str, PreTrainedModel] = None,
-        args: Optional[SFTConfig] = None,
+        args: Optional[CustomSFTConfig] = None,
         train_dataset: Optional[HFDataset] = None,
         eval_dataset: Optional[HFDataset] = None,
         processing_class: Optional[PreTrainedTokenizer] = None,
@@ -169,7 +165,7 @@ class SFTTrainer:
             formatting_func: Function to preprocess dataset examples
             model_init_kwargs: Additional kwargs for model loading
         """
-        self.args = args if args is not None else SFTConfig()
+        self.args = args if args is not None else CustomSFTConfig()
         self.model_init_kwargs = model_init_kwargs or {}
         self.formatting_func = formatting_func
 
@@ -260,7 +256,7 @@ class SFTTrainer:
 
     def _prepare_dataset(self, dataset: HFDataset) -> Dataset:
         """Convert HuggingFace dataset to PyTorch dataset with tokenization"""
-        return SFTDataset(
+        return CustomSFTDataset(
             dataset,
             self.tokenizer,
             max_length=self.args.max_seq_length,
@@ -508,11 +504,6 @@ class SFTTrainer:
 
 def main():
     """Main training function demonstrating TRL-style SFTTrainer API"""
-
-    # Example 1: Simple usage with minimal configuration (TRL-style)
-    print("="*50)
-    print("Example 1: TRL-style Simple API")
-    print("="*50)
 
     # Load dataset
     dataset = load_dataset("timdettmers/openassistant-guanaco", split="train")

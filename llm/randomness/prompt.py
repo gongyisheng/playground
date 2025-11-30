@@ -9,3 +9,9 @@ your output must be in following format:
     ...
 </options>
 """.strip()
+
+SFT_PROMPT = """
+Solve the task and provide the best possible answer inside <answer></answer>
+Task: {task} 
+Available options: {options}
+"""
