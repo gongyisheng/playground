@@ -25,7 +25,7 @@ class Config:
     rouge_similarity_threshold: float = 0.7
 
     model_name: str = "Qwen/Qwen3-14B"
-    max_token: int = 128
+    max_token: int = 512
     temperature: float = 1.0
     top_p: float = 0.95
     frequency_penalty: float = 0.0
@@ -53,9 +53,8 @@ class RandomTaskGenerator:
         selected_examples = random.sample(all_tasks, n_to_select)
 
         # build examples section
-        examples_text = "\n".join([f'eg, "{example}"' for example in selected_examples])
+        examples_text = "\n".join([f'eg, task={example['task']}, options={example['options']}' for example in selected_examples])
         prompt = TASK_GENERATION_PROMPT.format(examples=examples_text)
-
         return [{"role": "user", "content": prompt}]
 
     async def generate_tasks(self, all_tasks: List[str] = []) -> List[str]:
@@ -87,7 +86,9 @@ class RandomTaskGenerator:
 
         # Parse all responses using regex to extract tasks from <task>...</task>
         generated_tasks = []
-        pattern = r'<task>(.*?)</task>'
+        task_pattern = r'<task>(.*?)</task>'
+        options_pattern = r'<options>(.*?)</options>'
+        option_pattern = r'<option>(.*?)</option>'
 
         for response in responses:
             if response is None:
@@ -101,11 +102,21 @@ class RandomTaskGenerator:
 
             # Extract all tasks from XML tags
             try:
-                matches = re.findall(pattern, content, re.DOTALL)
-                for match in matches:
-                    task = match.strip()
-                    if task:
-                        generated_tasks.append(task)
+                task_matches = re.findall(task_pattern, content, re.DOTALL)
+                assert len(task_matches) == 1
+                task = task_matches[0].strip()
+                options_matches = re.findall(options_pattern, content, re.DOTALL)
+                assert len(options_matches) == 1
+                options_text = options_matches[0].strip()
+                option_matches = re.findall(option_pattern, options_text, re.DOTALL)
+                assert len(option_matches) > 0
+                options = []
+                for option in option_matches:
+                    options.append(option.strip())
+                generated_tasks.append({
+                    "task": task,
+                    "options": options
+                })
             except Exception as e:
                 print(f"Parse task error: {e}")
 
@@ -122,7 +133,12 @@ class RandomTaskGenerator:
 
     async def run(self):
         """Generate and save the complete dataset of random selection tasks."""
-        all_tasks = ["pick a random number from 1 to 6"]
+        all_tasks = [
+            {
+                "task": "pick a random number from 1 to 6",
+                "options": [1,2,3,4,5,6]
+            }
+        ]
 
         n_sample = self.config.n_sample
 
@@ -135,13 +151,11 @@ class RandomTaskGenerator:
         ) as writer:
             
             while len(all_tasks) < n_sample:
-                batch_tasks = await self.generate_tasks(all_tasks)
-                for task in batch_tasks:
-                    print(task)
-                    if not self.is_similar(task, all_tasks):
-                        task_dict = {"task": task}
-                        all_tasks.append(task)
-                        writer.write(task_dict)
+                batch_results = await self.generate_tasks(all_tasks)
+                for result in batch_results:
+                    if not self.is_similar(result["task"], [i["task"] for i in all_tasks]):
+                        all_tasks.append(result)
+                        writer.write(result)
                         pbar.update(1)
 
 

@@ -1,5 +1,11 @@
 TASK_GENERATION_PROMPT = """
-Come up with a task that involve randomness.
+Come up with a task that involve randomness and provide all of the possible options.
 {examples}
-your output must be in following format: <task>xxx</task>
+your output must be in following format: 
+<task>xxx</task>
+<options>
+    <option>item1</option>
+    <option>item2</option>
+    ...
+</options>
 """.strip()
