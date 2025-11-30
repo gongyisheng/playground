@@ -51,9 +51,28 @@ def test_contiguous():
     q_contiguous = q_transposed.contiguous()
     print("After contiguous, is contiguous:", q_contiguous.is_contiguous())
 
+def test_advanced_indexing():
+    batch_size = 4
+    log_probs_example = torch.tensor([
+        [-2.1, -1.5, -0.8, -3.2, -2.7, -1.2],  # Sample 0
+        [-1.3, -2.4, -0.5, -1.8, -2.1, -3.0],  # Sample 1
+        [-0.9, -1.7, -2.3, -0.6, -1.1, -2.8],  # Sample 2
+        [-2.5, -0.7, -1.9, -2.2, -1.4, -3.1],  # Sample 3
+    ])
+    targets_example = torch.tensor([2, 2, 3, 1])
+
+    row_indices = torch.arange(batch_size)
+    print(f"Row indices: {row_indices}")
+    print(f"Column indices: {targets_example}")
+
+    # advanced indexing
+    target_log_probs_example = log_probs_example[row_indices, targets_example]
+    print(f"Result: {target_log_probs_example}")
+
 
 if __name__ == "__main__":
     # test_transpose()
     # test_mean()
     # test_variance()
-    test_contiguous()
+    # test_contiguous()
+    test_advanced_indexing()
