@@ -1,4 +1,5 @@
 import asyncio
+import json
 import random
 import re
 from tqdm import tqdm
@@ -6,6 +7,7 @@ from typing import List
 
 from dataclasses import dataclass
 from rouge_score import rouge_scorer
+from transformers import AutoTokenizer
 
 from utils import init_openai_client, evoke_batch_requests, DataWriter
 from prompt import TASK_GENERATION_PROMPT
@@ -19,10 +21,14 @@ class Config:
     # Model configuration
     base_url: str = "https://vllm.yellowday.day/v1"
     output_path: str = "outputs/random_tasks.jsonl"
+    seed_tasks_path: str = "data/seed_tasks.jsonl"
     n_sample: int = 100
-    n_cot: int = 8
+    n_cot_seed: int = 4
+    n_cot_machine: int = 4
     batch_size: int = 8
     rouge_similarity_threshold: float = 0.7
+    max_task_len = 32
+    max_options_num = 8
 
     model_name: str = "Qwen/Qwen3-14B"
     max_token: int = 512
@@ -38,19 +44,47 @@ class RandomTaskGenerator:
         self.config = config
         self.client = init_openai_client(base_url=config.base_url)
         self.scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
+        self.seed_tasks = self.load_seed_tasks()
+
+    def load_seed_tasks(self) -> List[dict]:
+        """Load seed tasks from the jsonl file.
+
+        Returns:
+            List of seed task dictionaries
+        """
+        seed_tasks = []
+        try:
+            with open(self.config.seed_tasks_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        seed_tasks.append(json.loads(line))
+        except FileNotFoundError:
+            print(f"Warning: Seed tasks file not found at {self.config.seed_tasks_path}")
+        except Exception as e:
+            print(f"Error loading seed tasks: {e}")
+        return seed_tasks
 
     def build_messages(self, all_tasks: List[str]) -> List[dict]:
-        """Build messages with randomly selected examples from all_tasks.
+        """Build messages with randomly selected examples from seed tasks and machine-generated tasks.
 
         Args:
-            all_tasks: List of existing tasks to sample from
+            all_tasks: List of machine-generated tasks to sample from
 
         Returns:
             List of message dictionaries for API request
         """
-        # randomly select some as examples
-        n_to_select = min(self.config.n_cot, len(all_tasks))
-        selected_examples = random.sample(all_tasks, n_to_select)
+        selected_examples = []
+
+        # Randomly select from seed tasks
+        if self.seed_tasks:
+            n_seed_to_select = min(self.config.n_cot_seed, len(self.seed_tasks))
+            selected_examples.extend(random.sample(self.seed_tasks, n_seed_to_select))
+
+        # Randomly select from machine-generated tasks
+        if all_tasks:
+            n_machine_to_select = min(self.config.n_cot_machine, len(all_tasks))
+            selected_examples.extend(random.sample(all_tasks, n_machine_to_select))
 
         # build examples section
         examples_text = "\n".join([f'eg, task={example['task']}, options={example['options']}' for example in selected_examples])
@@ -133,13 +167,8 @@ class RandomTaskGenerator:
 
     async def run(self):
         """Generate and save the complete dataset of random selection tasks."""
-        all_tasks = [
-            {
-                "task": "pick a random number from 1 to 6",
-                "options": [1,2,3,4,5,6]
-            }
-        ]
-
+        all_tasks = []
+        tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-14b")
         n_sample = self.config.n_sample
 
         pbar = tqdm(total=n_sample, desc="Generating tasks", unit="task")
@@ -153,6 +182,10 @@ class RandomTaskGenerator:
             while len(all_tasks) < n_sample:
                 batch_results = await self.generate_tasks(all_tasks)
                 for result in batch_results:
+                    if tokenizer.encode(result["task"]) > self.config.max_task_len:
+                        continue
+                    if len(result["options"]) > self.config.max_options_num:
+                        continue
                     if not self.is_similar(result["task"], [i["task"] for i in all_tasks]):
                         all_tasks.append(result)
                         writer.write(result)
