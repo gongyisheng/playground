@@ -19,20 +19,20 @@ random.seed(42)
 class Config:
     """Configuration for task generation."""
     # Model configuration
-    base_url: str = "https://vllm.yellowday.day/v1"
-    # base_url: str = None
+    # base_url: str = "https://vllm.yellowday.day/v1"
+    base_url: str = None
     output_path: str = "outputs/random_tasks.jsonl"
     seed_tasks_path: str = "data/seed_tasks.jsonl"
     n_sample: int = 100
-    n_cot_seed: int = 4
-    n_cot_machine: int = 4
-    batch_size: int = 4
+    n_cot_seed: int = 6
+    n_cot_machine: int = 2
+    batch_size: int = 16
     rouge_similarity_threshold: float = 0.7
     max_task_tokens = 32
     max_options_num = 16
 
-    model_name: str = "Qwen/Qwen3-14B"
-    # model_name = "gpt-5"
+    # model_name: str = "Qwen/Qwen3-14B"
+    model_name = "gpt-5"
     max_token: int = 512
     temperature: float = 1.0
     top_p: float = 0.95
@@ -113,11 +113,11 @@ class RandomTaskGenerator:
             self.client,
             messages_list,
             model=self.config.model_name,
-            max_tokens=self.config.max_token,
-            temperature=self.config.temperature,
-            frequency_penalty=self.config.frequency_penalty,
-            presence_penalty=self.config.presence_penalty,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}} # for qwen3 models, disable think
+            # max_tokens=self.config.max_token,
+            # temperature=self.config.temperature,
+            # frequency_penalty=self.config.frequency_penalty,
+            # presence_penalty=self.config.presence_penalty,
+            # extra_body={"chat_template_kwargs": {"enable_thinking": False}} # for qwen3 models, disable think
         )
 
         # Parse all responses using regex to extract tasks from <task>...</task>
