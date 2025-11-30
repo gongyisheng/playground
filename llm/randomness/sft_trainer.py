@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from transformers import (
     AutoModelForCausalLM,
@@ -9,7 +10,7 @@ from transformers import (
 )
 from datasets import load_dataset, Dataset as HFDataset
 from tqdm import tqdm
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Callable, Union
 import os
 import wandb
@@ -48,6 +49,10 @@ class SFTConfig:
     wandb_project: Optional[str] = "sft-training"
     wandb_run_name: Optional[str] = None
     wandb_entity: Optional[str] = None
+
+    # Loss calculation options
+    use_manual_loss: bool = False
+    loss_mask_fn: Optional[Callable] = None  # Custom function to create loss mask
 
     def __post_init__(self):
         if self.max_seq_length is None:
@@ -275,6 +280,77 @@ class SFTTrainer:
             "labels": labels
         }
 
+    def compute_loss(self, logits, labels, attention_mask=None):
+        """
+        Manually compute cross-entropy loss with custom masking.
+
+        Args:
+            logits: Model output logits, shape (batch_size, seq_len, vocab_size)
+            labels: Target labels, shape (batch_size, seq_len)
+            attention_mask: Optional attention mask (currently unused)
+
+        Returns:
+            loss: Scalar loss value
+            loss_info: Dictionary with additional loss statistics
+        """
+        _ = attention_mask  # Reserved for future use
+        batch_size, seq_len, vocab_size = logits.shape
+
+        # Shift logits and labels for next-token prediction
+        # logits: predict token at position i from tokens 0..i-1
+        # labels: token at position i
+        shift_logits = logits[:, :-1, :].contiguous()  # (batch, seq_len-1, vocab)
+        shift_labels = labels[:, 1:].contiguous()      # (batch, seq_len-1)
+
+        # Flatten for cross-entropy calculation
+        shift_logits = shift_logits.view(-1, vocab_size)  # (batch * seq_len-1, vocab)
+        shift_labels = shift_labels.view(-1)               # (batch * seq_len-1)
+
+        # Create loss mask
+        # By default, mask out -100 labels (standard behavior)
+        loss_mask = (shift_labels != -100).float()
+
+        # Apply custom loss mask function if provided
+        if self.args.loss_mask_fn is not None:
+            # Reshape back to 2D for custom masking
+            loss_mask_2d = loss_mask.view(batch_size, seq_len - 1)
+            shift_labels_2d = shift_labels.view(batch_size, seq_len - 1)
+
+            # Apply custom mask function
+            custom_mask = self.args.loss_mask_fn(
+                shift_labels_2d,
+                loss_mask_2d,
+                self.tokenizer
+            )
+            loss_mask = custom_mask.view(-1).float()
+
+        # Compute cross-entropy loss (without reduction first)
+        loss_per_token = F.cross_entropy(
+            shift_logits,
+            shift_labels,
+            reduction='none'
+        )
+
+        # Apply mask and compute mean over valid tokens only
+        masked_loss = loss_per_token * loss_mask
+        num_valid_tokens = loss_mask.sum()
+
+        if num_valid_tokens > 0:
+            loss = masked_loss.sum() / num_valid_tokens
+        else:
+            loss = masked_loss.sum()  # Will be 0 if no valid tokens
+
+        # Gather statistics
+        loss_info = {
+            'loss': loss.item(),
+            'num_valid_tokens': num_valid_tokens.item(),
+            'total_tokens': loss_mask.numel(),
+            'mask_ratio': (num_valid_tokens / loss_mask.numel()).item() if loss_mask.numel() > 0 else 0.0,
+            'mean_loss_per_token': loss.item(),
+        }
+
+        return loss, loss_info
+
     def train(self):
         """Run the training loop"""
         if self.train_dataloader is None:
@@ -300,13 +376,23 @@ class SFTTrainer:
                 labels = batch["labels"].to(self.args.device)
 
                 # Forward pass
-                outputs = self.model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    labels=labels
-                )
-
-                loss = outputs.loss
+                if self.args.use_manual_loss:
+                    # Manual loss calculation
+                    outputs = self.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                    )
+                    logits = outputs.logits
+                    loss, loss_info = self.compute_loss(logits, labels, attention_mask)
+                else:
+                    # Use built-in loss calculation
+                    outputs = self.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        labels=labels
+                    )
+                    loss = outputs.loss
+                    loss_info = {'loss': loss.item()}
 
                 # Handle gradient accumulation
                 if self.args.gradient_accumulation_steps > 1:
@@ -323,10 +409,16 @@ class SFTTrainer:
                     self.global_step += 1
 
                 total_loss += loss.item()
-                progress_bar.set_postfix({
+
+                # Prepare progress bar postfix
+                postfix_dict = {
                     "loss": loss.item() * self.args.gradient_accumulation_steps,
                     "lr": self.scheduler.get_last_lr()[0]
-                })
+                }
+                if self.args.use_manual_loss and 'mask_ratio' in loss_info:
+                    postfix_dict["mask%"] = f"{loss_info['mask_ratio']*100:.1f}"
+
+                progress_bar.set_postfix(postfix_dict)
 
                 # Logging
                 if self.global_step % self.args.logging_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
@@ -336,12 +428,19 @@ class SFTTrainer:
 
                     # Log to wandb
                     if self.args.use_wandb:
-                        wandb.log({
+                        log_dict = {
                             "train/loss": loss.item() * self.args.gradient_accumulation_steps,
                             "train/learning_rate": current_lr,
                             "train/epoch": epoch,
                             "train/global_step": self.global_step,
-                        })
+                        }
+                        # Add additional loss info if using manual loss
+                        if self.args.use_manual_loss:
+                            log_dict.update({
+                                "train/num_valid_tokens": loss_info.get('num_valid_tokens', 0),
+                                "train/mask_ratio": loss_info.get('mask_ratio', 0),
+                            })
+                        wandb.log(log_dict)
 
                 # Save checkpoint
                 if self.args.save_steps > 0 and self.global_step % self.args.save_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
