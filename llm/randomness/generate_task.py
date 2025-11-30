@@ -1,13 +1,17 @@
 import asyncio
-from dataclasses import dataclass
+import random
 import re
-from rouge_score import rouge_scorer
 from tqdm import tqdm
 from typing import List
+
+from dataclasses import dataclass
+from rouge_score import rouge_scorer
 
 from utils import init_openai_client, evoke_batch_requests, DataWriter
 from prompt import TASK_GENERATION_PROMPT
 
+# Set random seed for reproducibility
+random.seed(42)
 
 @dataclass
 class Config:
@@ -66,6 +70,10 @@ class RandomTaskGenerator:
                 continue
 
             content = response.choices[0].message.content
+            stop_reason = response.choices[0].finish_reason
+
+            if stop_reason == "length":
+                continue
 
             # Extract all tasks from XML tags
             try:
@@ -106,9 +114,10 @@ class RandomTaskGenerator:
             while len(all_tasks) < n_sample:
                 batch_tasks = await self.generate_tasks()
                 for task in batch_tasks:
+                    print(task)
                     if not self.is_similar(task, all_tasks):
                         task_dict = {"task": task}
-                        all_tasks.append(task_dict)
+                        all_tasks.append(task)
                         writer.write(task_dict)
                         pbar.update(1)
 
