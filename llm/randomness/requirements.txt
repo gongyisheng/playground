@@ -1,4 +1,0 @@
-anthropic>=0.39.0
-tqdm>=4.66.0
-rouge-score>=0.1.2
-openai
