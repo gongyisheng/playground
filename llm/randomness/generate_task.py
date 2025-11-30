@@ -16,7 +16,7 @@ class Config:
     base_url: str = "https://vllm.yellowday.day/v1"
     output_path: str = "outputs/random_tasks.jsonl"
     n_sample: int = 100
-    batch_size: int = 10
+    batch_size: int = 8
     rouge_similarity_threshold: float = 0.7
 
     model_name: str = "Qwen/Qwen3-14B"
@@ -97,7 +97,7 @@ class RandomTaskGenerator:
         pbar = tqdm(total=n_sample, desc="Generating tasks", unit="task")
         with DataWriter(
             output_path=self.config.output_path,
-            mode=self.config.output_mode,
+            mode="w",
             auto_flush=True,
             create_dirs=True
         ) as writer:
