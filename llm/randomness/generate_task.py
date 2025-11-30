@@ -53,7 +53,8 @@ class RandomTaskGenerator:
             max_tokens=self.config.max_token,
             temperature=self.config.temperature,
             frequency_penalty=self.config.frequency_penalty,
-            presence_penalty=self.config.presence_penalty
+            presence_penalty=self.config.presence_penalty,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}} # for qwen3 models, disable think
         )
 
         # Parse all responses using regex to extract tasks from <task>...</task>
