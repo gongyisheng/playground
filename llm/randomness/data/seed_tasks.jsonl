@@ -1,5 +1,6 @@
 {"task": "Flip a coin randomly", "options": ["Heads", "Tails"]}
 {"task": "Pick a random number from 1 to 6", "options": [1,2,3,4,5,6]}
 {"task": "Randomly select a day of the week", "options": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]}
-{"task": "Pick a mode of transportation", "options": ["car", "bike", "bus", "train", "plane"]}
+{"task": "Pick a mode of transportation randomly", "options": ["car", "bike", "bus", "train", "plane"]}
 {"task": "Randomly choose a season of the year", "options": ["Spring", "Summer", "Fall", "Winter"]}
+{"task": "Randomly choose a planet in our solar system", "options": ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]}
