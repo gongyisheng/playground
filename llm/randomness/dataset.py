@@ -109,43 +109,53 @@ class CustomSFTDataset(Dataset):
         self.radix_tree_map = {}
 
         # Load raw data from JSONL
-        self.data = []
+        self.raw_data = []
+        self.processed_data = []
         with open(input_path, 'r') as f:
             for line in f:
                 line = line.strip()
                 if not line:  # Skip empty lines
                     continue
                 record = json.loads(line)
-                self.data.append(record)
+                self.raw_data.append(record)
 
         print(f"Loaded {len(self.data)} examples from {input_path}")
+
+        self._prepare_dataset()
     
     def _prepare_dataset(self):
 
         # build option radix tree
-        for record in self.data:
+        for record in self.raw_data:
             root = TokenRadixNode()
             for option in record["options"]:
                 token_ids = self.tokenizer.encode(option+self.tokenizer.eos_token)
                 root.insert(token_ids)
-            
             uuid = record["uuid"]
             self.radix_tree_map[uuid] = root
+        
+        for record in self.raw_data:
+            for option in record["options"]:
+                self.processed_data.append({
+                    "task": record["task"],
+                    "options": record["options"],
+                    "chosen_option": option,
+                    "uuid": record["uuid"]
+                })
 
     def __len__(self):
-        return len(self.data)
+        return len(self.processed_data)
 
     def __getitem__(self, idx):
-        record = self.data[idx]
-
+        record = self.processed_data[idx]
         task = record['task']
         options = record['options']
         options_str = ", ".join(options)
         prompt_text = SFT_PROMPT.format(task=task, options=options_str)
-        answer = random.choice(options)
+        chosen_option = record["chosen_option"]
         messages = [
             {"role": "user", "content": prompt_text},
-            {"role": "assistant", "content": answer},
+            {"role": "assistant", "content": chosen_option},
         ]
 
         # Apply chat template and tokenize
@@ -158,8 +168,7 @@ class CustomSFTDataset(Dataset):
         # Tokenize the full conversation
         encoding = self.tokenizer(
             text,
-            truncation=True,
-            max_length=self.max_length,
+            truncation=False,
             padding=False,
             return_tensors=None
         )
