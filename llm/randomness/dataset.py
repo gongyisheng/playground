@@ -147,7 +147,34 @@ class CustomSFTDataset(Dataset):
             {"role": "user", "content": prompt_text},
             {"role": "assistant", "content": answer},
         ]
-        
+
+        # Apply chat template and tokenize
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=False
+        )
+
+        # Tokenize the full conversation
+        encoding = self.tokenizer(
+            text,
+            truncation=True,
+            max_length=self.max_length,
+            padding=False,
+            return_tensors=None
+        )
+
+        input_ids = encoding['input_ids']
+        attention_mask = encoding['attention_mask']
+
+        # Create labels (same as input_ids for standard SFT)
+        labels = input_ids.copy()
+
+        return {
+            'input_ids': torch.tensor(input_ids, dtype=torch.long),
+            'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
+            'labels': torch.tensor(labels, dtype=torch.long)
+        }
 
 if __name__ == "__main__":
     test_token_radix_node()
