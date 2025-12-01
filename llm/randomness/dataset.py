@@ -1,4 +1,11 @@
+import json
+import random
 from typing import List, Dict
+
+import torch
+from torch.utils.data import Dataset
+
+from prompt import SFT_PROMPT
 
 class TokenRadixNode:
     """
@@ -52,7 +59,7 @@ class TokenRadixNode:
             node = child
         return probas
 
-def test():
+def test_token_radix_node():
     from transformers import AutoTokenizer
 
     model_name = "Qwen/Qwen3-0.6B"
@@ -78,5 +85,69 @@ def test():
         token_proba = root.get_token_proba(token_ids)
         print(len(token_ids), len(token_proba), token_proba)
 
+
+class CustomSFTDataset(Dataset):
+    def __init__(
+        self,
+        input_path: str,
+        tokenizer,
+        max_length: int = 512,
+        vocab_size: int = None
+    ):
+        """
+        Dataset class for SFT training with soft labels based on uniform distribution over options.
+
+        Args:
+            jsonl_path: Path to JSONL file containing task and options
+            tokenizer: Tokenizer for encoding text
+            max_length: Maximum sequence length
+            vocab_size: Vocabulary size for creating soft label tensors
+        """
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.vocab_size = vocab_size if vocab_size is not None else tokenizer.vocab_size
+        self.radix_tree_map = {}
+
+        # Load raw data from JSONL
+        self.data = []
+        with open(input_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:  # Skip empty lines
+                    continue
+                record = json.loads(line)
+                self.data.append(record)
+
+        print(f"Loaded {len(self.data)} examples from {input_path}")
+    
+    def _prepare_dataset(self):
+
+        # build option radix tree
+        for record in self.data:
+            root = TokenRadixNode()
+            for option in record["options"]:
+                token_ids = self.tokenizer.encode(option+self.tokenizer.eos_token)
+                root.insert(token_ids)
+            
+            uuid = record["uuid"]
+            self.radix_tree_map[uuid] = root
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        record = self.data[idx]
+
+        task = record['task']
+        options = record['options']
+        options_str = ", ".join(options)
+        prompt_text = SFT_PROMPT.format(task=task, options=options_str)
+        answer = random.choice(options)
+        messages = [
+            {"role": "user", "content": prompt_text},
+            {"role": "assistant", "content": answer},
+        ]
+        
+
 if __name__ == "__main__":
-    test()
+    test_token_radix_node()
