@@ -14,6 +14,11 @@ from dataclasses import dataclass
 from typing import Optional, Callable, Union
 import os
 import wandb
+import json
+import random
+from typing import List, Dict, Tuple
+
+from dataset import CustomSFTDataset
 
 
 @dataclass
@@ -58,99 +63,18 @@ class CustomSFTConfig:
         if self.max_seq_length is None:
             self.max_seq_length = self.max_length
 
-class CustomSFTDataset(Dataset):
-    def __init__(
-        self,
-        dataset,
-        tokenizer,
-        max_length=512,
-        formatting_func: Optional[Callable] = None,
-    ):
-        """
-        Dataset class for SFT training
-
-        Args:
-            dataset: HuggingFace dataset
-            tokenizer: Tokenizer for encoding text
-            max_length: Maximum sequence length
-            formatting_func: Optional function to format examples
-        """
-        self.dataset = dataset
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.formatting_func = formatting_func
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        record = self.dataset[idx]
-
-        # Apply formatting function if provided
-        if self.formatting_func is not None:
-            full_text = self.formatting_func(record)
-        else:
-            # Default: get text from specified field
-            full_text = record[self.text_field]
-
-        # Split into Prompt vs Response so we can mask the prompt
-        # NOTE: This splitting logic depends strictly on your dataset format
-        split_text = full_text.split("### Assistant:")
-        if len(split_text) < 2:
-            # Skip bad data in real life, for now return truncated
-            prompt_text = full_text[:10]
-            response_text = full_text[10:]
-        else:
-            prompt_text = split_text[0] + "### Assistant:"
-            response_text = split_text[1]
-
-        # 1. Tokenize the Prompt (Instructions)
-        prompt_ids = self.tokenizer.encode(
-            prompt_text,
-            add_special_tokens=False
-        )
-
-        # 2. Tokenize the Response (Target)
-        response_ids = self.tokenizer.encode(
-            response_text,
-            add_special_tokens=False
-        ) + [self.tokenizer.eos_token_id] # Add EOS token at the end
-
-        # 3. Combine them
-        input_ids = prompt_ids + response_ids
-
-        # 4. Create Labels (Mask prompt with -100)
-        # -100 is the default "ignore_index" for PyTorch's CrossEntropyLoss
-        labels = [-100] * len(prompt_ids) + response_ids
-
-        # 5. Truncate or Pad
-        if len(input_ids) > self.max_length:
-            input_ids = input_ids[:self.max_length]
-            labels = labels[:self.max_length]
-        else:
-            pad_len = self.max_length - len(input_ids)
-            input_ids += [self.tokenizer.pad_token_id] * pad_len
-            labels += [-100] * pad_len
-
-        return {
-            "input_ids": torch.tensor(input_ids, dtype=torch.long),
-            "labels": torch.tensor(labels, dtype=torch.long),
-            "attention_mask": torch.tensor([1 if x != self.tokenizer.pad_token_id else 0 for x in input_ids])
-        }
-
-
 class CustomSFTTrainer:
 
     def __init__(
         self,
-        model: Union[str, PreTrainedModel] = None,
-        args: Optional[CustomSFTConfig] = None,
-        train_dataset: Optional[HFDataset] = None,
-        eval_dataset: Optional[HFDataset] = None,
-        processing_class: Optional[PreTrainedTokenizer] = None,
-        data_collator: Optional[Callable] = None,
-        formatting_func: Optional[Callable] = None,
-        model_init_kwargs: Optional[dict] = None,
+        model: PreTrainedModel,
+        processing_class: PreTrainedTokenizer,
+        args: CustomSFTConfig,
+        train_dataset: CustomSFTDataset,
+        eval_dataset: CustomSFTDataset,
+        # data_collator: Optional[Callable] = None,
+        # formatting_func: Optional[Callable] = None,
+        # model_init_kwargs: Optional[dict] = None,
     ):
         """
         Initialize the SFT Trainer matching TRL's API
@@ -158,82 +82,42 @@ class CustomSFTTrainer:
         Args:
             model: Model ID (string) or PreTrainedModel instance
             args: SFTConfig instance for training configuration
-            train_dataset: Raw HuggingFace dataset for training
-            eval_dataset: Optional evaluation dataset
+            train_dataset: Path to JSONL file (str) or HuggingFace dataset for training
+            eval_dataset: Optional path to JSONL file (str) or evaluation dataset
             processing_class: Tokenizer; auto-loaded if None
             data_collator: Custom collator for batching
             formatting_func: Function to preprocess dataset examples
-            model_init_kwargs: Additional kwargs for model loading
         """
-        self.args = args if args is not None else CustomSFTConfig()
-        self.model_init_kwargs = model_init_kwargs or {}
-        self.formatting_func = formatting_func
-
-        # Auto-load model if string is provided
-        if isinstance(model, str):
-            print(f"Loading model from: {model}")
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model,
-                torch_dtype=torch.float16 if self.args.use_fp16 else torch.float32,
-                device_map="auto",
-                **self.model_init_kwargs
-            )
-        else:
-            self.model = model
-
-        # Auto-load tokenizer if not provided
-        if processing_class is None:
-            if isinstance(model, str):
-                print(f"Loading tokenizer from: {model}")
-                self.tokenizer = AutoTokenizer.from_pretrained(model)
-            else:
-                raise ValueError("Must provide processing_class when model is PreTrainedModel")
-        else:
-            self.tokenizer = processing_class
-
-        # Set padding token if not set
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.unk_token
+        self.model = model
+        self.tokenizer = processing_class
+        self.args = args
 
         # Enable gradient checkpointing
-        if self.args.use_gradient_checkpointing:
-            self.model.gradient_checkpointing_enable()
+        # if self.args.use_gradient_checkpointing:
+        #     self.model.gradient_checkpointing_enable()
 
         # Process dataset
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
-
-        # Create data collator
-        if data_collator is None:
-            self.data_collator = self._default_data_collator
-        else:
-            self.data_collator = data_collator
-
-        # Prepare dataset and dataloader
-        if train_dataset is not None:
-            processed_dataset = self._prepare_dataset(train_dataset)
-            self.train_dataloader = DataLoader(
-                processed_dataset,
-                batch_size=self.args.batch_size,
-                shuffle=True,
-                collate_fn=self.data_collator
-            )
-        else:
-            self.train_dataloader = None
+            
+        self.train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=self.args.batch_size,
+            shuffle=True,
+        )
 
         # Setup optimizer and scheduler
-        if self.train_dataloader is not None:
-            self.optimizer = torch.optim.AdamW(
-                self.model.parameters(),
-                lr=self.args.learning_rate
-            )
-            total_steps = len(self.train_dataloader) * self.args.num_train_epochs
-            total_steps = total_steps // self.args.gradient_accumulation_steps
-            self.scheduler = get_linear_schedule_with_warmup(
-                self.optimizer,
-                num_warmup_steps=self.args.num_warmup_steps,
-                num_training_steps=total_steps
-            )
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(),
+            lr=self.args.learning_rate
+        )
+        total_steps = len(self.train_dataloader) * self.args.num_train_epochs
+        total_steps = total_steps // self.args.gradient_accumulation_steps
+        self.scheduler = get_linear_schedule_with_warmup(
+            self.optimizer,
+            num_warmup_steps=self.args.num_warmup_steps,
+            num_training_steps=total_steps
+        )
 
         self.global_step = 0
 
@@ -254,107 +138,169 @@ class CustomSFTTrainer:
                 }
             )
 
-    def _prepare_dataset(self, dataset: HFDataset) -> Dataset:
-        """Convert HuggingFace dataset to PyTorch dataset with tokenization"""
-        return CustomSFTDataset(
-            dataset,
-            self.tokenizer,
-            max_length=self.args.max_seq_length,
-            formatting_func=self.formatting_func,
-            text_field=self.args.dataset_text_field
-        )
-
-    def _default_data_collator(self, batch):
-        """Default collator for batching examples"""
-        input_ids = torch.stack([item["input_ids"] for item in batch])
-        attention_mask = torch.stack([item["attention_mask"] for item in batch])
-        labels = torch.stack([item["labels"] for item in batch])
-
-        return {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "labels": labels
-        }
-
-    def compute_loss(self, logits, labels, attention_mask=None):
+    def compute_hard_label_loss(self, logits, labels, loss_mask=None,
+                                 ignore_index=-100, reduction='mean'):
         """
-        Manually compute cross-entropy loss with custom masking.
+        Standard cross-entropy loss for hard labels (integer indices).
+        Equivalent to F.cross_entropy but with custom masking support.
 
         Args:
-            logits: Model output logits, shape (batch_size, seq_len, vocab_size)
-            labels: Target labels, shape (batch_size, seq_len)
-            attention_mask: Optional attention mask (currently unused)
+            logits: (B, L, V) unnormalized logits where B=batch, L=length, V=vocab_size
+            labels: (B, L) integer token indices
+            loss_mask: (B, L-1) boolean mask indicating which positions to compute loss on
+                       If None, computes loss on all positions (except ignore_index)
+            ignore_index: token index to ignore in loss calculation
+            reduction: 'mean', 'sum', or 'none'
 
         Returns:
-            loss: Scalar loss value
-            loss_info: Dictionary with additional loss statistics
+            loss: scalar loss value
+            loss_info: dict with logging information
         """
-        _ = attention_mask  # Reserved for future use
         batch_size, seq_len, vocab_size = logits.shape
 
-        # Shift logits and labels for next-token prediction
-        # logits: predict token at position i from tokens 0..i-1
-        # labels: token at position i
-        shift_logits = logits[:, :-1, :].contiguous()  # (batch, seq_len-1, vocab)
-        shift_labels = labels[:, 1:].contiguous()      # (batch, seq_len-1)
+        # Shift logits and labels for causal LM (predict next token)
+        shift_logits = logits[:, :-1, :].contiguous()  # (B, L-1, V)
+        shift_labels = labels[:, 1:].contiguous()  # (B, L-1)
 
-        # Flatten for cross-entropy calculation
-        shift_logits = shift_logits.view(-1, vocab_size)  # (batch * seq_len-1, vocab)
-        shift_labels = shift_labels.view(-1)               # (batch * seq_len-1)
+        # Flatten for loss calculation
+        shift_logits = shift_logits.view(-1, vocab_size)  # (B*(L-1), V)
+        shift_labels = shift_labels.view(-1)  # (B*(L-1),)
 
-        # Create loss mask
-        # By default, mask out -100 labels (standard behavior)
-        loss_mask = (shift_labels != -100).float()
+        # Create or use provided loss mask
+        if loss_mask is None:
+            loss_mask = torch.ones(batch_size, seq_len - 1, dtype=torch.bool, device=logits.device)
 
-        # Apply custom loss mask function if provided
-        if self.args.loss_mask_fn is not None:
-            # Reshape back to 2D for custom masking
-            loss_mask_2d = loss_mask.view(batch_size, seq_len - 1)
-            shift_labels_2d = shift_labels.view(batch_size, seq_len - 1)
+        loss_mask = loss_mask.view(-1)  # (B*(L-1),)
 
-            # Apply custom mask function
-            custom_mask = self.args.loss_mask_fn(
-                shift_labels_2d,
-                loss_mask_2d,
-                self.tokenizer
-            )
-            loss_mask = custom_mask.view(-1).float()
+        # Mask out ignore_index
+        loss_mask = loss_mask & (shift_labels != ignore_index)
 
-        # Compute cross-entropy loss (without reduction first)
-        loss_per_token = F.cross_entropy(
-            shift_logits,
-            shift_labels,
-            reduction='none'
-        )
+        # Compute log probabilities
+        log_probs = F.log_softmax(shift_logits, dim=-1)  # (B*(L-1), V)
 
-        # Apply mask and compute mean over valid tokens only
-        masked_loss = loss_per_token * loss_mask
+        # Gather log probs for target tokens (standard cross-entropy)
+        loss_per_token = -log_probs[torch.arange(shift_logits.size(0), device=logits.device), shift_labels]
+
+        # Apply loss mask
+        masked_loss = loss_per_token * loss_mask.float()
+
+        # Compute final loss based on reduction
         num_valid_tokens = loss_mask.sum()
-
-        if num_valid_tokens > 0:
-            loss = masked_loss.sum() / num_valid_tokens
+        if reduction == 'none':
+            loss = masked_loss
+        elif reduction == 'sum':
+            loss = masked_loss.sum()
+        elif reduction == 'mean':
+            loss = masked_loss.sum() / (num_valid_tokens + 1e-8)  # Add epsilon to avoid division by zero
         else:
-            loss = masked_loss.sum()  # Will be 0 if no valid tokens
+            raise ValueError(f"Invalid reduction mode: {reduction}")
 
-        # Gather statistics
+        # Prepare logging info
         loss_info = {
-            'loss': loss.item(),
             'num_valid_tokens': num_valid_tokens.item(),
-            'total_tokens': loss_mask.numel(),
-            'mask_ratio': (num_valid_tokens / loss_mask.numel()).item() if loss_mask.numel() > 0 else 0.0,
-            'mean_loss_per_token': loss.item(),
+            'mask_ratio': num_valid_tokens.item() / loss_mask.numel() if loss_mask.numel() > 0 else 0.0,
+            'loss_type': 'hard',
         }
 
         return loss, loss_info
+
+    def compute_soft_label_loss(self, logits, soft_labels, loss_mask=None, reduction='mean'):
+        """
+        Cross-entropy loss for soft labels (probability distributions).
+        Computes: -sum(soft_labels * log_softmax(logits))
+
+        Args:
+            logits: (B, L, V) unnormalized logits where B=batch, L=length, V=vocab_size
+            soft_labels: (B, L, V) probability distributions
+            loss_mask: (B, L-1) boolean mask indicating which positions to compute loss on
+                       If None, computes loss on all positions
+            reduction: 'mean', 'sum', or 'none'
+
+        Returns:
+            loss: scalar loss value
+            loss_info: dict with logging information
+        """
+        batch_size, seq_len, vocab_size = logits.shape
+
+        # Shift logits and labels for causal LM (predict next token)
+        shift_logits = logits[:, :-1, :].contiguous()  # (B, L-1, V)
+        shift_labels = soft_labels[:, 1:, :].contiguous()  # (B, L-1, V)
+
+        # Flatten for loss calculation
+        shift_logits = shift_logits.view(-1, vocab_size)  # (B*(L-1), V)
+        shift_labels = shift_labels.view(-1, vocab_size)  # (B*(L-1), V)
+
+        # Create or use provided loss mask
+        if loss_mask is None:
+            loss_mask = torch.ones(batch_size, seq_len - 1, dtype=torch.bool, device=logits.device)
+
+        loss_mask = loss_mask.view(-1)  # (B*(L-1),)
+
+        # Compute log probabilities
+        log_probs = F.log_softmax(shift_logits, dim=-1)  # (B*(L-1), V)
+
+        # Compute cross-entropy with probability distributions
+        # Loss = -sum(target_probs * log_probs) for each position
+        loss_per_token = -(shift_labels * log_probs).sum(dim=-1)  # (B*(L-1),)
+
+        # Apply loss mask
+        masked_loss = loss_per_token * loss_mask.float()
+
+        # Compute final loss based on reduction
+        num_valid_tokens = loss_mask.sum()
+        if reduction == 'none':
+            loss = masked_loss
+        elif reduction == 'sum':
+            loss = masked_loss.sum()
+        elif reduction == 'mean':
+            loss = masked_loss.sum() / (num_valid_tokens + 1e-8)  # Add epsilon to avoid division by zero
+        else:
+            raise ValueError(f"Invalid reduction mode: {reduction}")
+
+        # Prepare logging info
+        loss_info = {
+            'num_valid_tokens': num_valid_tokens.item(),
+            'mask_ratio': num_valid_tokens.item() / loss_mask.numel() if loss_mask.numel() > 0 else 0.0,
+            'loss_type': 'soft',
+        }
+
+        return loss, loss_info
+
+    def compute_loss(self, logits, labels, loss_mask=None,
+                     ignore_index=-100, reduction='mean'):
+        """
+        Unified loss computation interface that dispatches to hard or soft label loss.
+        Automatically detects whether labels are hard (integer indices) or soft (probability distributions) based on shape.
+
+        Args:
+            logits: (B, L, V) unnormalized logits where B=batch, L=length, V=vocab_size
+            labels: (B, L) integer indices for hard labels OR (B, L, V) probability distributions for soft labels
+            loss_mask: (B, L-1) boolean mask indicating which positions to compute loss on
+            ignore_index: token index to ignore in loss calculation (only for hard labels)
+            reduction: 'mean', 'sum', or 'none'
+
+        Returns:
+            loss: scalar loss value
+            loss_info: dict with logging information
+        """
+        # Determine if labels are soft (3D) or hard (2D) based on shape
+        if labels.dim() == 3:
+            # Soft labels: (B, L, V)
+            return self.compute_soft_label_loss(
+                logits, labels, loss_mask, reduction
+            )
+        elif labels.dim() == 2:
+            # Hard labels: (B, L)
+            return self.compute_hard_label_loss(
+                logits, labels, loss_mask, ignore_index, reduction
+            )
+        else:
+            raise ValueError(f"Invalid labels shape: {labels.shape}. Expected 2D (hard labels) or 3D (soft labels)")
 
     def train(self):
         """Run the training loop"""
         if self.train_dataloader is None:
             raise ValueError("No training dataset provided")
-
-        print("Starting Training Loop...")
-        print(f"Total parameters: {sum(p.numel() for p in self.model.parameters()):,}")
-        print(f"Trainable parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad):,}")
 
         self.model.train()
 
@@ -371,24 +317,24 @@ class CustomSFTTrainer:
                 attention_mask = batch["attention_mask"].to(self.args.device)
                 labels = batch["labels"].to(self.args.device)
 
+                # Get loss mask from batch if provided, otherwise None (compute loss on all positions)
+                loss_mask = batch.get("loss_mask", None)
+                if loss_mask is not None:
+                    loss_mask = loss_mask.to(self.args.device)
+
                 # Forward pass
-                if self.args.use_manual_loss:
-                    # Manual loss calculation
-                    outputs = self.model(
-                        input_ids=input_ids,
-                        attention_mask=attention_mask,
-                    )
-                    logits = outputs.logits
-                    loss, loss_info = self.compute_loss(logits, labels, attention_mask)
-                else:
-                    # Use built-in loss calculation
-                    outputs = self.model(
-                        input_ids=input_ids,
-                        attention_mask=attention_mask,
-                        labels=labels
-                    )
-                    loss = outputs.loss
-                    loss_info = {'loss': loss.item()}
+                outputs = self.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                )
+                logits = outputs.logits
+
+                # Compute loss (automatically detects soft/hard labels based on shape)
+                loss, loss_info = self.compute_loss(
+                    logits,
+                    labels=labels,
+                    loss_mask=loss_mask
+                )
 
                 # Handle gradient accumulation
                 if self.args.gradient_accumulation_steps > 1:
@@ -411,8 +357,10 @@ class CustomSFTTrainer:
                     "loss": loss.item() * self.args.gradient_accumulation_steps,
                     "lr": self.scheduler.get_last_lr()[0]
                 }
-                if self.args.use_manual_loss and 'mask_ratio' in loss_info:
+                if 'mask_ratio' in loss_info:
                     postfix_dict["mask%"] = f"{loss_info['mask_ratio']*100:.1f}"
+                if 'loss_type' in loss_info:
+                    postfix_dict["type"] = loss_info['loss_type'][:2]  # 'kl' or 'ce'
 
                 progress_bar.set_postfix(postfix_dict)
 
@@ -429,13 +377,9 @@ class CustomSFTTrainer:
                             "train/learning_rate": current_lr,
                             "train/epoch": epoch,
                             "train/global_step": self.global_step,
+                            "train/num_valid_tokens": loss_info.get('num_valid_tokens', 0),
+                            "train/mask_ratio": loss_info.get('mask_ratio', 0),
                         }
-                        # Add additional loss info if using manual loss
-                        if self.args.use_manual_loss:
-                            log_dict.update({
-                                "train/num_valid_tokens": loss_info.get('num_valid_tokens', 0),
-                                "train/mask_ratio": loss_info.get('mask_ratio', 0),
-                            })
                         wandb.log(log_dict)
 
                 # Save checkpoint
@@ -510,10 +454,10 @@ def main():
     dataset = dataset.select(range(100))  # Using subset for speed
 
     # Create trainer with string model name (auto-loads model and tokenizer)
-    trainer = SFTTrainer(
+    trainer = CustomSFTTrainer(
         model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
         train_dataset=dataset,
-        args=SFTConfig(
+        args=CustomSFTConfig(
             max_length=256,
             batch_size=4,
             num_train_epochs=1,
@@ -530,9 +474,7 @@ def main():
     # Optionally push to hub (uncomment to use)
     # trainer.push_to_hub("username/my-sft-model")
 
-    print("\n" + "="*50)
     print("Training completed!")
-    print("="*50)
 
 
 if __name__ == "__main__":
