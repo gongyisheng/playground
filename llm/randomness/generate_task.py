@@ -4,6 +4,7 @@ import random
 import re
 from tqdm import tqdm
 from typing import List
+import uuid
 
 from dataclasses import dataclass
 from rouge_score import rouge_scorer
@@ -148,10 +149,14 @@ class RandomTaskGenerator:
                 assert len(option_matches) > 0
                 options = []
                 for option in option_matches:
-                    options.append(option.strip())
+                    # remove (), choose first item if see xxx/xxx
+                    _option = re.sub(r"\(.*?\)", "", option)
+                    _option = _option.split("/")[0]
+                    options.append(_option.strip())
                 generated_tasks.append({
                     "task": task,
-                    "options": options
+                    "options": options,
+                    "uuid": str(uuid.uuid4())
                 })
             except Exception as e:
                 print(f"Parse task error: {e}")
