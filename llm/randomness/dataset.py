@@ -92,7 +92,6 @@ class CustomSFTDataset(Dataset):
         input_path: str,
         tokenizer,
         max_length: int = 512,
-        vocab_size: int = None
     ):
         """
         Dataset class for SFT training with soft labels based on uniform distribution over options.
@@ -101,11 +100,10 @@ class CustomSFTDataset(Dataset):
             jsonl_path: Path to JSONL file containing task and options
             tokenizer: Tokenizer for encoding text
             max_length: Maximum sequence length
-            vocab_size: Vocabulary size for creating soft label tensors
         """
         self.tokenizer = tokenizer
         self.max_length = max_length
-        self.vocab_size = vocab_size if vocab_size is not None else tokenizer.vocab_size
+        self.vocab_size = len(tokenizer) # include special tokens
         self.radix_tree_map = {}
 
         # Load raw data from JSONL
@@ -119,7 +117,7 @@ class CustomSFTDataset(Dataset):
                 record = json.loads(line)
                 self.raw_data.append(record)
 
-        print(f"Loaded {len(self.data)} examples from {input_path}")
+        print(f"Loaded {len(self.raw_data)} examples from {input_path}")
 
         self._prepare_dataset()
     
@@ -153,37 +151,78 @@ class CustomSFTDataset(Dataset):
         options_str = ", ".join(options)
         prompt_text = SFT_PROMPT.format(task=task, options=options_str)
         chosen_option = record["chosen_option"]
+        uuid = record["uuid"]
+
         messages = [
             {"role": "user", "content": prompt_text},
             {"role": "assistant", "content": chosen_option},
         ]
 
-        # Apply chat template and tokenize
-        text = self.tokenizer.apply_chat_template(
+        # tokenize full text
+        full_text = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=False
         )
 
-        # Tokenize the full conversation
-        encoding = self.tokenizer(
-            text,
+        full_encoding = self.tokenizer(
+            full_text,
             truncation=False,
             padding=False,
             return_tensors=None
         )
 
-        input_ids = encoding['input_ids']
-        attention_mask = encoding['attention_mask']
+        input_ids = full_encoding['input_ids']
+        attention_mask = full_encoding['attention_mask']
 
-        # Create labels (same as input_ids for standard SFT)
-        labels = input_ids.copy()
+        # tokenize user text
+        user_text = self.tokenizer.apply_chat_template(
+            messages[:1],
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        user_encoding = self.tokenizer(user_text, truncation=False, padding=False)
+        user_length = len(user_encoding['input_ids'])
+
+        # tokenize assistant token
+        assistant_tokens = self.tokenizer.encode(chosen_option + self.tokenizer.eos_token, add_special_tokens=False)
+        assistant_length = len(assistant_tokens)
+
+        radix_tree = self.radix_tree_map[uuid]
+        target_probas = radix_tree.get_token_proba(assistant_tokens)
+
+        # fill label tensor
+        seq_length = len(input_ids)
+        labels = torch.zeros((seq_length, self.vocab_size), dtype=torch.float32)
+
+        for i in range(seq_length):
+            if i < user_length:
+                labels[i, :] = -100
+            elif i < user_length + assistant_length:
+                assistant_idx = i - user_length
+                target_token_id = assistant_tokens[assistant_idx]
+                target_proba = target_probas[assistant_idx]
+                labels[i, target_token_id] = target_proba
+            else:
+                target_token_id = input_ids[i]
+                labels[i, target_token_id] = 1.0
 
         return {
-            'input_ids': torch.tensor(input_ids, dtype=torch.long),
-            'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
-            'labels': torch.tensor(labels, dtype=torch.long)
+            'input_ids': input_ids,
+            'attention_mask': attention_mask,
+            'labels': labels
         }
 
+def test_dataset():
+    from transformers import AutoTokenizer
+
+    model_name = "Qwen/Qwen3-0.6B"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    input_path = "outputs/random_tasks.jsonl"
+    dataset = CustomSFTDataset(input_path, tokenizer)
+    print(dataset[0])
+
 if __name__ == "__main__":
-    test_token_radix_node()
+    # test_token_radix_node()
+    test_dataset()
