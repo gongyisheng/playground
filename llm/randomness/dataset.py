@@ -60,18 +60,9 @@ def test():
 
     root = TokenRadixNode()
     options = [
-        "Write a 300-word flash fiction that begins with the line: The last time I saw her...", 
-        "Write a scene entirely in dialogue between two strangers on a train", 
-        "Describe a character's morning routine using only sensory details (sight, sound, smell, touch, taste)", 
-        "Write a letter from a future version of yourself to your present self", 
-        "Create a short scene where an ordinary object suddenly reveals it has a secret life", 
-        "Reimagine a classic fairy tale in a modern setting (one paragraph)", 
-        "Write from the perspective of a city in first person", 
-        "Start a story with the sentence: The knock at midnight changed everything", 
-        "Write a micro-poem (4\u20138 lines) about an unexpected kindness", 
-        "Compose a scene that includes a hidden twist revealed in the last line", 
-        "Write a memory triggered by a particular smell and include a reveal about the person remembering", 
-        "Invent a new holiday, describe its traditions and explain why it exists"
+        "1,2,3"+tokenizer.eos_token,
+        "1,2,3,5"+tokenizer.eos_token,
+        "2,3,5"+tokenizer.eos_token
     ]
     print(len(options))
     for option in options:
