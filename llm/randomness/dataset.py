@@ -92,6 +92,7 @@ class CustomSFTDataset(Dataset):
         self,
         input_path: str,
         tokenizer,
+        model_vocab_size: int,
         max_length: int = 512,
     ):
         """
@@ -101,10 +102,12 @@ class CustomSFTDataset(Dataset):
             jsonl_path: Path to JSONL file containing task and options
             tokenizer: Tokenizer for encoding text
             max_length: Maximum sequence length
+            model_vocab_size: Vocabulary size (should match model's vocab size, not tokenizer's)
         """
         self.tokenizer = tokenizer
         self.max_length = max_length
-        self.vocab_size = len(tokenizer) # include special tokens
+        # NOTE: This must match the model's actual output vocab size! (model.config.vocab_size)
+        self.vocab_size = model_vocab_size
         self.radix_tree_map = {}
 
         # Load raw data from JSONL
