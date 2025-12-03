@@ -201,7 +201,7 @@ class CustomSFTDataset(Dataset):
 
         for i in range(seq_length):
             if i < user_length:
-                labels[i, :] = -100
+                labels[i, :] = -1.0 # ignore user input
             elif i < user_length + assistant_length:
                 assistant_idx = i - user_length
                 target_token_id = assistant_tokens[assistant_idx]
@@ -212,8 +212,8 @@ class CustomSFTDataset(Dataset):
                 labels[i, target_token_id] = 1.0
 
         return {
-            'input_ids': input_ids,
-            'attention_mask': attention_mask,
+            'input_ids': torch.tensor(input_ids, dtype=torch.long),
+            'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
             'labels': labels
         }
 

@@ -52,7 +52,6 @@ class CustomSFTConfig:
 
     # Loss calculation options
     use_manual_loss: bool = False
-    loss_mask_fn: Optional[Callable] = None  # Custom function to create loss mask
 
     def __post_init__(self):
         if self.max_seq_length is None:
@@ -116,25 +115,7 @@ class CustomSFTTrainer:
 
         self.global_step = 0
 
-        # Initialize wandb
-        if self.args.use_wandb:
-            wandb.init(
-                project=self.args.wandb_project,
-                name=self.args.wandb_run_name,
-                entity=self.args.wandb_entity,
-                config={
-                    "learning_rate": self.args.learning_rate,
-                    "batch_size": self.args.batch_size,
-                    "num_train_epochs": self.args.num_train_epochs,
-                    "max_length": self.args.max_length,
-                    "gradient_accumulation_steps": self.args.gradient_accumulation_steps,
-                    "use_fp16": self.args.use_fp16,
-                    "use_gradient_checkpointing": self.args.use_gradient_checkpointing,
-                }
-            )
-
-    def compute_hard_label_loss(self, logits, labels, loss_mask=None,
-                                 ignore_index=-100, reduction='mean'):
+    def compute_hard_label_loss(self, logits, labels, ignore_index=-100, reduction='mean'):
         """
         Standard cross-entropy loss for hard labels (integer indices).
         Equivalent to F.cross_entropy but with custom masking support.
@@ -142,8 +123,6 @@ class CustomSFTTrainer:
         Args:
             logits: (B, L, V) unnormalized logits where B=batch, L=length, V=vocab_size
             labels: (B, L) integer token indices
-            loss_mask: (B, L-1) boolean mask indicating which positions to compute loss on
-                       If None, computes loss on all positions (except ignore_index)
             ignore_index: token index to ignore in loss calculation
             reduction: 'mean', 'sum', or 'none'
 
@@ -161,14 +140,8 @@ class CustomSFTTrainer:
         shift_logits = shift_logits.view(-1, vocab_size)  # (B*(L-1), V)
         shift_labels = shift_labels.view(-1)  # (B*(L-1),)
 
-        # Create or use provided loss mask
-        if loss_mask is None:
-            loss_mask = torch.ones(batch_size, seq_len - 1, dtype=torch.bool, device=logits.device)
-
-        loss_mask = loss_mask.view(-1)  # (B*(L-1),)
-
-        # Mask out ignore_index
-        loss_mask = loss_mask & (shift_labels != ignore_index)
+        # Create loss mask based on labels (mask out ignore_index)
+        loss_mask = (shift_labels != ignore_index)  # (B*(L-1),)
 
         # Compute log probabilities
         log_probs = F.log_softmax(shift_logits, dim=-1)  # (B*(L-1), V)
@@ -199,16 +172,14 @@ class CustomSFTTrainer:
 
         return loss, loss_info
 
-    def compute_soft_label_loss(self, logits, soft_labels, loss_mask=None, reduction='mean'):
+    def compute_soft_label_loss(self, logits, labels, reduction='mean'):
         """
         Cross-entropy loss for soft labels (probability distributions).
         Computes: -sum(soft_labels * log_softmax(logits))
 
         Args:
-            logits: (B, L, V) unnormalized logits where B=batch, L=length, V=vocab_size
-            soft_labels: (B, L, V) probability distributions
-            loss_mask: (B, L-1) boolean mask indicating which positions to compute loss on
-                       If None, computes loss on all positions
+            logits: (B, L, V) unnormalized logits where B=batch, L=length, V_logits=vocab_size
+            labels: (B, L, V) probability distributions
             reduction: 'mean', 'sum', or 'none'
 
         Returns:
@@ -219,17 +190,16 @@ class CustomSFTTrainer:
 
         # Shift logits and labels for causal LM (predict next token)
         shift_logits = logits[:, :-1, :].contiguous()  # (B, L-1, V)
-        shift_labels = soft_labels[:, 1:, :].contiguous()  # (B, L-1, V)
+        shift_labels = labels[:, 1:, :].contiguous()  # (B, L-1, V)
 
         # Flatten for loss calculation
         shift_logits = shift_logits.view(-1, vocab_size)  # (B*(L-1), V)
         shift_labels = shift_labels.view(-1, vocab_size)  # (B*(L-1), V)
 
-        # Create or use provided loss mask
-        if loss_mask is None:
-            loss_mask = torch.ones(batch_size, seq_len - 1, dtype=torch.bool, device=logits.device)
-
-        loss_mask = loss_mask.view(-1)  # (B*(L-1),)
+        # Create loss mask based on labels (if all probabilities sum to 0, treat as masked)
+        # A position is valid if the label distribution sums to something non-zero
+        label_sums = shift_labels.sum(dim=-1)  # (B*(L-1),)
+        loss_mask = (label_sums > 1e-8)  # (B*(L-1),)
 
         # Compute log probabilities
         log_probs = F.log_softmax(shift_logits, dim=-1)  # (B*(L-1), V)
@@ -261,8 +231,7 @@ class CustomSFTTrainer:
 
         return loss, loss_info
 
-    def compute_loss(self, logits, labels, loss_mask=None,
-                     ignore_index=-100, reduction='mean'):
+    def compute_loss(self, logits, labels, ignore_index=-100, reduction='mean'):
         """
         Unified loss computation interface that dispatches to hard or soft label loss.
         Automatically detects whether labels are hard (integer indices) or soft (probability distributions) based on shape.
@@ -270,7 +239,6 @@ class CustomSFTTrainer:
         Args:
             logits: (B, L, V) unnormalized logits where B=batch, L=length, V=vocab_size
             labels: (B, L) integer indices for hard labels OR (B, L, V) probability distributions for soft labels
-            loss_mask: (B, L-1) boolean mask indicating which positions to compute loss on
             ignore_index: token index to ignore in loss calculation (only for hard labels)
             reduction: 'mean', 'sum', or 'none'
 
@@ -282,12 +250,12 @@ class CustomSFTTrainer:
         if labels.dim() == 3:
             # Soft labels: (B, L, V)
             return self.compute_soft_label_loss(
-                logits, labels, loss_mask, reduction
+                logits, labels, reduction
             )
         elif labels.dim() == 2:
             # Hard labels: (B, L)
             return self.compute_hard_label_loss(
-                logits, labels, loss_mask, ignore_index, reduction
+                logits, labels, ignore_index, reduction
             )
         else:
             raise ValueError(f"Invalid labels shape: {labels.shape}. Expected 2D (hard labels) or 3D (soft labels)")
@@ -296,6 +264,23 @@ class CustomSFTTrainer:
         """Run the training loop"""
         if self.train_dataloader is None:
             raise ValueError("No training dataset provided")
+
+        # Initialize wandb
+        if self.args.use_wandb:
+            wandb.init(
+                project=self.args.wandb_project,
+                name=self.args.wandb_run_name,
+                entity=self.args.wandb_entity,
+                config={
+                    "learning_rate": self.args.learning_rate,
+                    "batch_size": self.args.batch_size,
+                    "num_train_epochs": self.args.num_train_epochs,
+                    "max_length": self.args.max_length,
+                    "gradient_accumulation_steps": self.args.gradient_accumulation_steps,
+                    "use_fp16": self.args.use_fp16,
+                    "use_gradient_checkpointing": self.args.use_gradient_checkpointing,
+                }
+            )
 
         self.model.train()
 
@@ -312,11 +297,6 @@ class CustomSFTTrainer:
                 attention_mask = batch["attention_mask"].to(self.args.device)
                 labels = batch["labels"].to(self.args.device)
 
-                # Get loss mask from batch if provided, otherwise None (compute loss on all positions)
-                loss_mask = batch.get("loss_mask", None)
-                if loss_mask is not None:
-                    loss_mask = loss_mask.to(self.args.device)
-
                 # Forward pass
                 outputs = self.model(
                     input_ids=input_ids,
@@ -325,10 +305,10 @@ class CustomSFTTrainer:
                 logits = outputs.logits
 
                 # Compute loss (automatically detects soft/hard labels based on shape)
+                # Loss mask is calculated internally based on labels
                 loss, loss_info = self.compute_loss(
                     logits,
                     labels=labels,
-                    loss_mask=loss_mask
                 )
 
                 # Handle gradient accumulation
