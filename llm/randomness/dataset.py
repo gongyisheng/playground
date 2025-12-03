@@ -1,5 +1,6 @@
 import json
 import random
+import re
 from typing import List, Dict
 
 import torch
@@ -148,6 +149,7 @@ class CustomSFTDataset(Dataset):
         record = self.processed_data[idx]
         task = record['task']
         options = record['options']
+        random.shuffle(options)
         options_str = ", ".join(options)
         prompt_text = SFT_PROMPT.format(task=task, options=options_str)
         chosen_option = record["chosen_option"]
@@ -179,7 +181,8 @@ class CustomSFTDataset(Dataset):
         user_text = self.tokenizer.apply_chat_template(
             messages[:1],
             tokenize=False,
-            add_generation_prompt=True
+            add_generation_prompt=True,
+            enable_thinking=False
         )
         user_encoding = self.tokenizer(user_text, truncation=False, padding=False)
         user_length = len(user_encoding['input_ids'])
@@ -187,6 +190,7 @@ class CustomSFTDataset(Dataset):
         # tokenize assistant token
         assistant_tokens = self.tokenizer.encode(chosen_option + self.tokenizer.eos_token, add_special_tokens=False)
         assistant_length = len(assistant_tokens)
+
 
         radix_tree = self.radix_tree_map[uuid]
         target_probas = radix_tree.get_token_proba(assistant_tokens)
@@ -221,7 +225,17 @@ def test_dataset():
     
     input_path = "outputs/random_tasks.jsonl"
     dataset = CustomSFTDataset(input_path, tokenizer)
-    print(dataset[0])
+
+    item = dataset[0]
+    input_ids = item['input_ids']
+    labels = item['labels']
+
+    print(len(input_ids), labels.shape)
+    for i in range(len(input_ids)):
+        token_id = input_ids[i]
+        token = tokenizer.decode(token_id)
+        token_probs = labels[i][token_id]
+        print(f"Token: {token}, Label Probs: {token_probs}")
 
 if __name__ == "__main__":
     # test_token_radix_node()

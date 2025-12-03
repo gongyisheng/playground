@@ -1,22 +1,17 @@
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
     PreTrainedModel,
     PreTrainedTokenizer,
     get_linear_schedule_with_warmup
 )
-from datasets import load_dataset, Dataset as HFDataset
+from datasets import load_dataset
 from tqdm import tqdm
 from dataclasses import dataclass
-from typing import Optional, Callable, Union
+from typing import Optional, Callable
 import os
 import wandb
-import json
-import random
-from typing import List, Dict, Tuple
 
 from dataset import CustomSFTDataset
 
