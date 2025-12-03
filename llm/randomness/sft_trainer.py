@@ -16,6 +16,61 @@ import wandb
 from dataset import CustomSFTDataset
 
 
+def collate_fn(batch):
+    """
+    Custom collate function to pad sequences of different lengths to the same length.
+    Handles both 2D labels (hard labels) and 3D labels (soft labels with vocab dimension).
+    """
+    # Get max sequence length in this batch
+    max_length = max(item['input_ids'].size(0) for item in batch)
+
+    batch_input_ids = []
+    batch_attention_mask = []
+    batch_labels = []
+
+    for item in batch:
+        seq_len = item['input_ids'].size(0)
+        pad_len = max_length - seq_len
+
+        # Pad input_ids on the LEFT (pad with 0, but any value works since attention_mask will mask it)
+        padded_input_ids = torch.cat([
+            torch.zeros(pad_len, dtype=torch.long),
+            item['input_ids']
+        ])
+
+        # Pad attention_mask on the LEFT (pad with 0 to ignore padding positions)
+        padded_attention_mask = torch.cat([
+            torch.zeros(pad_len, dtype=torch.long),
+            item['attention_mask']
+        ])
+
+        # Pad labels on the LEFT - check if 2D (hard labels) or 3D (soft labels)
+        if item['labels'].dim() == 2:
+            # Soft labels: (seq_len, vocab_size) -> pad to (max_length, vocab_size)
+            vocab_size = item['labels'].size(1)
+            padded_labels = torch.cat([
+                torch.full((pad_len, vocab_size), -1.0, dtype=torch.float32),  # -1 to mark as padding
+                item['labels']
+            ])
+        else:
+            # Hard labels: (seq_len,) -> pad to (max_length,)
+            padded_labels = torch.cat([
+                torch.full((pad_len,), -100, dtype=torch.long),  # -100 is standard ignore_index
+                item['labels']
+            ])
+
+        batch_input_ids.append(padded_input_ids)
+        batch_attention_mask.append(padded_attention_mask)
+        batch_labels.append(padded_labels)
+
+    # Stack into batch tensors
+    return {
+        'input_ids': torch.stack(batch_input_ids),
+        'attention_mask': torch.stack(batch_attention_mask),
+        'labels': torch.stack(batch_labels)
+    }
+
+
 @dataclass
 class CustomSFTConfig:
     """Configuration class for SFT training - similar to TRL's SFTConfig"""
@@ -34,6 +89,10 @@ class CustomSFTConfig:
 
     # Device configuration
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # Mixed precision training
+    use_bf16: bool = False  # Use bfloat16 for training
+    use_fp16: bool = False  # Use float16 for training
 
     # Wandb configuration
     use_wandb: bool = True
@@ -71,6 +130,20 @@ class CustomSFTTrainer:
         self.tokenizer = processing_class
         self.args = args
 
+        # Move model to device and convert to appropriate dtype
+        if self.args.use_bf16:
+            print("Using BF16 training")
+            self.model = self.model.to(self.args.device, dtype=torch.bfloat16)
+            self.amp_dtype = torch.bfloat16
+        elif self.args.use_fp16:
+            print("Using FP16 training")
+            self.model = self.model.to(self.args.device, dtype=torch.float16)
+            self.amp_dtype = torch.float16
+        else:
+            print("Using FP32 training")
+            self.model = self.model.to(self.args.device)
+            self.amp_dtype = None
+
         # Process dataset
         self.train_dataset = train_dataset
         self.eval_dataset = eval_dataset
@@ -79,6 +152,7 @@ class CustomSFTTrainer:
             train_dataset,
             batch_size=self.args.batch_size,
             shuffle=True,
+            collate_fn=collate_fn,
         )
 
         # Setup optimizer and scheduler
@@ -258,6 +332,8 @@ class CustomSFTTrainer:
                     "num_train_epochs": self.args.num_train_epochs,
                     "max_length": self.args.max_length,
                     "gradient_accumulation_steps": self.args.gradient_accumulation_steps,
+                    "use_bf16": self.args.use_bf16,
+                    "use_fp16": self.args.use_fp16,
                 }
             )
 
@@ -265,6 +341,11 @@ class CustomSFTTrainer:
 
         for epoch in range(self.args.num_train_epochs):
             total_loss = 0
+            # For smoothed logging
+            logging_loss_sum = 0.0
+            logging_tokens_sum = 0
+            logging_steps_count = 0
+
             progress_bar = tqdm(
                 self.train_dataloader,
                 desc=f"Epoch {epoch+1}/{self.args.num_train_epochs}"
@@ -276,22 +357,42 @@ class CustomSFTTrainer:
                 attention_mask = batch["attention_mask"].to(self.args.device)
                 labels = batch["labels"].to(self.args.device)
 
-                # Forward pass
-                outputs = self.model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                )
-                logits = outputs.logits
+                # Use autocast for mixed precision training
+                if self.amp_dtype is not None:
+                    with torch.amp.autocast('cuda', dtype=self.amp_dtype):
+                        # Forward pass
+                        outputs = self.model(
+                            input_ids=input_ids,
+                            attention_mask=attention_mask,
+                        )
+                        logits = outputs.logits
 
-                # Compute loss (automatically detects soft/hard labels based on shape)
-                # Loss mask is calculated internally based on labels
-                loss, loss_info = self.compute_loss(
-                    logits,
-                    labels=labels,
-                )
+                        # Compute loss (automatically detects soft/hard labels based on shape)
+                        # Loss mask is calculated internally based on labels
+                        loss, loss_info = self.compute_loss(
+                            logits,
+                            labels=labels,
+                        )
 
-                # Handle gradient accumulation
-                loss = loss / self.args.gradient_accumulation_steps
+                        # Handle gradient accumulation
+                        loss = loss / self.args.gradient_accumulation_steps
+                else:
+                    # Forward pass without mixed precision
+                    outputs = self.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                    )
+                    logits = outputs.logits
+
+                    # Compute loss (automatically detects soft/hard labels based on shape)
+                    # Loss mask is calculated internally based on labels
+                    loss, loss_info = self.compute_loss(
+                        logits,
+                        labels=labels,
+                    )
+
+                    # Handle gradient accumulation
+                    loss = loss / self.args.gradient_accumulation_steps
 
                 # Backward pass
                 loss.backward()
@@ -304,6 +405,11 @@ class CustomSFTTrainer:
                     self.global_step += 1
 
                 total_loss += loss.item()
+
+                # Accumulate for smoothed logging
+                logging_loss_sum += loss.item() * self.args.gradient_accumulation_steps
+                logging_tokens_sum += loss_info.get('num_valid_tokens', 0)
+                logging_steps_count += 1
 
                 # Prepare progress bar postfix
                 postfix_dict = {
@@ -321,34 +427,32 @@ class CustomSFTTrainer:
                 if self.global_step % self.args.logging_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
                     avg_loss = total_loss / (step + 1)
                     current_lr = self.scheduler.get_last_lr()[0]
-                    print(f"\nStep {self.global_step}: loss={avg_loss:.4f}, lr={current_lr:.2e}")
+
+                    # Compute smoothed metrics over logging interval
+                    smoothed_loss = logging_loss_sum / max(logging_steps_count, 1)
+                    avg_tokens = logging_tokens_sum / max(logging_steps_count, 1)
 
                     # Log to wandb
                     if self.args.use_wandb:
                         log_dict = {
-                            "train/loss": loss.item() * self.args.gradient_accumulation_steps,
+                            "train/loss": smoothed_loss,
                             "train/learning_rate": current_lr,
                             "train/epoch": epoch,
                             "train/global_step": self.global_step,
-                            "train/num_valid_tokens": loss_info.get('num_valid_tokens', 0),
+                            "train/avg_valid_tokens": avg_tokens,
                             "train/mask_ratio": loss_info.get('mask_ratio', 0),
                         }
                         wandb.log(log_dict)
+
+                    # Reset logging accumulators
+                    logging_loss_sum = 0.0
+                    logging_tokens_sum = 0
+                    logging_steps_count = 0
 
                 # Save checkpoint
                 if self.args.save_steps > 0 and self.global_step % self.args.save_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
                     checkpoint_dir = os.path.join(self.args.output_dir, f"checkpoint-{self.global_step}")
                     self.save_model(checkpoint_dir)
-
-            avg_loss = total_loss / len(self.train_dataloader)
-            print(f"\nEpoch {epoch+1} finished. Average Loss: {avg_loss:.4f}")
-
-            # Log epoch metrics to wandb
-            if self.args.use_wandb:
-                wandb.log({
-                    "train/epoch_loss": avg_loss,
-                    "train/epoch": epoch + 1,
-                })
 
         print("Training completed!")
 
