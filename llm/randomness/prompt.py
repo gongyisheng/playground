@@ -11,7 +11,7 @@ your output must be in following format:
 """.strip()
 
 SFT_PROMPT = """
-Solve the task and provide the best possible answer inside <answer></answer>
+Solve the task and provide the best possible answer.
 Task: {task} 
 Available options: {options}
 """
