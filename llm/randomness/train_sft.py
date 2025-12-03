@@ -1,0 +1,52 @@
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+from dataset import CustomSFTDataset
+from sft_trainer import CustomSFTTrainer, CustomSFTConfig
+
+def main():
+    model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3-0.6B")
+    tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-0.6B")
+
+    # Load dataset
+    dataset = CustomSFTDataset(
+        input_path="data/sft_data.jsonl",
+        tokenizer=tokenizer,
+        model_vocab_size=model.config.vocab_size,
+        max_length=512
+    )
+
+    # Create trainer with string model name (auto-loads model and tokenizer)
+    trainer = CustomSFTTrainer(
+        model=model,
+        train_dataset=dataset,
+        eval_dataset=dataset,
+        processing_class=tokenizer,
+        args=CustomSFTConfig(
+            max_length=512,
+            batch_size=8,
+            num_train_epochs=10,
+            output_dir="./outputs/qwen3-0.6b-sft",
+            learning_rate=5e-5,
+            num_warmup_steps=10,
+            gradient_accumulation_steps=8,
+            logging_steps=10,
+            save_steps=100,
+            device="cuda" if torch.cuda.is_available() else "cpu",
+            use_wandb=True,
+            wandb_project="randomness_sft",
+            wandb_run_name="qwen3-0.6b-sft",
+            wandb_entity=None,
+        )
+    )
+
+    # Train
+    trainer.train()
+
+    # Save model
+    trainer.save_model()
+
+    # Optionally push to hub (uncomment to use)
+    # trainer.push_to_hub("username/my-sft-model")
+
+    print("Training completed!")

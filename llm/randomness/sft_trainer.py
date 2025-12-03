@@ -32,17 +32,8 @@ class CustomSFTConfig:
     save_steps: int = 500
     output_dir: str = "./sft_output"
 
-    # Optimization
-    use_fp16: bool = True
-    use_gradient_checkpointing: bool = True
-
     # Device configuration
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
-
-    # SFT-specific options (like TRL)
-    packing: bool = False
-    dataset_text_field: str = "text"
-    max_seq_length: Optional[int] = None
 
     # Wandb configuration
     use_wandb: bool = True
@@ -50,12 +41,6 @@ class CustomSFTConfig:
     wandb_run_name: Optional[str] = None
     wandb_entity: Optional[str] = None
 
-    # Loss calculation options
-    use_manual_loss: bool = False
-
-    def __post_init__(self):
-        if self.max_seq_length is None:
-            self.max_seq_length = self.max_length
 
 class CustomSFTTrainer:
 
@@ -85,10 +70,6 @@ class CustomSFTTrainer:
         self.model = model
         self.tokenizer = processing_class
         self.args = args
-
-        # Enable gradient checkpointing
-        # if self.args.use_gradient_checkpointing:
-        #     self.model.gradient_checkpointing_enable()
 
         # Process dataset
         self.train_dataset = train_dataset
@@ -277,8 +258,6 @@ class CustomSFTTrainer:
                     "num_train_epochs": self.args.num_train_epochs,
                     "max_length": self.args.max_length,
                     "gradient_accumulation_steps": self.args.gradient_accumulation_steps,
-                    "use_fp16": self.args.use_fp16,
-                    "use_gradient_checkpointing": self.args.use_gradient_checkpointing,
                 }
             )
 
@@ -312,8 +291,7 @@ class CustomSFTTrainer:
                 )
 
                 # Handle gradient accumulation
-                if self.args.gradient_accumulation_steps > 1:
-                    loss = loss / self.args.gradient_accumulation_steps
+                loss = loss / self.args.gradient_accumulation_steps
 
                 # Backward pass
                 loss.backward()
