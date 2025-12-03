@@ -425,7 +425,6 @@ class CustomSFTTrainer:
 
                 # Logging
                 if self.global_step % self.args.logging_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
-                    avg_loss = total_loss / (step + 1)
                     current_lr = self.scheduler.get_last_lr()[0]
 
                     # Compute smoothed metrics over logging interval

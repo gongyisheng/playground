@@ -124,6 +124,7 @@ class CustomSFTDataset(Dataset):
         print(f"Loaded {len(self.raw_data)} examples from {input_path}")
 
         self._prepare_dataset()
+        print(f"Prepared {len(self.processed_data)} processed examples.")
     
     def _prepare_dataset(self):
 

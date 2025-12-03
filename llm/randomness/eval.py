@@ -8,15 +8,15 @@ from prompt import SFT_PROMPT
 from utils import DataWriter
 
 # Configuration
-model_path = "./outputs/qwen3-0.6b-sft/checkpoint-400"
-input_path = "outputs/random_tasks.jsonl"
-output_path = "outputs/generations.jsonl"
+model_path = "./outputs/qwen3-0.6b-sft/checkpoint-200"
+input_path = "outputs/eval_tasks.jsonl"
+output_path = "outputs/eval_result.jsonl"
 
 # Load model and tokenizer
 print(f"Loading model from {model_path}...")
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForCausalLM.from_pretrained(model_path)
-model = model.to("cuda", dtype=torch.bfloat16)
+model = model.to("cpu", dtype=torch.bfloat16)
 model.eval()
 
 # Load input data
@@ -55,7 +55,7 @@ with DataWriter(output_path, mode='w') as writer:
             )
 
             # Tokenize full text
-            full_encoding = tokenizer(full_text, return_tensors="pt").to("cuda")
+            full_encoding = tokenizer(full_text, return_tensors="pt").to("cpu")
             input_ids = full_encoding['input_ids']
 
             # Tokenize user text to find where assistant starts

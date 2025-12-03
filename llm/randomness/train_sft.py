@@ -25,9 +25,9 @@ def main():
         args=CustomSFTConfig(
             max_length=256,
             batch_size=4,
-            num_train_epochs=10,
+            num_train_epochs=20,
             output_dir="./outputs/qwen3-0.6b-sft",
-            learning_rate=5e-5,
+            learning_rate=1e-4,
             num_warmup_steps=10,
             gradient_accumulation_steps=8,
             logging_steps=1,
