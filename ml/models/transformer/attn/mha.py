@@ -34,14 +34,14 @@ class MultiHeadAttention(nn.Module):
         v = F.linear(v, self.w_v)
 
         # split by head 
-        # (seq_len, batch_size, d_model) -> (seq_len, batch_size, n_head, d_head) -> (n_head, batch_size, seq_len, d_head)
-        seq_len, batch_size, _ = q.shape
-        q = q.view(seq_len, batch_size, self.n_head, self.d_head).transpose(0, 2)
-        k = k.view(seq_len, batch_size, self.n_head, self.d_head).transpose(0, 2)
-        v = v.view(seq_len, batch_size, self.n_head, self.d_head).transpose(0, 2)
+        # (batch_size, seq_len, d_model) -> (batch_size, seq_len, n_head, d_head) -> (batch_size, n_head, seq_len, d_head)
+        batch_size, seq_len, _ = q.shape
+        q = q.view(batch_size, seq_len, self.n_head, self.d_head).transpose(1, 2)
+        k = k.view(batch_size, seq_len, self.n_head, self.d_head).transpose(1, 2)
+        v = v.view(batch_size, seq_len, self.n_head, self.d_head).transpose(1, 2)
 
         # calc attn score 
-        # (n_head, batch_size, seq_len, d_head) -> (n_head, batch_size, seq_len, seq_len)
+        # (batch_size, n_head, seq_len, d_head) -> (batch_size, n_head, seq_len, seq_len)
         scores = torch.matmul(q, k.transpose(-2, -1)) / (self.d_head**0.5)
 
         # apply mask
@@ -52,12 +52,12 @@ class MultiHeadAttention(nn.Module):
         attn_weights = F.softmax(scores, dim=-1)
 
         # apply v 
-        # (n_head, batch_size, seq_len, seq_len) -> (n_head, batch_size, seq_len, d_head)
+        # (batch_size, n_head, seq_len, seq_len) -> (batch_size, n_head, seq_len, d_head)
         output = torch.matmul(attn_weights, v)
 
         # transpose
-        # (n_head, batch_size, seq_len, d_head) -> (seq_len, batch_size, n_head, d_head) -> (seq_len, batch_size, d_model)
-        output = output.transpose(0, 2).reshape(seq_len, batch_size, self.d_model)
+        # (batch_size, n_head, seq_len, d_head) -> (batch_size, seq_len, n_head, d_head) -> (batch_size, seq_len, d_model)
+        output = output.transpose(1, 2).reshape(batch_size, seq_len, self.d_model)
 
         return F.linear(output, self.w_out)
 
@@ -69,9 +69,9 @@ def test():
     n_head = 2
 
     # Create test inputs
-    q = torch.rand(seq_len, batch_size, d_model)
-    k = torch.rand(seq_len, batch_size, d_model)
-    v = torch.rand(seq_len, batch_size, d_model)
+    q = torch.rand(batch_size, seq_len, d_model)
+    k = torch.rand(batch_size, seq_len, d_model)
+    v = torch.rand(batch_size, seq_len, d_model)
 
     # weights for custom implementation
     w_q = torch.randn(d_model, d_model)
@@ -100,12 +100,20 @@ def test():
         pytorch_mha.in_proj_weight.copy_(torch.cat([w_q, w_k, w_v], dim=0))
         pytorch_mha.out_proj.weight.copy_(w_out)
 
+    # Transpose inputs from (batch_size, seq_len, d_model) to (seq_len, batch_size, d_model)
+    q_pytorch = q.transpose(0, 1)
+    k_pytorch = k.transpose(0, 1)
+    v_pytorch = v.transpose(0, 1)
+
     pytorch_output, pytorch_attn_weights = pytorch_mha(
-        q, k, v,
+        q_pytorch, k_pytorch, v_pytorch,
         attn_mask=mask,
         need_weights=True,
         average_attn_weights=False
     )
+
+    # Transpose output back to (batch_size, seq_len, d_model)
+    pytorch_output = pytorch_output.transpose(0, 1)
 
     print("Pytorch output:")
     print(pytorch_output.shape)
