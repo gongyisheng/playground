@@ -38,7 +38,7 @@ def scaled_dot_product_attention(q, k, v, mask=None):
     d_k = q.shape[-1]  # Get the last dimension size (key dimension)
     
     # Compute the dot product of Q and K^T
-    scores = torch.matmul(q, k.transpose(-2, -1)) / torch.sqrt(torch.tensor(d_k, dtype=torch.float32))
+    scores = torch.matmul(q, k.transpose(-2, -1)) / d_k**0.5
     
     # Apply mask if provided
     if mask is not None:

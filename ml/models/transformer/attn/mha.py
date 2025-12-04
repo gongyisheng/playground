@@ -41,7 +41,7 @@ class MultiHeadAttention(nn.Module):
 
         # calc attn score 
         # (n_head, batch_size, seq_len, d_head) -> (n_head, batch_size, seq_len, seq_len)
-        scores = torch.matmul(q, k.transpose(-2, -1))/(self.d_head**0.5)
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.d_head**0.5)
 
         # apply mask
         if mask is not None:
