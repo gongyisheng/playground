@@ -10,8 +10,9 @@ import torch.nn.functional as F
 #     then combine them together and pass them to w_out projection, so that we can apply weight to focus on some of the heads
 # 2. projections:
 #     w_q, w_k, w_v, w_out, size = (d_model, d_model)
-#     re-representing the same information in a different coordinate system (query, key index, etc)
-#     not using raw embeddings because projections are learned
+#     aim: re-representing the same information in a different coordinate system (query, key index, etc)
+#     not use raw embeddings because projections are learned
+#     output projection is used to mix information across heads (apply weight on different head)
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, n_head, d_model, w_q=None, w_k=None, w_v=None, w_out=None):
