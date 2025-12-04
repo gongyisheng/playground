@@ -122,3 +122,17 @@ url: https://arxiv.org/pdf/2511.21140
 key takeaways:
 - proposed two methods (point estimation and confidence interval) to estimate LLM-as-a-Judge's correctness
 ```
+
+11. Active RL Pretraining
+```
+title: PretrainZero: Reinforcement Active Pretraining
+url: https://arxiv.org/abs/2512.03442
+key takeaways
+- RLPT with random mask prediction is worse than with next token prediction, 
+- RLPT with high entropy tokens can cause collapse because the data is noisy, cannot provide right optimize direction
+- Active RLPT method: a shared model to perform two tasks: mask generation and masked-span prediction with CoT.
+- Active RLPT objective: min–max RL objective: generator proposes harder-but-predictable spans; predictor recovers them.
+- Result: Improved model performance from general QA to math benchmarks
+- Discussion: may have better and more efficient way to mine supervision from nosiy pretrain data.
+- Discussion: entropy-based picking vs model picking: they are different methods, can not be replaced with each other.
+```
