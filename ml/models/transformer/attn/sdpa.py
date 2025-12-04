@@ -77,6 +77,7 @@ def test():
     print(output)
 
     assert torch.allclose(output_custom, output, atol=1e-08, rtol=1e-05) # Check if they are close enough.
+    print("Custom output and pytorch output is close enough")
 
 if __name__ == "__main__":
     test()

@@ -106,11 +106,12 @@ def test():
         average_attn_weights=False
     )
 
-    print("pytorch output:")
+    print("Pytorch output:")
     print(pytorch_output.shape)
     print(pytorch_output)
 
     assert torch.allclose(custom_output, pytorch_output, atol=1e-5, rtol=1e-4)
+    print("Custom output and pytorch output is close enough")
 
 
 if __name__ == "__main__":
