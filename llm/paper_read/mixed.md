@@ -135,4 +135,5 @@ key takeaways
 - Result: Improved model performance from general QA to math benchmarks
 - Discussion: may have better and more efficient way to mine supervision from nosiy pretrain data.
 - Discussion: entropy-based picking vs model picking: they are different methods, can not be replaced with each other.
+- Discussion: RL inside fixed pretrain corpuse may still be a closed loop, just improves model self-consistency
 ```
