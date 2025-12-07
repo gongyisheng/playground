@@ -147,3 +147,30 @@ key takeaways
 - Discussion: entropy-based picking vs model picking: they are different methods, can not be replaced with each other.
 - Discussion: RL inside fixed pretrain corpuse may still be a closed loop, just improves model self-consistency
 ```
+
+13. Negative Sample RL
+```
+title: The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning
+url: https://arxiv.org/abs/2506.01347
+key takeaways
+- Decompose RL with verifiable rewards into positive (PSR) and negative (NSR) sample reinforcement.
+- Training only on negative samples boosts Pass@k across the spectrum.
+- PSR-only raises Pass@1 but collapses diversity, hurting large-k performance. While NSR keeps entropy, and is surprisingly effective, achieve comparable pass@1 without correct response.
+- Gradient analysis: NSR suppresses errors while preserving prior, plausibly correct alternatives.
+- Weighted-REINFORCE (upweighted NSR) outperforms PPO/GRPO on MATH, AIME2025, AMC23.
+```
+
+14. Supervised RL
+```
+title: Supervised Reinforcement Learning: From Expert Trajectories to Step-wise Reasoning
+url: https://arxiv.org/abs/2510.25992
+key takeaways
+- SRL introduces action-level, step-wise similarity rewards for dense supervision on hard reasoning tasks.
+- Think-then-act per step; reward only actions, enabling flexible inner monologues.
+- Substantially outperforms SFT and RLVR; SRL→RLVR yields best math performance with 1k data.
+- Works even when all rollouts are incorrect; generalizes to software engineering agents.
+- method: 
+    - Decompose expert solutions into step actions. At each step, model generates <think> monologue then outputs the next action.
+    - Reward = sequence-similarity (difflib) between model action and expert action; optimize with GRPO. 
+    - Reward only on actions; dynamic sampling filters low-variance-reward batches for stronger updates.
+```
