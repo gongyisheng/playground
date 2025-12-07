@@ -115,7 +115,17 @@ key takeaways
 - Doubles generation throughput; higher dynamic-sampling pass rate.
 ```
 
-10. How to Correctly Report LLM-as-a-Judge Evaluations
+10. ProRL
+```
+title: ProRL: Prolonged Reinforcement Learning Expands Reasoning Boundaries in Large Language Models
+url: https://arxiv.org/abs/2505.24864
+key takeaways
+- Prolonged RL (2k+ steps) systematically expands reasoning boundaries across domains.
+- The weaker the Start, the stronger the gain with ProRL, can discovers novel solution paths absent in base models; creativity index increases.
+- Training method: high temperature (temp=1.2, delay entropy collapse), use DAPO (high ϵhigh = 0.4 + dynamic sampling), use KL penality (works for model after SFT), use reference model reset when KL dominate loss, n_rollout=16, batch_size=256, mini_batch=64
+```
+
+11. How to Correctly Report LLM-as-a-Judge Evaluations
 ```
 title: How to Correctly Report LLM-as-a-Judge Evaluations
 url: https://arxiv.org/pdf/2511.21140
@@ -123,7 +133,7 @@ key takeaways:
 - proposed two methods (point estimation and confidence interval) to estimate LLM-as-a-Judge's correctness
 ```
 
-11. Active RL Pretraining
+12. Active RL Pretraining
 ```
 title: PretrainZero: Reinforcement Active Pretraining
 url: https://arxiv.org/abs/2512.03442
