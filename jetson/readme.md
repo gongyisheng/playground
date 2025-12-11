@@ -2,7 +2,13 @@
 
 ## Boot from nvme SSD
 ```
+1. prepare 2 machine
+x86_64 machine + jetson agx orin 
+2. use sdk manager
+https://developer.nvidia.com/sdk-manager
+3. install and boot from nvme
 ```
+ref: https://www.youtube.com/watch?v=DKI1k_aP0Qk
 
 ## ML Env
 
