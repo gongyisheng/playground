@@ -39,6 +39,7 @@ mlruns
 wandb
 unsloth_compiled_cache
 outputs
+.deepeval
 
 .env
 test.ipynb
