@@ -58,7 +58,6 @@ class Qwen3LocalEvalLLM(DeepEvalBaseLLM):
         new_tokens = generated_ids[:, input_length:]
         result = self.tokenizer.batch_decode(new_tokens, skip_special_tokens=True)[0]
         answer = self.parse_answer(result)
-        print(f"Model Response: {result.strip()}\nParsed Answer: {answer}")
         return answer
 
     async def a_generate(self, prompt: str) -> str:
@@ -131,7 +130,6 @@ class Qwen3RemoteEvalLLM(DeepEvalBaseLLM):
 
         result = response.choices[0].message.content
         answer = self.parse_answer(result)
-        print(f"Remote Response: {result.strip()}\nParsed Answer: {answer}")
         return answer
 
     def generate(self, prompt: str) -> str:
@@ -180,10 +178,7 @@ class Qwen3RemoteEvalLLM(DeepEvalBaseLLM):
 #     tokenizer = AutoTokenizer.from_pretrained(model_name)
 #     llm = Qwen3LocalEvalLLM(model_name, model, tokenizer)
 
-#     benchmark = MMLU(
-#         tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
-#         n_shots=3
-#     )
+#     benchmark = MMLU()
 #     results = benchmark.evaluate(model=llm)
 #     print("Overall Score: ", results)
 
@@ -195,9 +190,6 @@ def test_qwen3_30b_a3b():
         api_key="ollama"
     )
 
-    benchmark = MMLU(
-        tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
-        n_shots=3
-    )
+    benchmark = MMLU()
     results = benchmark.evaluate(model=llm)
     print("Overall Score: ", results)
