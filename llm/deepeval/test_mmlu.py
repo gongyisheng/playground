@@ -105,7 +105,31 @@ class Qwen3EvalLLM(DeepEvalBaseLLM):
 
 def test_qwen3_14b():
     model_name = "Qwen/Qwen3-14B"
-    # model_name = "Qwen/Qwen3-30B-A3B"
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        llm_int8_enable_fp32_cpu_offload=True,
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    llm = Qwen3EvalLLM(model_name, model, tokenizer)
+
+    benchmark = MMLU(
+        tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
+        n_shots=3
+    )
+    results = benchmark.evaluate(model=llm)
+    print("Overall Score: ", results)
+
+def test_qwen3_30b_a3b():
+    model_name = "Qwen/Qwen3-30B-A3B"
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_compute_dtype=torch.bfloat16,
