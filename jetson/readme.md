@@ -34,4 +34,7 @@ uv pip install torch==2.9.0 torchvision==0.24.0 --index-url=https://pypi.jetson-
 ```
 ## cuda 12.6 + python 3.10
 uv pip install vllm==0.10.2+cu126 --index-url=https://pypi.jetson-ai-lab.io/jp6/cu126
+
+## run vllm
+vllm serve Qwen/Qwen3-0.6B --gpu-memory-utilization
 ```
