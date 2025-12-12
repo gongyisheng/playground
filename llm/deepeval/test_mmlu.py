@@ -1,3 +1,4 @@
+import re
 from typing import List
 
 import torch
@@ -20,11 +21,22 @@ class Qwen3EvalLLM(DeepEvalBaseLLM):
     def load_model(self):
         return self.model
 
+    def format_prompt(self, prompt: str) -> str:
+        return prompt + "\nOutput your answer in <answer></answer>, only contain the option (e.g., A, B, C, D) without any additional explanation."
+
+    def parse_answer(self, response: str) -> str:
+        match = re.search(r"<answer>(.*?)</answer>", response, re.DOTALL)
+        if match:
+            answer = match.group(1).strip()
+            return answer
+        else:
+            return response.strip()
+
     def generate(self, prompt: str) -> str:
         model = self.load_model()
 
         # Apply chat template for Qwen models
-        messages = [{"role": "user", "content": prompt}]
+        messages = [{"role": "user", "content": self.format_prompt(prompt)}]
         text = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -40,8 +52,9 @@ class Qwen3EvalLLM(DeepEvalBaseLLM):
         input_length = model_inputs.input_ids.shape[1]
         new_tokens = generated_ids[:, input_length:]
         result = self.tokenizer.batch_decode(new_tokens, skip_special_tokens=True)[0]
-        print("Generated:", result)
-        return result
+        answer = self.parse_answer(result)
+        print(f"Model Response: {result.strip()}\nParsed Answer: {answer}")
+        return answer
 
     async def a_generate(self, prompt: str) -> str:
         return self.generate(prompt)
@@ -52,7 +65,7 @@ class Qwen3EvalLLM(DeepEvalBaseLLM):
         # Apply chat template for Qwen models to each prompt
         texts = []
         for prompt in prompts:
-            messages = [{"role": "user", "content": prompt}]
+            messages = [{"role": "user", "content": self.format_prompt(prompt)}]
             text = self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
@@ -69,25 +82,25 @@ class Qwen3EvalLLM(DeepEvalBaseLLM):
         input_length = model_inputs.input_ids.shape[1]
         new_tokens = generated_ids[:, input_length:]
         results = self.tokenizer.batch_decode(new_tokens, skip_special_tokens=True)
-        print("Generated batch:", results)
-        return results
+        answers = [self.parse_answer(result) for result in results]
+        return answers
 
     def get_model_name(self):
         return self.model_name
 
 
-def test_qwen3_0_6b():
-    model_name = "Qwen/Qwen3-0.6B"
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    llm = Qwen3EvalLLM(model_name, model, tokenizer)
+# def test_qwen3_0_6b():
+#     model_name = "Qwen/Qwen3-0.6B"
+#     model = AutoModelForCausalLM.from_pretrained(model_name)
+#     tokenizer = AutoTokenizer.from_pretrained(model_name)
+#     llm = Qwen3EvalLLM(model_name, model, tokenizer)
 
-    benchmark = MMLU(
-        tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
-        n_shots=3
-    )
-    results = benchmark.evaluate(model=llm)
-    print("Overall Score: ", results)
+#     benchmark = MMLU(
+#         tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
+#         n_shots=3
+#     )
+#     results = benchmark.evaluate(model=llm)
+#     print("Overall Score: ", results)
 
 
 def test_qwen3_14b():
