@@ -1,15 +1,20 @@
+import asyncio
 import re
 from typing import List
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from openai import AsyncOpenAI
 
 from deepeval.benchmarks import MMLU
 from deepeval.benchmarks.mmlu.task import MMLUTask
 from deepeval.models.base_model import DeepEvalBaseLLM
 
-class Qwen3EvalLLM(DeepEvalBaseLLM):
-    def __init__(self, model_name, model, tokenizer, device = None):
+
+class Qwen3LocalEvalLLM(DeepEvalBaseLLM):
+    """Local inference using transformers library"""
+
+    def __init__(self, model_name: str, model, tokenizer, device = None):
         self.model_name = model_name
         self.model = model
         self.tokenizer = tokenizer
@@ -89,11 +94,62 @@ class Qwen3EvalLLM(DeepEvalBaseLLM):
         return self.model_name
 
 
+class Qwen3RemoteEvalLLM(DeepEvalBaseLLM):
+    """Remote inference using OpenAI-compatible API"""
+
+    def __init__(self, model_name: str, base_url: str, api_key: str):
+        self.model_name = model_name
+        self.base_url = base_url
+        self.api_key = api_key
+        self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+
+    def format_prompt(self, prompt: str) -> str:
+        return prompt + "\nOutput your answer in <answer></answer>, only contain the option (e.g., A, B, C, D) without any additional explanation."
+
+    def parse_answer(self, response: str) -> str:
+        match = re.search(r"<answer>(.*?)</answer>", response, re.DOTALL)
+        if match:
+            answer = match.group(1).strip()
+            return answer
+        else:
+            return response.strip()
+
+    async def a_generate(self, prompt: str) -> str:
+        formatted_prompt = self.format_prompt(prompt)
+
+        response = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                {"role": "user", "content": formatted_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=512
+        )
+
+        result = response.choices[0].message.content
+        answer = self.parse_answer(result)
+        print(f"Remote Response: {result.strip()}\nParsed Answer: {answer}")
+        return answer
+
+    def generate(self, prompt: str) -> str:
+        return asyncio.run(self.a_generate(prompt))
+
+    def batch_generate(self, prompts: List[str]) -> List[str]:
+        return asyncio.run(self._batch_generate_async(prompts))
+
+    async def _batch_generate_async(self, prompts: List[str]) -> List[str]:
+        tasks = [self.a_generate(prompt) for prompt in prompts]
+        return await asyncio.gather(*tasks)
+
+    def get_model_name(self):
+        return self.model_name
+
+
 # def test_qwen3_0_6b():
 #     model_name = "Qwen/Qwen3-0.6B"
 #     model = AutoModelForCausalLM.from_pretrained(model_name)
 #     tokenizer = AutoTokenizer.from_pretrained(model_name)
-#     llm = Qwen3EvalLLM(model_name, model, tokenizer)
+#     llm = Qwen3LocalEvalLLM(model_name, model, tokenizer)
 
 #     benchmark = MMLU(
 #         tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
@@ -119,7 +175,7 @@ def test_qwen3_14b():
         device_map="auto",
     )
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    llm = Qwen3EvalLLM(model_name, model, tokenizer)
+    llm = Qwen3LocalEvalLLM(model_name, model, tokenizer)
 
     benchmark = MMLU(
         tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
@@ -130,21 +186,11 @@ def test_qwen3_14b():
 
 def test_qwen3_30b_a3b():
     model_name = "Qwen/Qwen3-30B-A3B"
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-        llm_int8_enable_fp32_cpu_offload=True,
+    llm = Qwen3RemoteEvalLLM(
+        model_name=model_name,
+        base_url="http://localhost:11434/v1/",
+        api_key="ollama"
     )
-
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        quantization_config=bnb_config,
-        device_map="auto",
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    llm = Qwen3EvalLLM(model_name, model, tokenizer)
 
     benchmark = MMLU(
         tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
