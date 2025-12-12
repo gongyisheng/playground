@@ -102,6 +102,9 @@ class Qwen3RemoteEvalLLM(DeepEvalBaseLLM):
         self.base_url = base_url
         self.api_key = api_key
         self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+    
+    def load_model(self):
+        return None
 
     def format_prompt(self, prompt: str) -> str:
         return prompt + "\nOutput your answer in <answer></answer>, only contain the option (e.g., A, B, C, D) without any additional explanation."
@@ -159,33 +162,33 @@ class Qwen3RemoteEvalLLM(DeepEvalBaseLLM):
 #     print("Overall Score: ", results)
 
 
-def test_qwen3_14b():
-    model_name = "Qwen/Qwen3-14B"
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-        llm_int8_enable_fp32_cpu_offload=True,
-    )
+# def test_qwen3_14b():
+#     model_name = "Qwen/Qwen3-14B"
+#     bnb_config = BitsAndBytesConfig(
+#         load_in_4bit=True,
+#         bnb_4bit_compute_dtype=torch.bfloat16,
+#         bnb_4bit_quant_type="nf4",
+#         bnb_4bit_use_double_quant=True,
+#         llm_int8_enable_fp32_cpu_offload=True,
+#     )
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        quantization_config=bnb_config,
-        device_map="auto",
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    llm = Qwen3LocalEvalLLM(model_name, model, tokenizer)
+#     model = AutoModelForCausalLM.from_pretrained(
+#         model_name,
+#         quantization_config=bnb_config,
+#         device_map="auto",
+#     )
+#     tokenizer = AutoTokenizer.from_pretrained(model_name)
+#     llm = Qwen3LocalEvalLLM(model_name, model, tokenizer)
 
-    benchmark = MMLU(
-        tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
-        n_shots=3
-    )
-    results = benchmark.evaluate(model=llm)
-    print("Overall Score: ", results)
+#     benchmark = MMLU(
+#         tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
+#         n_shots=3
+#     )
+#     results = benchmark.evaluate(model=llm)
+#     print("Overall Score: ", results)
 
 def test_qwen3_30b_a3b():
-    model_name = "Qwen/Qwen3-30B-A3B"
+    model_name = "qwen3:30b"
     llm = Qwen3RemoteEvalLLM(
         model_name=model_name,
         base_url="http://localhost:11434/v1/",
