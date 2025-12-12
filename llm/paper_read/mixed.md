@@ -174,3 +174,12 @@ key takeaways
     - Reward = sequence-similarity (difflib) between model action and expert action; optimize with GRPO. 
     - Reward only on actions; dynamic sampling filters low-variance-reward batches for stronger updates.
 ```
+
+15. Memory Diffusion
+```
+title: Exploring Agentic Memory beyond Reasoning and Tool-Use
+url: https://macaron.im/mindlab/research/exploring-agentic-memory-beyond-reasoning-and-tool-use
+key takeaways
+- use mask-allocate-refill to implement intelligent forgetting, name the paradigm as memory diffusion
+- implement as third operation other than reasoning and action: actively modifying the sequence to optimize context for future autoregression.
+```
