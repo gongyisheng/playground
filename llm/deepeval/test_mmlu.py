@@ -1,18 +1,21 @@
 from typing import List
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from deepeval.benchmarks import MMLU
 from deepeval.benchmarks.mmlu.task import MMLUTask
 from deepeval.models.base_model import DeepEvalBaseLLM
 
-class CustomEvalLLM(DeepEvalBaseLLM):
-    def __init__(self, model_name: str):
+class Qwen3EvalLLM(DeepEvalBaseLLM):
+    def __init__(self, model_name, model, tokenizer, device = None):
         self.model_name = model_name
-        self.model = AutoModelForCausalLM.from_pretrained(self.model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = model
+        self.tokenizer = tokenizer
+        if device is not None:
+            self.device = device
+        else:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def load_model(self):
         return self.model
@@ -20,11 +23,25 @@ class CustomEvalLLM(DeepEvalBaseLLM):
     def generate(self, prompt: str) -> str:
         model = self.load_model()
 
-        model_inputs = self.tokenizer([prompt], return_tensors="pt").to(self.device)
+        # Apply chat template for Qwen models
+        messages = [{"role": "user", "content": prompt}]
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+            enable_thinking=True
+        )
+
+        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.device)
         model.to(self.device)
 
-        generated_ids = model.generate(**model_inputs, max_new_tokens=100, do_sample=True)
-        return self.tokenizer.batch_decode(generated_ids)[0]
+        generated_ids = model.generate(**model_inputs, max_new_tokens=512, do_sample=True, temperature=0.7)
+        # Extract only the newly generated tokens (exclude the input prompt)
+        input_length = model_inputs.input_ids.shape[1]
+        new_tokens = generated_ids[:, input_length:]
+        result = self.tokenizer.batch_decode(new_tokens, skip_special_tokens=True)[0]
+        print("Generated:", result)
+        return result
 
     async def a_generate(self, prompt: str) -> str:
         return self.generate(prompt)
@@ -32,22 +49,69 @@ class CustomEvalLLM(DeepEvalBaseLLM):
     def batch_generate(self, prompts: List[str]) -> List[str]:
         model = self.load_model()
 
-        model_inputs = self.tokenizer(prompts, return_tensors="pt", padding=True, padding_side='left').to(self.device)
+        # Apply chat template for Qwen models to each prompt
+        texts = []
+        for prompt in prompts:
+            messages = [{"role": "user", "content": prompt}]
+            text = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+                enable_thinking=True
+            )
+            texts.append(text)
+
+        model_inputs = self.tokenizer(texts, return_tensors="pt", padding=True, padding_side='left').to(self.device)
         model.to(self.device)
 
-        generated_ids = model.generate(**model_inputs, max_new_tokens=100, do_sample=True)
-        return self.tokenizer.batch_decode(generated_ids)
+        generated_ids = model.generate(**model_inputs, max_new_tokens=512, do_sample=True, temperature=0.7)
+        # Extract only the newly generated tokens (exclude the input prompts)
+        input_length = model_inputs.input_ids.shape[1]
+        new_tokens = generated_ids[:, input_length:]
+        results = self.tokenizer.batch_decode(new_tokens, skip_special_tokens=True)
+        print("Generated batch:", results)
+        return results
 
     def get_model_name(self):
         return self.model_name
 
-def test():
+
+def test_qwen3_0_6b():
     model_name = "Qwen/Qwen3-0.6B"
-    llm = CustomEvalLLM(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    llm = Qwen3EvalLLM(model_name, model, tokenizer)
 
     benchmark = MMLU(
         tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
         n_shots=3
     )
-    results = benchmark.evaluate(model=llm, batch_size=5)
+    results = benchmark.evaluate(model=llm)
+    print("Overall Score: ", results)
+
+
+def test_qwen3_14b():
+    model_name = "Qwen/Qwen3-14B"
+    # model_name = "Qwen/Qwen3-30B-A3B"
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        llm_int8_enable_fp32_cpu_offload=True,
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    llm = Qwen3EvalLLM(model_name, model, tokenizer)
+
+    benchmark = MMLU(
+        tasks=[MMLUTask.HIGH_SCHOOL_COMPUTER_SCIENCE, MMLUTask.ASTRONOMY],
+        n_shots=3
+    )
+    results = benchmark.evaluate(model=llm)
     print("Overall Score: ", results)
