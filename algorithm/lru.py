@@ -109,8 +109,8 @@ def test_v2():
 
 
 if __name__ == "__main__":
-    print("Testing LRUCache (OrderedDict):")
     test_v1()
+    print("Test passed on LRUCache (OrderedDict)")
 
-    print("Testing LRUCacheV2 (HashMap + DoublyLinkedList):")
     test_v2()
+    print("Test passed on LRUCacheV2 (HashMap + DoublyLinkedList)")
