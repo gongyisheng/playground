@@ -183,3 +183,15 @@ key takeaways
 - use mask-allocate-refill to implement intelligent forgetting, name the paradigm as memory diffusion
 - implement as third operation other than reasoning and action: actively modifying the sequence to optimize context for future autoregression.
 ```
+
+16. TruthRL
+```
+title: TruthRL: Incentivizing Truthful LLMs via Reinforcement Learning
+url: https://arxiv.org/abs/2509.25760
+
+## key takeaways
+- Implements online RL with GRPO and a ternary outcome reward: +1 correct, 0 abstain, −1 hallucination.
+- Cuts hallucinations by 28.9% and boosts truthfulness by 21.1% versus vanilla RL.
+- Simple ternary beats knowledge- and reasoning-enhanced rewards; binary maximizes accuracy but harms truthfulness.
+- Online GRPO outperforms DPO; robust to hallucination-baiting; recognizes knowledge boundaries, avoids over-conservatism.
+```
