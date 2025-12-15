@@ -195,3 +195,16 @@ url: https://arxiv.org/abs/2509.25760
 - Simple ternary beats knowledge- and reasoning-enhanced rewards; binary maximizes accuracy but harms truthfulness.
 - Online GRPO outperforms DPO; robust to hallucination-baiting; recognizes knowledge boundaries, avoids over-conservatism.
 ```
+
+17. Forking Tokens Supercharge RL
+```
+title: Beyond the 80/20 Rule: High-Entropy Minority Tokens Drive Effective Reinforcement Learning for LLM Reasoning
+url: https://arxiv.org/abs/2506.01939
+
+## Key Takeaways
+- High-entropy “forking” tokens control reasoning branch points in CoT.
+- RLVR preserves base entropy patterns; mainly adjusts high-entropy tokens.
+- Updating only top-20% entropy tokens matches/exceeds full-token RLVR.
+- Training on low-entropy majority degrades; benefits grow with model size.
+- method: Compute token-level entropy; select top-ρ positions per batch as “forking” tokens. Mask policy gradients for others; apply DAPO updates only on selected tokens.
+```
