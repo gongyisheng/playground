@@ -1,62 +1,62 @@
 # MMLU Evaluation Results
 
-| Domain | qwen3-30b-a3b (max_tokens=1024) |
-|--------|---------------|
-| high_school_european_history | 0.8242 |
-| business_ethics | 0.7400 |
-| clinical_knowledge | 0.8226 |
-| medical_genetics | 0.8800 |
-| high_school_us_history | 0.8627 |
-| high_school_physics | 0.7219 |
-| high_school_world_history | 0.8650 |
-| virology | 0.5241 |
-| high_school_microeconomics | 0.9454 |
-| econometrics | 0.6140 |
-| college_computer_science | 0.6100 |
-| high_school_biology | 0.9129 |
-| abstract_algebra | 0.7000 |
-| professional_accounting | 0.7553 |
-| philosophy | 0.7267 |
-| professional_medicine | 0.8125 |
-| nutrition | 0.7778 |
-| global_facts | 0.5200 |
-| machine_learning | 0.7232 |
-| security_studies | 0.7551 |
-| public_relations | 0.7091 |
-| professional_psychology | 0.8056 |
-| prehistory | 0.8117 |
-| anatomy | 0.6963 |
-| human_sexuality | 0.8397 |
-| college_medicine | 0.7572 |
-| high_school_government_and_politics | 0.9326 |
-| college_chemistry | 0.5200 |
-| logical_fallacies | 0.7362 |
-| high_school_geography | 0.8434 |
-| elementary_mathematics | 0.9444 |
-| human_aging | 0.7399 |
-| college_mathematics | 0.5100 |
-| high_school_psychology | 0.9101 |
-| formal_logic | 0.6270 |
-| high_school_statistics | 0.7685 |
-| international_law | 0.8430 |
-| high_school_mathematics | 0.6667 |
-| high_school_computer_science | 0.8700 |
-| conceptual_physics | 0.9106 |
-| miscellaneous | 0.9042 |
-| high_school_chemistry | 0.6847 |
-| marketing | 0.9274 |
-| professional_law | 0.4857 |
-| management | 0.8641 |
-| college_physics | 0.7843 |
-| jurisprudence | 0.8426 |
-| world_religions | 0.8480 |
-| sociology | 0.8209 |
-| us_foreign_policy | 0.8500 |
-| high_school_macroeconomics | 0.8923 |
-| computer_security | 0.8100 |
-| moral_scenarios | 0.7251 |
-| moral_disputes | 0.7139 |
-| electrical_engineering | 0.7724 |
-| astronomy | 0.8553 |
-| college_biology | 0.9097 |
-| overall | 0.7666 |
+| Domain | qwen3-30b-a3b (max_tokens=1024) | qwen3-14b (max_tokens=512) |
+|--------|---------------|---------------|
+| high_school_european_history | 0.8242 | 0.7212 |
+| business_ethics | 0.7400 | 0.6900 |
+| clinical_knowledge | 0.8226 | 0.6792 |
+| medical_genetics | 0.8800 | 0.7300 |
+| high_school_us_history | 0.8627 | 0.7255 |
+| high_school_physics | 0.7219 | 0.4636 |
+| high_school_world_history | 0.8650 | 0.7511 |
+| virology | 0.5241 | 0.4880 |
+| high_school_microeconomics | 0.9454 | 0.7689 |
+| econometrics | 0.6140 | 0.3947 |
+| college_computer_science | 0.6100 | 0.4600 |
+| high_school_biology | 0.9129 | 0.7871 |
+| abstract_algebra | 0.7000 | 0.4500 |
+| professional_accounting | 0.7553 | 0.4823 |
+| philosophy | 0.7267 | 0.5595 |
+| professional_medicine | 0.8125 | 0.5956 |
+| nutrition | 0.7778 | 0.6405 |
+| global_facts | 0.5200 | 0.2700 |
+| machine_learning | 0.7232 | 0.5625 |
+| security_studies | 0.7551 | 0.5020 |
+| public_relations | 0.7091 | 0.6273 |
+| professional_psychology | 0.8056 | 0.6471 |
+| prehistory | 0.8117 | 0.6605 |
+| anatomy | 0.6963 | 0.6444 |
+| human_sexuality | 0.8397 | 0.7557 |
+| college_medicine | 0.7572 | 0.5665 |
+| high_school_government_and_politics | 0.9326 | 0.8446 |
+| college_chemistry | 0.5200 | 0.3600 |
+| logical_fallacies | 0.7362 | 0.6871 |
+| high_school_geography | 0.8434 | 0.7727 |
+| elementary_mathematics | 0.9444 | 0.8360 |
+| human_aging | 0.7399 | 0.6278 |
+| college_mathematics | 0.5100 | 0.2100 |
+| high_school_psychology | 0.9101 | 0.8404 |
+| formal_logic | 0.6270 | 0.3651 |
+| high_school_statistics | 0.7685 | 0.5278 |
+| international_law | 0.8430 | 0.6942 |
+| high_school_mathematics | 0.6667 | 0.3370 |
+| high_school_computer_science | 0.8700 | 0.7600 |
+| conceptual_physics | 0.9106 | 0.8213 |
+| miscellaneous | 0.9042 | 0.8557 |
+| high_school_chemistry | 0.6847 | 0.4926 |
+| marketing | 0.9274 | 0.8889 |
+| professional_law | 0.4857 | 0.1467 |
+| management | 0.8641 | 0.8738 |
+| college_physics | 0.7843 | 0.5294 |
+| jurisprudence | 0.8426 | 0.6759 |
+| world_religions | 0.8480 | 0.7836 |
+| sociology | 0.8209 | 0.7363 |
+| us_foreign_policy | 0.8500 | 0.7500 |
+| high_school_macroeconomics | 0.8923 | 0.6846 |
+| computer_security | 0.8100 | 0.6200 |
+| moral_scenarios | 0.7251 | 0.5788 |
+| moral_disputes | 0.7139 | 0.5549 |
+| electrical_engineering | 0.7724 | 0.6621 |
+| astronomy | 0.8553 | 0.7303 |
+| college_biology | 0.9097 | 0.7292 |
+| overall | 0.7666 | 0.6021 |
