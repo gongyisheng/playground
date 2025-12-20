@@ -208,3 +208,17 @@ url: https://arxiv.org/abs/2506.01939
 - Training on low-entropy majority degrades; benefits grow with model size.
 - method: Compute token-level entropy; select top-ρ positions per batch as “forking” tokens. Mask policy gradients for others; apply DAPO updates only on selected tokens.
 ```
+
+18. Degeneration
+```
+title: Wait, Wait, Wait... Why Do Reasoning Models Loop?
+url: https://arxiv.org/abs/2512.12895
+
+## Key Takeaways
+- Distilled students loop far more than teachers
+- Reasoning models loop far more than instuct models
+- Looping decreases with model size, increases with problem difficulty.
+- Temperature: low temperature encourages looping
+- Two looping mechanisms: risk-aversion from hard actions; inductive bias via temporally correlated errors.
+- Method: using a star graph to map to the problem
+```
