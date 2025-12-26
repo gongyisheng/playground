@@ -236,6 +236,7 @@ class SpeculativeDecoder:
                     next_token = torch.multinomial(p_target, num_samples=1)
 
                 output_tokens[b, n_acc] = next_token.item()
+                num_accepted[b] = n_acc + 1  # Include the corrected token
             else:
                 # All tokens accepted - sample one more from target
                 next_token = torch.multinomial(target_probs[b, k, :], num_samples=1)
@@ -266,9 +267,17 @@ class SpeculativeDecoder:
         Returns:
             List of generated texts
         """
-        # Tokenize inputs
+        # Apply chat template and tokenize inputs
+        formatted_prompts = [
+            self.tokenizer.apply_chat_template(
+                [{"role": "user", "content": prompt}],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            for prompt in prompts
+        ]
         inputs = self.tokenizer(
-            prompts,
+            formatted_prompts,
             return_tensors="pt",
             padding=True,
             truncation=True,
@@ -399,7 +408,8 @@ def main():
     outputs = decoder.generate(
         prompts=prompts,
         max_new_tokens=max_tokens,
-        k=k
+        k=k,
+        verbose=True
     )
 
     # Print results
