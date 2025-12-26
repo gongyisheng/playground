@@ -21,7 +21,7 @@ def main():
 
     # load the tokenizer and the model
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.padding_side = "right"
+    tokenizer.padding_side = "left"
 
     # prepare the model input
     prompts = [
