@@ -5,6 +5,7 @@ model_name = "Qwen/Qwen3-0.6B"
 
 # load the tokenizer and the model
 tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer.padding_side = "left"
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     dtype="bfloat16",
