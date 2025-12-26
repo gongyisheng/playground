@@ -343,7 +343,7 @@ class SpeculativeDecoder:
 
             # Properly update all sequences
             max_new = num_accepted.max().item()
-            new_ids = torch.zeros((batch_size, max_new), dtype=torch.long, device=self.device)
+            new_ids = torch.full((batch_size, max_new), self.tokenizer.pad_token_id, dtype=torch.long, device=self.device)
             new_mask = torch.zeros((batch_size, max_new), dtype=attention_mask.dtype, device=self.device)
 
             for b in range(batch_size):
@@ -383,7 +383,7 @@ class SpeculativeDecoder:
 
 def main():
 
-    target_model = "Qwen/Qwen3-14B"
+    target_model = "Qwen/Qwen3-1.7B"
     draft_model = "Qwen/Qwen3-0.6B"
 
     max_tokens = 1024
