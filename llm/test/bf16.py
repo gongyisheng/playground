@@ -7,7 +7,7 @@ model_name = "Qwen/Qwen3-0.6B"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    torch_dtype="bfloat16",
+    dtype="bfloat16",
     device_map="auto"
 )
 
