@@ -52,6 +52,7 @@ class SpeculativeDecoder:
         )
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.tokenizer.padding_side = "left"
 
         self.device = device
         self.vocab_size = self.target_model.config.vocab_size
