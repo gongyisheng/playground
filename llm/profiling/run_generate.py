@@ -52,12 +52,12 @@ def main():
     tokenizer, model = load_model(model_name)
     print("Model loaded.")
 
-    # Number of steps: wait(1) + warmup(1) + active(1) = 3
-    num_steps = 3
+    # Number of steps: wait(0) + warmup(0) + active(1) = 1
+    num_steps = 1
 
     with profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-        schedule=torch.profiler.schedule(wait=1, warmup=1, active=1, repeat=1),
+        schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1),
         on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler_demo'),
         record_shapes=True,
         profile_memory=True,
