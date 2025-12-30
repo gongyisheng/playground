@@ -68,12 +68,5 @@ def main():
             run_generate(tokenizer, model)
             prof.step()
 
-    # Print profiling summary
-    print("\n" + "=" * 80)
-    print("Profiling Summary (sorted by CUDA time):")
-    print("=" * 80)
-    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=20))
-
-
 if __name__ == "__main__":
     main()
