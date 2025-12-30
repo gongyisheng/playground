@@ -52,8 +52,8 @@ def main():
     tokenizer, model = load_model(model_name)
     print("Model loaded.")
 
-    # Number of steps: wait(1) + warmup(1) + active(3) = 5
-    num_steps = 5
+    # Number of steps: wait(1) + warmup(1) + active(1) = 3
+    num_steps = 3
 
     with profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
