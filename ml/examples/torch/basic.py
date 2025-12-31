@@ -74,7 +74,7 @@ def test_init():
     exp_1 = torch.zeros_like(x) # init with zeros
     exp_2 = torch.ones_like(x)  # init with ones
     exp_3 = torch.full_like(x, 7) # init with full value
-    exp_4 = torch.empty_like(x) # init with uninitialized values (fastest)
+    exp_4 = torch.empty_like(x) # init with uninitialized values in memory (fastest)
     print("Original tensor:")
     print(x)
     print("Zeros like:")
