@@ -69,10 +69,28 @@ def test_advanced_indexing():
     target_log_probs_example = log_probs_example[row_indices, targets_example]
     print(f"Result: {target_log_probs_example}")
 
+def test_init():
+    x = torch.tensor([[1,2,3],[4,5,6]])
+    exp_1 = torch.zeros_like(x) # init with zeros
+    exp_2 = torch.ones_like(x)  # init with ones
+    exp_3 = torch.full_like(x, 7) # init with full value
+    exp_4 = torch.empty_like(x) # init with uninitialized values (fastest)
+    print("Original tensor:")
+    print(x)
+    print("Zeros like:")
+    print(exp_1)
+    print("Ones like:")
+    print(exp_2)
+    print("Full like (7):")
+    print(exp_3)
+    print("Empty like (uninitialized):")
+    print(exp_4)
+
 
 if __name__ == "__main__":
     # test_transpose()
     # test_mean()
     # test_variance()
     # test_contiguous()
-    test_advanced_indexing()
+    # test_advanced_indexing()
+    test_init()
