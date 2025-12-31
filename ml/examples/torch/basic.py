@@ -86,6 +86,17 @@ def test_init():
     print("Empty like (uninitialized):")
     print(exp_4)
 
+def test_property():
+    x = torch.randn(3,4)
+    print("Tensor x:")
+    print(x)
+    print("Shape:", x.shape)
+    print("Size:", x.size())
+    print("Dtype:", x.dtype)
+    print("Device:", x.device)
+    print("Numel:", x.numel())
+    print("Is contiguous:", x.is_contiguous())
+
 
 if __name__ == "__main__":
     # test_transpose()
@@ -93,4 +104,5 @@ if __name__ == "__main__":
     # test_variance()
     # test_contiguous()
     # test_advanced_indexing()
-    test_init()
+    # test_init()
+    test_property()
