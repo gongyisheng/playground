@@ -116,6 +116,26 @@ mtemp: memory temperature
 - cpu limit: mem low, sm < 50%, pwr does not hit limit
 ```
 
+- `nvidia-smi dmon -s t`: pcie bandwidth usage monitoring
+```
+# gpu  rxpci  txpci 
+# Idx   MB/s   MB/s 
+    0     60     13 
+    0     72     12 
+
+rxpci: data received by pcie, host->gpu
+txpci: data transmitted by pcie, gpu->host
+
+| PCIe Gen | x16 Bandwidth (each direction) |
+|----------|--------------------------------|
+| Gen 3    | ~16 GB/s                       |
+| Gen 4    | ~32 GB/s                       |
+| Gen 5    | ~64 GB/s                       |
+
+use pcie gen4 x 16 as an example, it has 16 lanes per direction, each lane has dedicated direction (rx or tx)
+so it's impossible to see tx=64, rx=0
+```
+
 # NCCL
 Known issues:
 - OS error on docker + multi-gpu instance: `Cuda failure 304 'OS call failed or operation not supported on this OS'`. 
