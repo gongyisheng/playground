@@ -38,16 +38,16 @@ def is_cdna():
 def naive_softmax(x):
     """Compute row-wise softmax of X using native pytorch
 
-    We subtract the maximum element in order to avoid overflows. Softmax is invariant to
-    this shift.
+    We subtract the maximum element in order to avoid overflows. 
+    Softmax is invariant to this shift.
     """
-    # read  MN elements ; write M  elements
+    # read MN elements ; write M elements
     x_max = x.max(dim=1)[0]
     # read MN + M elements ; write MN elements
     z = x - x_max[:, None]
-    # read  MN elements ; write MN elements
+    # read MN elements ; write MN elements
     numerator = torch.exp(z)
-    # read  MN elements ; write M  elements
+    # read MN elements ; write M elements
     denominator = numerator.sum(dim=1)
     # read MN + M elements ; write MN elements
     ret = numerator / denominator[:, None]
@@ -63,7 +63,6 @@ def naive_softmax(x):
 # expect a theoretical speed-up of ~4x (i.e., :math:`(8MN + 4M) / 2MN`).
 # The `torch.jit.script` flags aims to perform this kind of "kernel fusion" automatically
 # but, as we will see later, it is still far from ideal.
-
 
 
 # Compute Kernel
@@ -106,7 +105,6 @@ def softmax_kernel(output_ptr, input_ptr, input_row_stride, output_row_stride, n
 
 
 # We can create a helper function that enqueues the kernel and its (meta-)arguments for any given input tensor.
-
 properties = driver.active.utils.get_device_properties(DEVICE.index)
 NUM_SM = properties["multiprocessor_count"]
 NUM_REGS = properties["max_num_regs"]
