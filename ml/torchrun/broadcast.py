@@ -2,6 +2,11 @@ import os
 import torch
 import torch.distributed as dist
 
+# BROADCAST (src=0):
+#     Rank0: [42, 43] ──> Rank0: [42, 43]
+#                     ──> Rank1: [42, 43]
+#                     ──> Rank2: [42, 43]
+
 def main():
     # 1. Get rank information (set by torchrun)
     local_rank = int(os.environ["LOCAL_RANK"])

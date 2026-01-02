@@ -2,6 +2,11 @@ import os
 import torch
 import torch.distributed as dist
 
+# ALL_GATHER:
+#     Rank0: [0]  ─┐
+#     Rank1: [10] ─┼─> All ranks get [[0], [10], [20]]
+#     Rank2: [20] ─┘
+
 def main():
     # 1. Get rank information (set by torchrun)
     local_rank = int(os.environ["LOCAL_RANK"])
