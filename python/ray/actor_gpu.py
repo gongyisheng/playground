@@ -15,7 +15,10 @@ class GPUActor:
 
 def test_gpu_actor():
     ray.init(num_gpus=4)
-    actors = [GPUActor.remote() for _ in range(4)]
+    # actor num must be <= 4
+    # actor still holds the gpu resource when task finishes 
+    # resource will be held until class is recycled by GC
+    actors = [GPUActor.remote() for _ in range(4)] 
     ray.get([actor.work.remote() for actor in actors])
 
 if __name__ == "__main__":
