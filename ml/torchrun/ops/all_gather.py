@@ -6,6 +6,7 @@ import torch.distributed as dist
 #     Rank0: [0]  ─┐
 #     Rank1: [10] ─┼─> All ranks get [[0], [10], [20]]
 #     Rank2: [20] ─┘
+# use dist.gather() to just store one replica for specific process
 
 def main():
     # 1. Get rank information (set by torchrun)
