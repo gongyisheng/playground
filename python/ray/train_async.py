@@ -19,7 +19,7 @@ from ray.util.placement_group import placement_group
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 
 
-@ray.remote(num_cpus=0.5)
+@ray.remote(num_cpus=1, num_gpus=1)
 class TrainActor:
     """Simulates training (takes some time)."""
 
@@ -35,7 +35,7 @@ class TrainActor:
         return {"rank": self.rank, "rollout_id": rollout_id}
 
 
-@ray.remote(num_cpus=0.5)
+@ray.remote(num_cpus=1, num_gpus=1)
 class RolloutEngine:
     """Simulates inference/rollout generation (takes some time)."""
 
