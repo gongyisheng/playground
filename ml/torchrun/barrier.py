@@ -35,19 +35,7 @@ def main():
 
     # Barrier: all processes wait here until everyone arrives
     dist.barrier()
-
     print(f"Process {global_rank} passed barrier - all processes are synchronized!")
-
-    # After barrier, all processes continue together
-    # This is useful when you need to ensure all processes have completed
-    # a certain stage before moving to the next stage
-
-    # Example: simulate a second synchronized step
-    print(f"Process {global_rank} performing synchronized work...")
-    time.sleep(0.1)
-
-    dist.barrier()
-    print(f"Process {global_rank} completed all work")
 
     # 5. Cleanup
     dist.destroy_process_group()
