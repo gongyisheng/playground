@@ -12,6 +12,12 @@ cd /root/
 git clone https://github.com/radixark/miles.git
 cd miles
 pip install -e .
+pip install -e --no-deps
+
+# (dev)
+git clone https://github.com/sgl-project/sglang.git
+cd sglang
+pip install -e --no-deps "python"
 
 wandb login
 ```
