@@ -28,12 +28,12 @@ cuda 12.8
 ```
 check https://developer.nvidia.com/cuda-12-8-0-download-archive
 
-add to ~/.bashrc:
+## add to ~/.bashrc:
 export CUDA_HOME=/usr/local/cuda
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
-switch cuda version:
+## switch cuda version:
 sudo rm /usr/local/cuda
 sudo ln -s /usr/local/cuda-12.8 /usr/local/cuda
 ```
