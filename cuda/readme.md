@@ -1,5 +1,26 @@
 # cuda/cuDNN
 
+## install driver
+use upgrade from 570 to 580 as an example
+```
+## network repo
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+
+## remove 570
+sudo apt remove --purge '^nvidia-.*570'
+sudo apt autoremove
+sudo apt autoclean
+
+## install 580
+sudo apt update
+sudo apt install nvidia-driver-pinning-580
+sudo apt install nvidia-driver-580
+
+sudo reboot
+```
+
 ## install cuda
 cuda 12.8
 ```
