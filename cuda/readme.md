@@ -20,6 +20,8 @@ sudo apt install nvidia-driver-580
 
 sudo reboot
 ```
+ref: https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/ubuntu.html  
+ref: https://www.nvidia.com/en-in/drivers/  
 
 ## install cuda
 cuda 12.8
