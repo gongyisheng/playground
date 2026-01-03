@@ -22,9 +22,9 @@ pip install -e --no-deps "python"
 wandb login
 ```
 
-## example - qwen3-30b-a3b
+## example - qwen3-4b
 ```
-hf download Qwen/Qwen3-30B-A3B --local-dir /root/Qwen3-30B-A3B
+hf download Qwen/Qwen3-4B --local-dir /root/Qwen3-4B
 hf download --repo-type dataset zhuzilin/dapo-math-17k \
   --local-dir /root/dapo-math-17k
 hf download --repo-type dataset zhuzilin/aime-2024 \
@@ -32,13 +32,13 @@ hf download --repo-type dataset zhuzilin/aime-2024 \
 
 
 cd /root/miles
-source scripts/models/qwen3-30B-A3B.sh
+source scripts/models/qwen3-4B.sh
 
 PYTHONPATH=/root/Megatron-LM python tools/convert_hf_to_torch_dist.py \
     ${MODEL_ARGS[@]} \
-    --hf-checkpoint /root/Qwen3-30B-A3B \
-    --save /root/Qwen3-30B-A3B_torch_dist
+    --hf-checkpoint /root/Qwen3-4B \
+    --save /root/Qwen3-4B_torch_dist
 
 cd /root/miles
-nohup bash scripts/run-qwen3-30B-A3B.sh 2>&1 &
+nohup bash scripts/run-Qwen3-4B.sh 2>&1 &
 ```
