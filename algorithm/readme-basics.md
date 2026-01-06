@@ -1,5 +1,19 @@
 # python container operations
-1. deque
+1. stack
+```
+stack = []
+stack.append(1)
+stack.append(2)
+stack.append(3)
+
+# get the first one
+stack.pop() 
+
+# view the top element
+stack[-1]
+```
+
+2. deque
 ```
 from collections import deque
 
@@ -24,7 +38,8 @@ dq.extend([5, 6])
 # Extend deque on the left
 dq.extendleft([-1, -2])
 ```
-2. priority queue
+
+3. priority queue
 ```
 import heapq
 
@@ -52,7 +67,7 @@ class Task:
         return f"({self.priority}, {self.description})"
 ```
 
-3. ordered dict
+4. ordered dict
 ```
 from collections import OrderedDict
 
@@ -77,7 +92,7 @@ print(p) # ('key1', 'value1')
 pair = d.pop("key2")
 ```
 
-4. customized sort
+5. customized sort
 ```
 # Sample list of tuples
 data = [(4, 2), (1, 3), (3, 2), (2, 1), (5, 3)]
@@ -87,5 +102,4 @@ sorted_data = sorted(data, key=lambda x: (x[1], x[0]))
 
 # Output the result
 print(sorted_data)
-
 ```
