@@ -8,7 +8,7 @@
 [LC102](https://leetcode.com/problems/binary-tree-level-order-traversal) basic level order, top down    
 [LC107](https://leetcode.com/problems/binary-tree-level-order-traversal-ii) basic level order, button up  
 [LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic level order, n-ray   
-[LC1161](https://leetcode.com/problems/maximum-level-sum-of-a-binary-tree) basic level order, record sum and find max
+[LC1161](https://leetcode.com/problems/maximum-level-sum-of-a-binary-tree) basic level order, record sum and find max  
 [LC1302](https://leetcode.com/problems/deepest-leaves-sum) traverse + status collect, find max  
 [LC872](https://leetcode.com/problems/leaf-similar-trees/) traverse + status collect, compare result  
 [LC987](https://leetcode.com/problems/vertical-order-traversal-of-a-binary-tree) traverse + status collect, sort result  
@@ -50,6 +50,7 @@
 [LC93](https://leetcode.com/problems/restore-ip-addresses) dfs, validate substring  
 
 ## Binary Search
+[LC35](https://leetcode.com/problems/search-insert-position) binary search, upper bound  
 
 ## Sort
 [LC3169](https://leetcode.com/problems/count-days-without-meetings) sort + state compression, count segment  
