@@ -5,9 +5,10 @@
 [LC145](https://leetcode.com/problems/binary-tree-postorder-traversal/) basic postorder  
 [LC589](https://leetcode.com/problems/n-ary-tree-preorder-traversal) basic preorder, n-ray  
 [LC590](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) basic postorder, n-ray  
-[LC102](https://leetcode.com/problems/binary-tree-level-order-traversal) basic levelorder, top down    
-[LC107](https://leetcode.com/problems/binary-tree-level-order-traversal-ii) basic levelorder, button up  
-[LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic levelorder, n-ray   
+[LC102](https://leetcode.com/problems/binary-tree-level-order-traversal) basic level order, top down    
+[LC107](https://leetcode.com/problems/binary-tree-level-order-traversal-ii) basic level order, button up  
+[LC429](https://leetcode.com/problems/n-ary-tree-level-order-traversal/) basic level order, n-ray   
+[LC1161](https://leetcode.com/problems/maximum-level-sum-of-a-binary-tree) basic level order, record sum and find max
 [LC1302](https://leetcode.com/problems/deepest-leaves-sum) traverse + status collect, find max  
 [LC872](https://leetcode.com/problems/leaf-similar-trees/) traverse + status collect, compare result  
 [LC987](https://leetcode.com/problems/vertical-order-traversal-of-a-binary-tree) traverse + status collect, sort result  
