@@ -50,7 +50,8 @@
 [LC93](https://leetcode.com/problems/restore-ip-addresses) dfs, validate substring  
 
 ## Binary Search
-[LC35](https://leetcode.com/problems/search-insert-position) binary search, upper bound  
+[LC35](https://leetcode.com/problems/search-insert-position) binary search, no equal, upper bound  
+[LC34](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array) binary search, consider equal, upper and lower bound  
 
 ## Sort
 [LC3169](https://leetcode.com/problems/count-days-without-meetings) sort + state compression, count segment  
