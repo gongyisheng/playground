@@ -40,5 +40,5 @@ PYTHONPATH=/root/Megatron-LM python tools/convert_hf_to_torch_dist.py \
     --save /root/Qwen3-4B_torch_dist
 
 cd /root/miles
-nohup bash scripts/run-Qwen3-4B.sh 2>&1 &
+nohup bash scripts/run-qwen3-4B.sh 2>&1 &
 ```
