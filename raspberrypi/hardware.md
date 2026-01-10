@@ -183,3 +183,7 @@ suspend(sleep): need electricity, session keep in ram, low but not zero power us
 hibernate: don't need electricity, session keep from ram to swap, no power usage
 power off: don't need electricity, session data lost
 ```
+
+# experience as personal dev machine (raspberry pi 5b, 8GiB)
+- sd card is a big issue due to poor random write speed, making it almost unusable (stuck and stop), using nvme ssd may resolve the problem
+- memory is limited, opening 5+ tabs in browser may drain the memory. Performance downgraded when swap is heavily used. (stuck and stop)
