@@ -1,4 +1,4 @@
-# Megatron
+# Parallelism
 
 Megatron-LM (from NVIDIA) uses a Model Parallel Unit (MPU) to coordinate different parallelism strategies for training large models across many GPUs. Here's what each sub-group means:
 
