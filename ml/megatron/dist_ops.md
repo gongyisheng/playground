@@ -30,13 +30,13 @@ One → All (same data)
 ## Reduce
 All → One (sum data)
 ```
-[ABCD] → [A+B+C+D][][][]
+[A][B][C][D] → [A+B+C+D][][][]
 ```
 
 ## Scatter
 One → All (split data)  
 ```
-[ABCD] → [A][B][C][D] 
+[ABCD][][][] → [A][B][C][D] 
 ```
 
 ## Gather
@@ -62,4 +62,8 @@ All → All (reduce + scatter)
 ```
 [A0 A1 A2 A3][B0 B1 B2 B3][C0 C1 C2 C3][D0 D1 D2 D3] → [A0+B0+C0+D0][A1+B1+C1+D1][A2+B2+C2+D2][A3+B3+C3+D3]
 ```
+implementation
+- ring algorithm, each rank send other rank the target shard.
 
+## todo
+- add communication volume analysis
