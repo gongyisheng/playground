@@ -9,9 +9,7 @@ def with_defer(deferred_func):
                 return fn(*args, **kwargs)
             finally:
                 deferred_func()
-
         return wrapper
-
     return decorator
 
 @with_defer(lambda: print("defer"))

@@ -1,5 +1,5 @@
 import asyncio
-import functools
+from functools import wraps
 
 
 class Example:
@@ -7,7 +7,7 @@ class Example:
         print("ANOTHER FUNC")
 
     def wrapper(func):
-        @functools.wraps(func)
+        @wraps(func)
         async def wrap(self, *args, **kwargs):
             print("inside wrap")
             self.another_func()
