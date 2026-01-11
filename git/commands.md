@@ -1,3 +1,5 @@
+- pull commits after rebase  
+`git pull --rebase`
 - revert commit  
 `git reset --hard HEAD~`
 - revert commit and keep changes  
