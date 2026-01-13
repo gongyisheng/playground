@@ -42,3 +42,26 @@ PYTHONPATH=/root/Megatron-LM python tools/convert_hf_to_torch_dist.py \
 cd /root/miles
 nohup bash scripts/run-qwen3-4B.sh 2>&1 &
 ```
+
+## lora megatron development
+```
+sudo docker create --gpus all --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged --shm-size 128G --ulimit memlock=-1 --ulimit stack=67108864 -v .:/root/workspace --name miles_lora_megatron radixark/miles:latest sleep infinity
+sudo docker start miles_lora_megatron
+sudo docker exec -it miles_lora_megatron bash
+
+# clone miles
+git clone --branch miles-lora-megatron --single-branch https://github.com/yushengsu-thu/miles.git 
+pip install -e .
+
+# clone sglang
+git clone https://github.com/sgl-project/sglang.git
+cd sglang
+pip install -e --no-deps "python"
+
+# clone megatron-bridge
+git clone --branch merged-megatron-0.16.0rc0 --single-branch https://github.com/yushengsu-thu/Megatron-Bridge.git
+cd Megatron-Bridge
+pip install -e . --no-deps --no-build-isolation
+pip install megatron-energon --no-deps
+pip install multi-storage-client --no-deps
+```
