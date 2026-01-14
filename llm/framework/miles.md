@@ -45,12 +45,13 @@ nohup bash scripts/run-qwen3-4B.sh 2>&1 &
 
 ## lora megatron development
 ```
-sudo docker create --gpus all --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged --shm-size 128G --ulimit memlock=-1 --ulimit stack=67108864 -v /home/yineng/shared_model:/root/.cache -v /home/yisheng:/workspace --name miles_lora_megatron_yisheng radixark/miles:latest sleep infinity
+sudo docker create --gpus all --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged --shm-size 32G --ulimit memlock=-1 --ulimit stack=67108864 -v /home/yisheng:/workspace --name miles_lora_megatron_yisheng radixark/miles:latest sleep infinity
 sudo docker start miles_lora_megatron_yisheng
 sudo docker exec -it miles_lora_megatron_yisheng bash
 
 # clone miles
 git clone --branch miles-lora-megatron --single-branch https://github.com/yushengsu-thu/miles.git 
+cd miles
 pip install -e .
 
 # clone sglang
