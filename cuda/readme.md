@@ -1,4 +1,4 @@
-# cuda/cuDNN
+# cuda/cuDNN/nccl
 
 ## install driver
 use upgrade from 570 to 580 as an example
@@ -51,6 +51,11 @@ Build cuda_12.8.r12.8/compiler.35583870_0
 ## install cuDNN
 ```
 check https://developer.nvidia.com/cudnn-downloads
+```
+
+## install nccl
+```
+check https://developer.nvidia.com/nccl/nccl-download
 ```
 
 ## check version
@@ -160,6 +165,7 @@ so it's impossible to see tx=64, rx=0
 ```
 
 # NCCL
+
 Known issues:
 - OS error on docker + multi-gpu instance: `Cuda failure 304 'OS call failed or operation not supported on this OS'`. 
     `bash run_test_nccl.sh`: check PyTorch + NCCL + multi-GPU communication works on your system. 
