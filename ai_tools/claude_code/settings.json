@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "WebSearch",
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git diff:*)",
