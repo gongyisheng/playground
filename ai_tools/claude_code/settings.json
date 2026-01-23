@@ -68,5 +68,9 @@
       "Bash(shutdown:*)"
     ]
   },
-  "model": "opus"
+  "model": "opus",
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true
+  }
 }
