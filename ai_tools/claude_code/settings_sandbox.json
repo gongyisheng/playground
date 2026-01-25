@@ -1,4 +1,9 @@
-{                                                                                                                                                                                       
+{      
+  "permissions": {
+      "deny": [
+        "Bash(rm:*)"
+      ]
+  },
   "model": "opus",
   "enabledPlugins": {                                                                                                                                                                   
     "playwright@claude-plugins-official": true,                                                                                                                                         
