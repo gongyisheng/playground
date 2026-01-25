@@ -1,0 +1,11 @@
+services:
+  claude:
+    build:
+      context: .
+      dockerfile: Dockerfile.general
+    image: claude-sandbox
+    container_name: claude-sandbox
+    volumes:
+      - ./workspace:/workspace
+    stdin_open: true
+    tty: true
