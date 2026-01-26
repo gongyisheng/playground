@@ -14,9 +14,10 @@ for miles args you can ref to @miles/utils/arguments.py , for sglang args you ca
 your should document your changes in args (ideally in a experiment notes md file), when nescessary, do controlled experiment to find out the causal relationship.
 after everything is done, make a document of arguments updated/added, with the reason behind, and failure attempts if has
 ```
-result:
+result: 
 ```
-quite good on 3060 12g (fail) and a10g (success), both get right result
+30-50 min single task
+quite good on 3060 12g (fail) and a10g (success) after about 6 rounds, both get right result
 note that the temp log files are everywhere, may tell LLM somewhere to put, away from scripts / changlog
 ```
 
@@ -31,6 +32,7 @@ I want you to do prompt engineering for this agent, your goal is to keep vendor 
 ```
 result:
 ```
+30 min task
 85%->93% after rounds, but fail to improve, start to see tendency of hacking (hardcode example to prompt), has to stop and ask it to reorganize and restucture the prompt, and focus on common pattern of failed case, suggest infra change, after that see accuracy ~95%
 ```
 
@@ -50,5 +52,6 @@ copilotkit connect to python backend: https://docs.copilotkit.ai/direct-to-llm/g
 ```
 result:
 ```
+15 min task
 not quite good, the tests are hardcoded, need to tune test and run again
 ```
