@@ -66,3 +66,24 @@ pip install -e . --no-deps --no-build-isolation
 pip install megatron-energon --no-deps
 pip install multi-storage-client --no-deps
 ```
+
+## memory, batch size
+```
+when OOM, first check if it's caused by training part, or rollout part
+
+training part:
+
+--rollout-batch-size: pick 1 batch with M samples from dataset 
+--n-samples-per-prompt: for each sample, generate N rollout
+--global-batch-size: update weights per K step, usually it's M*N, can't be larger than M*N, if less than M*N cause same update for multiple times, does not affect memory
+
+rollout part:
+--sglang-mem-fraction-static: memory fraction for sglang rollout engine
+
+perf part:
+--use-dynamic-batch-size: use dynamic mini-batch size depends on memory usage, gradient will be accumulated.
+--max-tokens-per-gpu: maximum tokens per micro-batch when using dynamic batching, may cause OOM if it's too high
+
+other:
+--colocate: time-shared, offload rollout engine to cpu when training, offload training model to cpu when doing rollout, weight sync through Gloo IPC. (no colocate: train/rollout engine are dedicated, train and rollout is paralleled, weight sync through NCCL broadcast), check perf/wait_time_ratio to confim performance, can use --no-offload-train or --no-offload-rollout for debugging
+```
