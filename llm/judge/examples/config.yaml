@@ -1,0 +1,41 @@
+# Example configuration for batch judging
+judge:
+  # LLM settings
+  model: "gpt-5-mini"
+  provider: "openai"  # openai or openrouter
+
+  # Judge prompt template
+  prompt: |
+    Rate the helpfulness of the following response on a scale of 0-100.
+    Question: {question}
+    Response: {response}
+    Only output a number between 0 and 100.
+
+  # Judge method and scoring
+  method: "logprob_weighted"  # options: "logprob_weighted" or "monte_carlo"
+  min_score: 0
+  max_score: 100
+
+  # Processing settings
+  batch_size: 32    # number of concurrent requests
+  retry: 3          # number of retries for failed judgments
+
+  # Method-specific configs
+  logprob_weighted:
+    temperature: 1.0
+    max_tokens: 1   # 1 is enough for logprob_weight
+
+  monte_carlo:
+    temperature: 1.0
+    max_tokens: 128 # may set bigger to include reasoning tokens
+    num_rounds: 10
+    score_pattern: '^\d+$'  # regex pattern to extract score
+
+dataset:
+  input_file: "data/responses.parquet"  # supports: .parquet, .json, .jsonl, .csv
+  output_file: "results/scores.jsonl"
+
+  # Map template variables → dataset columns
+  column_mapping:
+    question: "user_question"      # {question} in prompt → "user_question" column
+    response: "model_response"     # {response} in prompt → "model_response" column

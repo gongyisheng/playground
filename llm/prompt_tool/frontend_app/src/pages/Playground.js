@@ -10,6 +10,7 @@ import { ENDPOINT_AUTH, ENDPOINT_AUDIT, ENDPOINT_CHAT, ENDPOINT_PROMPT } from ".
 
 const DEFAULT_PROMPT_CONTENT = "You're a helpful assistant.";
 
+// eslint-disable-next-line no-unused-vars
 var userMessage = "";
 var userFiles = [];
 var conversation = [];
@@ -177,6 +178,7 @@ function Playground() {
       sse.close();
       await refrestCostAndLimit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [SSEStatus]);
 
   // Flush SSEData to conversation
@@ -190,6 +192,7 @@ function Playground() {
         setSSEData("");
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [SSEStatus]);
 
   const handleUserSubmit = (userMessage) => {
@@ -277,6 +280,7 @@ function Playground() {
       refrestCostAndLimit();
       refreshPrompt();
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [refreshFlag],
   );
 
@@ -287,10 +291,12 @@ function Playground() {
     } else if (sessionState < 0) {
       navigate("/signin");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkSessionStateEvent]);
 
   useEffect(() => {
     checkSessionState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

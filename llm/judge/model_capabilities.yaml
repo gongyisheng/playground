@@ -1,0 +1,40 @@
+# Model Capabilities Configuration
+# Defines which API parameters each model supports
+# Used to filter unsupported parameters before making API calls
+
+model_capabilities:
+  openai:
+    # gpt4o, gpt-4.1 full/mini/nano
+    gpt-4:
+      logprobs: true
+      temperature: true
+      top_logprobs: true
+      seed: true
+      max_tokens: true
+
+    # gpt-5 full/mini/nano, gpt-5.1
+    gpt-5:
+      logprobs: false
+      temperature: false
+      top_logprobs: false
+      seed: true
+      max_tokens: false
+
+    # Default fallback for unknown OpenAI models
+    # Assumes conservative capabilities
+    default:
+      logprobs: true
+      temperature: true
+      top_logprobs: true
+      seed: true
+      max_tokens: true
+
+  openrouter:
+    # OpenRouter default - conservative assumptions
+    # Most models support temperature but not logprobs
+    default:
+      logprobs: true
+      temperature: true
+      top_logprobs: true
+      seed: true
+      max_tokens: true

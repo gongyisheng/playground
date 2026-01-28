@@ -4,6 +4,11 @@
 # Note:
 # 1. some dfs problems can be turned into binary search problems. eg, LC 2594
 # 2. if the given number is very big, it hints that we should use binary search.
+# 3. for binary search return left as upper bound, left-1 as lower bound, think it this way:
+#      - finally we will reach this state: [left, right] and target is in the middle
+#      - then mid = left index, and arr[mid] is smaller than target, causing left += 1
+#      - next mid = left index = right index, and arr[mid] is larger than target, causing right -= 1
+#      - reach end, left is at the upper bound and right (left-1) is at lower bound
 
 def binary_search(sorted_array, target):
     left = 0

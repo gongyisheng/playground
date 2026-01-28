@@ -1,0 +1,37 @@
+from nanovllm import LLM, SamplingParams
+from transformers import AutoTokenizer
+
+def main():
+    path = "/media/hdddisk/huggingface/Qwen3-0.6B"
+    tokenizer = AutoTokenizer.from_pretrained(path)
+    llm = LLM(path, enforce_eager=True, tensor_parallel_size=1)
+
+    sampling_params = SamplingParams(temperature=1, max_tokens=512)
+    prompts = [
+        "introduce yourself",
+        "list all prime numbers within 100",
+        "translate the following sentence from English to French: 'Hello, how are you?'",
+        "what is the capital of France?",
+        "what is the largest planet in our solar system?",
+        "what is the chemical formula for water?",
+        "what is the speed of light in a vacuum?",
+        "what is the boiling point of water in Celsius?",
+    ]
+    prompts = [
+        tokenizer.apply_chat_template(
+            [{"role": "user", "content": prompt}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        for prompt in prompts
+    ]
+    outputs = llm.generate(prompts, sampling_params)
+
+    for prompt, output in zip(prompts, outputs):
+        print("\n")
+        print(f"Prompt: {prompt!r}")
+        print(f"Completion: {output['text']!r}")
+
+
+if __name__ == "__main__":
+    main()

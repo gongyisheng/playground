@@ -1,0 +1,23 @@
+FROM ubuntu:24.04
+
+# install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# install claude code
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# setup environment
+ENV IS_SANDBOX=1
+ENV PATH="/root/.local/bin:${PATH}"
+
+# add bashrc config
+RUN echo 'export IS_SANDBOX=1' >> ~/.bashrc && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && \
+    echo 'alias ccusage="BUN_BE_BUN=1 claude x ccusage"' >> ~/.bashrc
+
+WORKDIR /workspace
+
+ENTRYPOINT ["claude", "--dangerously-skip-permissions"]

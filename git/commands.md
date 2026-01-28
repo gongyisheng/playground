@@ -1,3 +1,5 @@
+- pull commits after rebase  
+`git pull --rebase`
 - revert commit  
 `git reset --hard HEAD~`
 - revert commit and keep changes  
@@ -11,6 +13,8 @@
 - look up commit by hash
 `git checkout <branch>`
 `git log -p -1 <hash>`
+- check commit diff
+`git show <hash>`
 - revert commit
 `git revert <hash>`
 `git reset --soft <hash>`
@@ -49,5 +53,5 @@ setup commands
 ```
 git config --global user.name gongyisheng
 git config --global user.email yishenggong9437@gmail.com
-git config --global --unset credential.helper
+git config --global credential.helper store
 ```

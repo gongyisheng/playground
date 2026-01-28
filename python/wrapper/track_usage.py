@@ -1,12 +1,14 @@
 import asyncio
 import time
 import inspect
+from functools import wraps
 
 usage_data = {}
 
 
 def track_count(metric):
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             _metric = metric + "_count"
             usage_data[_metric] = usage_data.get(_metric, 0) + 1
@@ -20,6 +22,7 @@ def track_count(metric):
 
 def track_time(metric):
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             _metric = metric + "_time"
             start = time.perf_counter()

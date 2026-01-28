@@ -1,4 +1,9 @@
 # vLLM
+## serve
+```
+vllm serve --dtype auto --api-key token-abc123
+```
+
 ## memory
 ```
 use qwen3-1.7b as example
@@ -59,3 +64,8 @@ data parallelism
     - easy to implement and scale if batch fits per GPU
     - drawbacks: replicating model weight, model cannot fit in single GPU
 ```
+
+## configuration
+- max-num-seqs: max concurrent request, default to 256
+- max-num-batched-tokens: max number of batched tokens per iteration, default to max(2048, max-model-len)
+- max-model-len: max model context length, default to model config
