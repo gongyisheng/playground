@@ -131,7 +131,7 @@ function UserInput({ threadId, onMessageChange, onFilesChange, onSubmit }) {
       <div className="flex items-center bottom-px px-2">
         <div className="py-1">
         <label className="cursor-pointer">
-          <img src="./static/attachment.png" className="max-w-6 max-h-6"/>
+          <img src="./static/attachment.png" alt="Attach file" className="max-w-6 max-h-6"/>
           <input type="file" multiple className="hidden" onChange={handleFilesAdd} />
           </label>
         </div>
@@ -149,7 +149,7 @@ function UserInput({ threadId, onMessageChange, onFilesChange, onSubmit }) {
                 <div className="text-green-500">{filesUploadStatus[filename]}%</div>
               )}
               <button onClick={handleFilesRemove}>
-                <img src="./static/close.png" className="max-w-4 max-h-4 ml-2" />
+                <img src="./static/close.png" alt="Remove file" className="max-w-4 max-h-4 ml-2" />
               </button>
             </div>
           ))}

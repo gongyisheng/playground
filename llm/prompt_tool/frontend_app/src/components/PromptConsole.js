@@ -44,22 +44,21 @@ function PromptConsole({
     if (entries.length > 0) {
       return entries.map(([k, v]) => (
         <li key={k}>
-          <a
+          <button
             id={v.promptName}
-            href="#"
-            className="block px-4 py-2 hover:font-bold"
+            className="block px-4 py-2 hover:font-bold w-full text-left"
             onClick={handlePromptOptionClick}
           >
             {v.promptName}
-          </a>
+          </button>
         </li>
       ));
     } else {
       return (
         <li>
-          <a className="block px-4 py-2 italic">
+          <span className="block px-4 py-2 italic">
             No prompts yet
-          </a>
+          </span>
         </li>
       );
     }
@@ -190,14 +189,14 @@ function PromptConsole({
           className="flex items-center grow px-1 py-1 hover:rounded-lg hover:border-2 hover:border-dashed hover:border-black active:border-4 active:border-double"
           onClick={handleSave}
         >
-          <img src={saveIconSrc} className="max-w-8 max-h-8" />
+          <img src={saveIconSrc} alt="Save" className="max-w-8 max-h-8" />
           <span className="px-2 text-lg">save</span>
         </button>
         <button
           className="flex items-center grow px-1 py-1 hover:rounded-lg hover:border-2 hover:border-dashed hover:border-black active:border-4 active:border-double"
           onClick={handleRestore}
         >
-          <img src={restoreIconSrc} className="max-w-8 max-h-8" />
+          <img src={restoreIconSrc} alt="Restore" className="max-w-8 max-h-8" />
           <span className="px-2 text-lg">restore</span>
         </button>
       </div>

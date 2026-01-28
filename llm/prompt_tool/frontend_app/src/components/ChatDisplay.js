@@ -23,6 +23,7 @@ function ChatDisplay({ conversation, SSEData }) {
             <div className="flex items-center pb-2">
               <img
                 src={iconSrc[item.role]}
+                alt={displayedRole[item.role]}
                 className="max-w-12 max-h-12 mr-2 font-bold"
               />
               <span>{displayedRole[item.role]}</span>
@@ -54,6 +55,7 @@ function ChatDisplay({ conversation, SSEData }) {
             <div className="flex items-center pb-2">
               <img
                 src={iconSrc["assistant"]}
+                alt={displayedRole["assistant"]}
                 className="max-w-12 max-h-12 mr-2 font-bold"
               />
               <span>{displayedRole["assistant"]}</span>

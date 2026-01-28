@@ -86,10 +86,12 @@ const SignIn = () => {
     } else if (sessionState < 0) {
       navigate("/signin");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkSessionStateEvent]);
 
   useEffect(() => {
     checkSessionState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
