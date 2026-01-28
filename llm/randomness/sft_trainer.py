@@ -1,5 +1,7 @@
+import gc
 import torch
 import torch.nn.functional as F
+import numpy as np
 from torch.utils.data import DataLoader
 from transformers import (
     PreTrainedModel,
@@ -9,7 +11,8 @@ from transformers import (
 from datasets import load_dataset
 from tqdm import tqdm
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Optional, Callable, List, Dict
+from collections import defaultdict
 import os
 import wandb
 
@@ -85,6 +88,7 @@ class CustomSFTConfig:
     # Logging and saving
     logging_steps: int = 10
     save_steps: int = 500
+    eval_steps: int = 100  # Run evaluation every N steps (0 to disable)
     output_dir: str = "./sft_output"
 
     # Device configuration
@@ -93,6 +97,9 @@ class CustomSFTConfig:
     # Mixed precision training
     use_bf16: bool = False  # Use bfloat16 for training
     use_fp16: bool = False  # Use float16 for training
+
+    # Evaluation configuration
+    eval_max_samples: Optional[int] = None  # Limit eval samples (for debugging)
 
     # Wandb configuration
     use_wandb: bool = True
@@ -109,10 +116,8 @@ class CustomSFTTrainer:
         processing_class: PreTrainedTokenizer,
         args: CustomSFTConfig,
         train_dataset: CustomSFTDataset,
-        eval_dataset: CustomSFTDataset,
-        # data_collator: Optional[Callable] = None,
-        # formatting_func: Optional[Callable] = None,
-        # model_init_kwargs: Optional[dict] = None,
+        eval_dataset: CustomSFTDataset = None,
+        eval_data: Optional[List[Dict]] = None,  # Raw data for KL evaluation
     ):
         """
         Initialize the SFT Trainer matching TRL's API
@@ -123,12 +128,12 @@ class CustomSFTTrainer:
             train_dataset: Path to JSONL file (str) or HuggingFace dataset for training
             eval_dataset: Optional path to JSONL file (str) or evaluation dataset
             processing_class: Tokenizer; auto-loaded if None
-            data_collator: Custom collator for batching
-            formatting_func: Function to preprocess dataset examples
+            eval_data: Raw task data for KL divergence evaluation (list of dicts with 'task' and 'options')
         """
         self.model = model
         self.tokenizer = processing_class
         self.args = args
+        self.eval_data = eval_data  # Store for evaluation
 
         # Move model to device and convert to appropriate dtype
         if self.args.use_bf16:
@@ -315,6 +320,124 @@ class CustomSFTTrainer:
         else:
             raise ValueError(f"Invalid labels shape: {labels.shape}. Expected 2D (hard labels) or 3D (soft labels)")
 
+    def compute_kl_divergence(self, probs: np.ndarray) -> float:
+        """Compute KL divergence from uniform distribution. Lower is better."""
+        probs = np.array(probs)
+        probs = probs / probs.sum()  # Normalize
+        n = len(probs)
+        uniform = np.ones(n) / n
+        kl = np.sum(uniform * np.log(uniform / (probs + 1e-10)))
+        return float(kl)
+
+    def compute_normalized_entropy(self, probs: np.ndarray) -> float:
+        """Compute normalized entropy. 1.0 = perfectly uniform."""
+        probs = np.array(probs)
+        probs = probs / probs.sum()  # Normalize
+        n = len(probs)
+        entropy = -np.sum(probs * np.log(probs + 1e-10))
+        max_entropy = np.log(n)
+        return float(entropy / max_entropy)
+
+    def evaluate(self, eval_data: List[Dict], max_samples: Optional[int] = None) -> Dict:
+        """
+        Evaluate model on randomness tasks and compute KL divergence.
+
+        Args:
+            eval_data: List of dicts with 'task', 'options', and optionally 'uuid'
+            max_samples: Limit number of tasks to evaluate
+
+        Returns:
+            Dict with aggregated metrics
+        """
+        from prompt import SFT_PROMPT
+
+        self.model.eval()
+
+        if max_samples is not None:
+            eval_data = eval_data[:max_samples]
+
+        task_results = defaultdict(lambda: {"options": [], "probs": [], "task": ""})
+
+        print(f"\nEvaluating {len(eval_data)} tasks...")
+        for record in tqdm(eval_data, desc="Evaluating"):
+            task = record['task']
+            options = record['options']
+            uuid = record.get("uuid", task)
+
+            options_str = ", ".join(options)
+            prompt_text = SFT_PROMPT.format(task=task, options=options_str)
+
+            for option in options:
+                messages = [
+                    {"role": "user", "content": prompt_text},
+                    {"role": "assistant", "content": option},
+                ]
+
+                full_text = self.tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=False
+                )
+                full_encoding = self.tokenizer(full_text, return_tensors="pt").to(self.args.device)
+                input_ids = full_encoding['input_ids']
+
+                user_text = self.tokenizer.apply_chat_template(
+                    messages[:1], tokenize=False, add_generation_prompt=True, enable_thinking=False
+                )
+                user_encoding = self.tokenizer(user_text, return_tensors="pt")
+                user_length = user_encoding['input_ids'].shape[1]
+
+                assistant_tokens = self.tokenizer.encode(
+                    option + self.tokenizer.eos_token, add_special_tokens=False
+                )
+                assistant_length = len(assistant_tokens)
+
+                with torch.no_grad():
+                    outputs = self.model(input_ids=input_ids)
+                    logits = outputs.logits
+
+                log_probs = []
+                for i in range(assistant_length):
+                    token_idx = user_length + i - 1
+                    target_token_id = assistant_tokens[i]
+                    token_logits = logits[0, token_idx, :]
+                    token_log_probs = F.log_softmax(token_logits, dim=-1)
+                    log_prob = token_log_probs[target_token_id].item()
+                    log_probs.append(log_prob)
+
+                total_log_prob = sum(log_probs)
+                total_proba = np.exp(total_log_prob)
+
+                task_results[uuid]["options"].append(option)
+                task_results[uuid]["probs"].append(total_proba)
+                task_results[uuid]["task"] = task
+
+        # Compute metrics for each task
+        all_kl = []
+        all_entropy = []
+        for uuid, data in task_results.items():
+            kl = self.compute_kl_divergence(data["probs"])
+            entropy = self.compute_normalized_entropy(data["probs"])
+            all_kl.append(kl)
+            all_entropy.append(entropy)
+
+        metrics = {
+            "eval/kl_divergence_mean": float(np.mean(all_kl)),
+            "eval/kl_divergence_std": float(np.std(all_kl)),
+            "eval/normalized_entropy_mean": float(np.mean(all_entropy)),
+            "eval/normalized_entropy_std": float(np.std(all_entropy)),
+            "eval/num_tasks": len(all_kl),
+        }
+
+        print(f"  KL Divergence: {metrics['eval/kl_divergence_mean']:.4f} ± {metrics['eval/kl_divergence_std']:.4f}")
+        print(f"  Normalized Entropy: {metrics['eval/normalized_entropy_mean']:.4f} ± {metrics['eval/normalized_entropy_std']:.4f}")
+
+        # Clean up GPU memory before resuming training
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+        self.model.train()
+        return metrics
+
     def train(self):
         """Run the training loop"""
         if self.train_dataloader is None:
@@ -452,6 +575,17 @@ class CustomSFTTrainer:
                 if self.args.save_steps > 0 and self.global_step % self.args.save_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
                     checkpoint_dir = os.path.join(self.args.output_dir, f"checkpoint-{self.global_step}")
                     self.save_model(checkpoint_dir)
+
+                # Run evaluation
+                if self.args.eval_steps > 0 and self.global_step % self.args.eval_steps == 0 and (step + 1) % self.args.gradient_accumulation_steps == 0:
+                    if self.eval_data is not None:
+                        eval_metrics = self.evaluate(
+                            self.eval_data,
+                            max_samples=self.args.eval_max_samples
+                        )
+                        if self.args.use_wandb:
+                            eval_metrics["train/global_step"] = self.global_step
+                            wandb.log(eval_metrics)
 
         print("Training completed!")
 
