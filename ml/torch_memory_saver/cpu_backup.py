@@ -16,6 +16,5 @@ def test_pause_resume(enable_cpu_backup: bool):
 
 
 if __name__ == "__main__":
-    torch_memory_saver.init()
     test_pause_resume(enable_cpu_backup=True)
     test_pause_resume(enable_cpu_backup=False)
