@@ -1,8 +1,4 @@
 """Demo: torch_memory_saver CPU backup behavior."""
-
-import sys
-sys.path.insert(0, "/home/yisheng/Documents/dev/miles-lora/torch_memory_saver")
-
 import torch
 import torch_memory_saver
 
