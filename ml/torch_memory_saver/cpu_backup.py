@@ -3,6 +3,8 @@ import hashlib
 import torch
 from torch_memory_saver import torch_memory_saver
 
+torch_memory_saver.hook_mode = "torch"
+
 
 def tensor_hash(tensor: torch.Tensor) -> str:
     """Calculate SHA256 hash of tensor by viewing as uint8 bytes."""
