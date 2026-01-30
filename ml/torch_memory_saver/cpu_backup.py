@@ -1,18 +1,27 @@
 """Demo: torch_memory_saver CPU backup behavior."""
+import hashlib
 import torch
-import torch_memory_saver
+from torch_memory_saver import torch_memory_saver
+
+
+def tensor_hash(tensor: torch.Tensor) -> str:
+    """Calculate SHA256 hash of tensor by viewing as uint8 bytes."""
+    tensor_bytes = tensor.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes()
+    return hashlib.sha256(tensor_bytes).hexdigest()
 
 
 def test_pause_resume(enable_cpu_backup: bool):
-    with torch_memory_saver.region(tag="demo", enable_cpu_backup=enable_cpu_backup):
+    with torch_memory_saver.region(enable_cpu_backup=enable_cpu_backup):
         tensor = torch.full((1000,), 42.0, device='cuda', dtype=torch.float32)
 
-    original_sum = tensor.sum().item()
+    original_hash = tensor_hash(tensor)
     torch_memory_saver.pause("demo")
     torch_memory_saver.resume("demo")
-    new_sum = tensor.sum().item()
+    new_hash = tensor_hash(tensor)
 
-    print(f"cpu_backup={enable_cpu_backup}: {original_sum} -> {new_sum}, preserved={original_sum == new_sum}")
+    print(f"cpu_backup={enable_cpu_backup}: preserved={original_hash == new_hash}")
+    print(f"  original: {original_hash[:16]}...")
+    print(f"  after:    {new_hash[:16]}...")
 
 
 if __name__ == "__main__":
