@@ -1,123 +1,141 @@
-import ctypes
-import time
-from typing import Callable
+#include <sys/types.h>
+#include <cuda_runtime_api.h>
+#include <cuda.h>
+#include <iostream>
+#include <stdio.h>
+#include <dlfcn.h>
+#include <map>
 
-import torch
+// https://stackoverflow.com/questions/6083337/overriding-malloc-using-the-ld-preload-mechanism
+static cudaError_t (*real_cudaMalloc)(void**, size_t) = NULL;
+static cudaError_t (*real_cudaFree)(void*) = NULL;
 
-# print('change_current_allocator')
-# new_alloc = torch.cuda.memory.CUDAPluggableAllocator(
-#     str(Path(__file__).parent / 'my_alloc.so'), 'my_malloc', 'my_free')
-# torch.cuda.memory.change_current_allocator(new_alloc)
+struct MyInfo {
+    CUmemGenericAllocationHandle allocHandle;
+    size_t size;
+};
 
+int currentDev = 0; // HACK
 
-# TODO ok?
-cdll_my_preload_so = ctypes.CDLL('./my_preload.so')
-print(f'{cdll_my_preload_so=}')
+std::map<void*, MyInfo> info_of_ptr_map;
 
+static void my_init(void) {
+    real_cudaMalloc = (cudaError_t (*)(void**, size_t)) dlsym(RTLD_NEXT, "cudaMalloc");
+    if (NULL == real_cudaMalloc) {
+        fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
+    }
 
-def _ptr(x):
-    assert isinstance(x, torch.Tensor)
-    return hex(x.data_ptr())
+    real_cudaFree = (cudaError_t (*)(void*)) dlsym(RTLD_NEXT, "cudaFree");
+    if (NULL == real_cudaFree) {
+        fprintf(stderr, "Error in `dlsym`: %s\n", dlerror());
+    }
+}
 
+void mem_create(CUmemGenericAllocationHandle *allocHandle, size_t size) {
+//    size_t granularity = 0;
+    CUmemAllocationProp prop = {};
+    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    prop.location.id = currentDev;
+//    cuMemGetAllocationGranularity(&granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
+//    padded_size = ROUND_UP(size, granularity);
+    cuMemCreate(allocHandle, size, &prop, 0);
+}
 
-class KVCache:
-    def __init__(self):
-        self.create_buffers(1)
+void mem_set_access(void* devPtr, size_t size) {
+    CUmemAccessDesc accessDesc = {};
+    accessDesc.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    accessDesc.location.id = currentDev;
+    accessDesc.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
+    cuMemSetAccess((CUdeviceptr)devPtr, size, &accessDesc, 1);
+}
 
-    def create_buffers(self, value):
-        # or model weights, etc
-        self.kv_buffer = torch.tensor([value, value, value], dtype=torch.int32, device='cuda')
-        print(f'create_buffers {_ptr(self.kv_buffer)=}')
+cudaError_t cudaMalloc(void** devPtr, size_t size) {
+    if (real_cudaMalloc == NULL) {
+        my_init();
+    }
 
-    def clear_buffers(self):
-        del self.kv_buffer
+//    cudaError_t ret = real_cudaMalloc(devPtr, size);
+//    std::cout << "[my_preload.cc] cudaMalloc" << " devPtr=" << devPtr << " size=" << size << " ret=" << ret << std::endl;
+//    return ret;
 
-    def execute(self, arg: torch.Tensor) -> torch.Tensor:
-        # print(f'KVCache.execute {arg=} {self.kv_buffer=}')
-        return arg + self.kv_buffer
+    CUmemGenericAllocationHandle allocHandle;
+    mem_create(&allocHandle, size);
 
+    /* Reserve a virtual address range */
+    cuMemAddressReserve((CUdeviceptr*)devPtr, size, 0, 0, 0);
+    /* Map the virtual address range
+     * to the physical allocation */
+    cuMemMap((CUdeviceptr)*devPtr, size, 0, allocHandle, 0);
 
-# https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/
-def create_cuda_graph(fn: Callable):
-    # warmup
-    s = torch.cuda.Stream()
-    s.wait_stream(torch.cuda.current_stream())
-    with torch.cuda.stream(s):
-        print('with torch.cuda.stream(s) execute fn')
-        fn()
-    torch.cuda.current_stream().wait_stream(s)
+    mem_set_access(*devPtr, size);
 
-    # capture
-    g = torch.cuda.CUDAGraph()
-    with torch.cuda.graph(g):
-        print('with torch.cuda.graph(g) execute fn')
-        fn()
+    info_of_ptr_map[*devPtr] = MyInfo { allocHandle, size };
 
-    return g
+    std::cout << "[my_preload.cc] cudaMalloc"
+        << " devPtr=" << devPtr << " size=" << size
+        << " allocHandle=" << allocHandle
+        << std::endl;
 
+    return cudaSuccess;
+}
 
-def run():
-    cache = KVCache()
-    static_input = torch.zeros((3,), dtype=torch.int32, device='cuda')
-    static_output = torch.zeros((3,), dtype=torch.int32, device='cuda')
-    print(f'{_ptr(static_input)=} {_ptr(static_output)=}')
+cudaError_t cudaFree(void* devPtr) {
+    if (real_cudaFree == NULL) {
+        my_init();
+    }
 
-    def fn():
-        nonlocal static_output
-        static_output = cache.execute(static_input)
+//    cudaError_t ret = real_cudaFree(devPtr);
+//    std::cout << "[my_preload.cc] cudaFree" << " devPtr=" << devPtr << " ret=" << ret << std::endl;
+//    return ret;
 
-    g = create_cuda_graph(fn)
+    MyInfo info = info_of_ptr_map[devPtr];
+    info_of_ptr_map.erase(devPtr);
 
-    print('replay #1')
-    static_input[...] = 100
-    g.replay()
-    print(f'{static_output=}')
-    assert torch.all(
-        static_output == torch.tensor([101, 101, 101], dtype=torch.int32, device='cuda')), f'{static_output=}'
+    cuMemUnmap((CUdeviceptr)devPtr, info.size);
+    cuMemRelease(info.allocHandle);
+    cuMemAddressFree((CUdeviceptr)devPtr, info.size);
 
-    # cache.clear_buffers()
+    std::cout << "[my_preload.cc] cudaFree"
+        << " devPtr=" << devPtr << " info.size=" << info.size
+        << " info.allocHandle=" << info.allocHandle
+        << std::endl;
 
-    big_tensor = torch.zeros((2_000_000_000,), dtype=torch.uint8, device='cuda')
-    print(f'{big_tensor=}')
+    return cudaSuccess;
+}
 
-    print('torch.cuda.empty_cache()')
-    torch.cuda.empty_cache()
+extern "C" {
+    void hack_release_occupation() {
+        for (auto it = info_of_ptr_map.begin(); it != info_of_ptr_map.end(); ++it) {
+            void* devPtr = it->first;
+            MyInfo info = it->second;
+            cuMemUnmap((CUdeviceptr)devPtr, info.size);
+            cuMemRelease(info.allocHandle);
 
-    print('sleep...')
-    time.sleep(3)
+            std::cout << "[my_preload.cc] hack_release_occupation"
+                << " devPtr=" << devPtr << " info.size=" << info.size << " info.allocHandle=" << info.allocHandle
+                << std::endl;
+        }
+    }
 
-    print('call hack_release_occupation')
-    cdll_my_preload_so.hack_release_occupation()
+    void hack_resume_occupation() {
+        for (auto it = info_of_ptr_map.begin(); it != info_of_ptr_map.end(); ++it) {
+            void* devPtr = it->first;
+            MyInfo &info = it->second;
 
-    print('sleep...')
-    time.sleep(3)
+            CUmemGenericAllocationHandle newAllocHandle;
+            mem_create(&newAllocHandle, info.size);
 
-    # this should fail
-    # print(f'{cache.kv_buffer=}')
+            cuMemMap((CUdeviceptr)devPtr, info.size, 0, newAllocHandle, 0);
 
-    print('call hack_resume_occupation')
-    cdll_my_preload_so.hack_resume_occupation()
+            mem_set_access(devPtr, info.size);
 
-    dummy = torch.zeros((3,), device='cuda')
-    print(f'{_ptr(dummy)=}')
+            std::cout << "[my_preload.cc] hack_resume_occupation"
+                << " devPtr=" << devPtr << " info.size=" << info.size << " (old)info.allocHandle=" << info.allocHandle
+                << " (new)newAllocHandle=" << newAllocHandle
+                << std::endl;
 
-    # cache.create_buffers(2)
-
-    cache.kv_buffer[...] = 2
-
-    print('replay #2')
-    static_input[...] = 200
-    g.replay()
-    print(f'{static_output=}')
-    assert torch.all(
-        static_output == torch.tensor([202, 202, 202], dtype=torch.int32, device='cuda')), f'{static_output=}'
-
-    print('sleep...')
-    time.sleep(3)
-
-    print(f'{big_tensor=}')
-    print(f'{dummy=}')
-
-
-if __name__ == '__main__':
-    run()
+            info.allocHandle = newAllocHandle;
+        }
+    }
+}
