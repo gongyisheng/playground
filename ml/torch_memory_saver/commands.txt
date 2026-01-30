@@ -1,0 +1,2 @@
+g++ my_preload.cc -o my_preload.so -shared -fPIC -lcuda -I/usr/local/cuda/include
+LD_PRELOAD=./my_preload.so python3 example.py
