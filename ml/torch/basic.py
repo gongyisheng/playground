@@ -124,9 +124,43 @@ def test_property():
     print("Numel:", x.numel())
     print("Is contiguous:", x.is_contiguous())
 
+def test_detach():
+    # detach() creates a tensor that shares data but is detached from computation graph
+    # Use cases:
+    # 1. Stop gradient flow (e.g., in RL for target networks)
+    # 2. Convert to numpy (requires no grad)
+    # 3. Use values without affecting autograd
+
+    # Basic detach - removes tensor from computation graph
+    x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    y = x * 2
+    z = y.detach()  # z shares data with y but has no grad_fn
+
+    print("Original y:")
+    print(f"  requires_grad: {y.requires_grad}, grad_fn: {y.grad_fn}")
+    print("Detached z:")
+    print(f"  requires_grad: {z.requires_grad}, grad_fn: {z.grad_fn}")
+
+    # Detached tensor shares memory (modifying one affects the other)
+    print("\nMemory sharing:")
+    print(f"  y data_ptr == z data_ptr: {y.data_ptr() == z.data_ptr()}")
+
+    # Use clone().detach() if you need an independent copy
+    w = y.clone().detach()
+    print(f"  y data_ptr == w data_ptr: {y.data_ptr() == w.data_ptr()}")
+
+    # Common pattern: stop gradient flow in loss computation
+    print("\nGradient flow example:")
+    a = torch.tensor([2.0], requires_grad=True)
+    b = a * 3
+    c = b.detach() * 2  # gradient won't flow back through c to a
+    loss = b + c  # only b contributes to gradient
+    loss.backward()
+    print(f"  a.grad (only from b path): {a.grad}")  # 3.0, not 3.0 + 6.0
 
 if __name__ == "__main__":
-    test_compute_hash()
+    test_detach()
+    # test_compute_hash()
     # test_transpose()
     # test_mean()
     # test_variance()
