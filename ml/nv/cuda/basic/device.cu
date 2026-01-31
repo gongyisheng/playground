@@ -16,7 +16,7 @@
 int main() {
     // 1. Get device count
     int deviceCount = 0;
-    CHECK_CUDA(cudaGetDeviceCount(&deviceCount));
+    CUDA_ERROR_CHECK(cudaGetDeviceCount(&deviceCount));
     printf("=== CUDA Device Count ===\n");
     printf("Number of CUDA devices: %d\n\n", deviceCount);
 
@@ -27,13 +27,13 @@ int main() {
 
     // 2. Get/Set current device
     int currentDevice = 0;
-    CHECK_CUDA(cudaGetDevice(&currentDevice));
+    CUDA_ERROR_CHECK(cudaGetDevice(&currentDevice));
     printf("=== Current Device ===\n");
     printf("Current device: %d\n\n", currentDevice);
 
     // 3. Get device properties
     cudaDeviceProp prop;
-    CHECK_CUDA(cudaGetDeviceProperties(&prop, currentDevice));
+    CUDA_ERROR_CHECK(cudaGetDeviceProperties(&prop, currentDevice));
     printf("=== Device Properties ===\n");
     printf("Device name: %s\n", prop.name);
     printf("Compute capability: %d.%d\n", prop.major, prop.minor);
@@ -57,7 +57,7 @@ int main() {
 
     // 4. cudaDeviceReset
     printf("=== Device Reset ===\n");
-    CHECK_CUDA(cudaDeviceReset());
+    CUDA_ERROR_CHECK(cudaDeviceReset());
     printf("Device reset successfully\n");
 
     return 0;
