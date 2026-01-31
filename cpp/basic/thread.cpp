@@ -1,6 +1,8 @@
 #include <iostream>
 #include <thread>
 
+// test: g++ -o build/thread basic/thread.cpp -pthread && build/thread
+
 void myprint()
 {
   std::cout << "thread started" << std::endl;

@@ -1,4 +1,8 @@
 #include <iostream>
+#include <cstdint>
+
+// test: g++ -std=c++11 -o build/enum basic/enum.cpp && build/enum
+
 using namespace std;
 
 enum ECarTypes : uint8_t

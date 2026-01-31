@@ -3,6 +3,8 @@
 #include <exception>
 #include <stdexcept>
 
+// test: g++ -o build/exception basic/exception.cpp && build/exception
+
 using namespace std;
 
 int main() {

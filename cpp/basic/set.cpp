@@ -1,5 +1,8 @@
 #include <iostream>
 #include <set>
+
+// test: g++ -o build/set basic/set.cpp && build/set
+
 using namespace std;
 
 int main(){

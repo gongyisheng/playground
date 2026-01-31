@@ -1,5 +1,8 @@
 #include<iostream>
 #include<string>
+
+// test: g++ -o build/reference_pointer basic/reference_pointer.cpp && build/reference_pointer
+
 using namespace std;
 typedef void (*f_ptr)(); 
 

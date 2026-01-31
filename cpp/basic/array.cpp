@@ -1,5 +1,8 @@
 #include<iostream>
 #include<string>
+
+// test: g++ -o build/array basic/array.cpp && build/array
+
 using namespace std;
 
 int main() {

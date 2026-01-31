@@ -1,4 +1,7 @@
 #include <iostream>
+
+// test: g++ -o build/cast basic/cast.cpp && build/cast
+
 using namespace std;
 
 int main(){

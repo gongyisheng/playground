@@ -1,4 +1,7 @@
 #include<iostream>
+
+// test: g++ -o build/loop basic/loop.cpp && build/loop
+
 using namespace std;
 
 int main() {

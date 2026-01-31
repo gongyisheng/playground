@@ -1,4 +1,7 @@
 #include <iostream>
+
+// test: g++ -o build/operator basic/operator.cpp && build/operator
+
 using namespace std;
 
 int main() {

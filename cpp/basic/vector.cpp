@@ -1,6 +1,9 @@
 #include <iostream>
 #include <vector>
 #include <string>
+
+// test: g++ -o build/vector basic/vector.cpp && build/vector
+
 using namespace std;
 
 int main() {

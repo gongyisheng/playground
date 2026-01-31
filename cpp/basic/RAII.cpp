@@ -6,6 +6,8 @@
 #include <fstream>
 #include <string>
 
+// test: g++ -o build/RAII basic/RAII.cpp && build/RAII
+
 void doA(const std::ifstream &fh) {
     std::cout << "doA" << std::endl;
 }

@@ -12,6 +12,8 @@
 
 #include <iostream>
 
+// test: g++ -o build/pointer_reference basic/pointer_reference.cpp && build/pointer_reference
+
 // 1. Declaration & Initialization
 void declaration_example() {
     std::cout << "=== Declaration & Initialization ===\n";

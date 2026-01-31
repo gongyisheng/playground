@@ -1,4 +1,7 @@
 #include <iostream>
+
+// test: g++ -o build/helloworld basic/helloworld.cpp && build/helloworld
+
 using namespace std;
 
 int main() {

@@ -1,6 +1,8 @@
 #include <cstdlib>
 #include <cstdio>
 
+// test: g++ -o build/memory basic/memory.cpp && build/memory
+
 // WRONG: Single pointer - only modifies local copy
 bool allocate_wrong(void* ptr, size_t size) {
     printf("  Inside function: ptr before malloc = %p\n", ptr);

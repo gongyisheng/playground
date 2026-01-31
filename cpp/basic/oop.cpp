@@ -1,5 +1,8 @@
 #include <iostream>
 #include <string>
+
+// test: g++ -o build/oop basic/oop.cpp && build/oop
+
 using namespace std;
 
 class MyClass {           // The class

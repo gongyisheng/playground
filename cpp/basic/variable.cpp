@@ -1,4 +1,7 @@
 #include <iostream>
+
+// test: g++ -o build/variable basic/variable.cpp && build/variable
+
 using namespace std;
 
 int main() {

@@ -1,5 +1,8 @@
 #include <iostream>
 #include "header_sum.h"
+
+// test: g++ -o build/header basic/header.cpp && build/header
+
 using namespace std;
 
 int _sumOfTwoNumbers(int a, int b) {

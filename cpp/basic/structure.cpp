@@ -1,5 +1,8 @@
 #include<string>
 #include<iostream>
+
+// test: g++ -o build/structure basic/structure.cpp && build/structure
+
 using namespace std;
 
 struct demoStruct{   // Structure declaration, name=demoStruct

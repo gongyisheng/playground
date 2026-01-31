@@ -1,5 +1,7 @@
 #include <iostream>
 
+// test: g++ -o build/reference_rvalue basic/reference_rvalue.cpp && build/reference_rvalue
+
 class foo{
     public:
         int a;
@@ -24,7 +26,7 @@ class foo{
             other.a = 0;
             other.b = 0;
         }
-}
+};
 
 // to be fixed
 int main(){
