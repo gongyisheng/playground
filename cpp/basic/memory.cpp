@@ -3,6 +3,11 @@
 
 // test: g++ -o build/memory basic/memory.cpp && build/memory
 
+// malloc(size) returns an address
+// when ptr is passed into the function, it becomes a copy of that
+// ptr = malloc(size) does not affect the ptr outside of function
+// if you want to use ptr outside of the function, have to use void** 
+
 // WRONG: Single pointer - only modifies local copy
 bool allocate_wrong(void* ptr, size_t size) {
     printf("  Inside function: ptr before malloc = %p\n", ptr);
