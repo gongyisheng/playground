@@ -4,6 +4,7 @@
  * CUDA Runtime API - Memory Operations
  *
  * APIs used:
+ *   cudaMemGetInfo        - Get free and total device memory
  *   cudaMalloc            - Allocate device memory
  *   cudaFree              - Free device memory
  *   cudaMemcpy            - Copy data between host and device

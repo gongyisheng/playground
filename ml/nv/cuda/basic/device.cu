@@ -8,7 +8,6 @@
  *   cudaGetDevice         - Get current device ID
  *   cudaGetDeviceProperties - Get device hardware properties
  *   cudaDeviceGetAttribute - Get specific device attribute (preferred for deprecated fields)
- *   cudaMemGetInfo        - Get free and total device memory
  *   cudaDeviceReset       - Destroy all allocations and reset device state
  */
 
@@ -56,15 +55,7 @@ int main() {
     printf("L2 cache size: %.2f MB\n", prop.l2CacheSize / (1024.0 * 1024.0));
     printf("Multi-processor count: %d\n\n", prop.multiProcessorCount);
 
-    // 4. cudaMemGetInfo - get free and total memory
-    size_t freeMem = 0, totalMem = 0;
-    CHECK_CUDA(cudaMemGetInfo(&freeMem, &totalMem));
-    printf("=== Memory Info (cudaMemGetInfo) ===\n");
-    printf("Free memory: %.2f GB\n", freeMem / (1024.0 * 1024.0 * 1024.0));
-    printf("Total memory: %.2f GB\n", totalMem / (1024.0 * 1024.0 * 1024.0));
-    printf("Used memory: %.2f GB\n\n", (totalMem - freeMem) / (1024.0 * 1024.0 * 1024.0));
-
-    // 5. cudaDeviceReset
+    // 4. cudaDeviceReset
     printf("=== Device Reset ===\n");
     CHECK_CUDA(cudaDeviceReset());
     printf("Device reset successfully\n");
