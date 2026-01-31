@@ -13,32 +13,36 @@
 
 // nvcc -o build/memory basic/memory.cu && ./build/memory
 
+void print_memory(const char* prefix) {
+    if (prefix == nullptr) {
+        prefix = "Memory";
+    }
+    size_t freeMem = 0, totalMem = 0;
+    CUDA_ERROR_CHECK(cudaMemGetInfo(&freeMem, &totalMem));
+    printf("[%s] - free: %.2f GB, total: %.2f GB\n", prefix, freeMem / (1024.0 * 1024.0 * 1024.0), totalMem / (1024.0 * 1024.0 * 1024.0));
+}
+
+void test_cudaMalloc() {
+    size_t allocSize = 1024 * 1024 * 128; // 128 MiB
+    void *d_ptr = nullptr;
+
+    print_memory("Before malloc");
+    CUDA_ERROR_CHECK(cudaMalloc(&d_ptr, allocSize));
+
+    print_memory("After malloc");
+    CUDA_ERROR_CHECK(cudaFree(d_ptr));
+
+    print_memory("After free");
+
+}
+
 int main() {
     // 1. cudaMalloc / cudaFree - memory allocation
     printf("=== Memory Allocation ===\n");
-    size_t allocSize = 1024 * 1024 * 100;  // 100 MB
-    void *d_ptr = NULL;
-
-    size_t freeMem = 0, totalMem = 0;
-    CUDA_ERROR_CHECK(cudaMemGetInfo(&freeMem, &totalMem));
-    printf("Before allocation - Free: %.2f GB\n", freeMem / (1024.0 * 1024.0 * 1024.0));
-
-    CUDA_ERROR_CHECK(cudaMalloc(&d_ptr, allocSize));
-    printf("Allocated %.2f MB on device\n", allocSize / (1024.0 * 1024.0));
-
-    CUDA_ERROR_CHECK(cudaMemGetInfo(&freeMem, &totalMem));
-    printf("After allocation - Free: %.2f GB\n", freeMem / (1024.0 * 1024.0 * 1024.0));
-
-    CUDA_ERROR_CHECK(cudaFree(d_ptr));
-    printf("Freed device memory\n");
-
-    CUDA_ERROR_CHECK(cudaMemGetInfo(&freeMem, &totalMem));
-    printf("After free - Free: %.2f GB\n\n", freeMem / (1024.0 * 1024.0 * 1024.0));
+    test_cudaMalloc();
 
     // 2. OOM error example - try to allocate more than available
     printf("=== OOM Error Example ===\n");
-    CUDA_ERROR_CHECK(cudaMemGetInfo(&freeMem, &totalMem));
-    printf("Available memory: %.2f GB\n", freeMem / (1024.0 * 1024.0 * 1024.0));
 
     size_t oomSize = (size_t)1024 * 1024 * 1024 * 1024;  // 1 TB - way more than available
     printf("Attempting to allocate: %.2f TB\n", oomSize / (1024.0 * 1024.0 * 1024.0 * 1024.0));
@@ -46,9 +50,11 @@ int main() {
     void *d_oom = NULL;
     cudaError_t err = cudaMalloc(&d_oom, oomSize);
     if (err != cudaSuccess) {
-        printf("OOM Error: %s (error code: %d)\n\n", cudaGetErrorString(err), err);
+        // CUDA maintains a "sticky" error state. 
+        // After an error occurs, it stays set until you explicitly clear it.
         // Clear the error state so subsequent CUDA calls work
-        cudaGetLastError();
+        cudaError_t err = cudaGetLastError();
+        printf("OOM Error: %s (error code: %d)\n\n", cudaGetErrorString(err), err);
     } else {
         printf("Allocation succeeded (unexpected!)\n\n");
         cudaFree(d_oom);
@@ -61,7 +67,10 @@ int main() {
     int h_dst[10] = {0};
     int *d_data = NULL;
 
-    CUDA_ERROR_CHECK(cudaMalloc(&d_data, n * sizeof(int)));
+    // clang always pass copies, to modify its original we need to pass its address
+    // if pass d_data, the pointer is copied and value is assigned to the copy of pointer internally
+    // cannot pass to the pointer outside of it
+    CUDA_ERROR_CHECK(cudaMalloc(&d_data, n * sizeof(int))); // void** devPtr, size_t size
     CUDA_ERROR_CHECK(cudaMemcpy(d_data, h_src, n * sizeof(int), cudaMemcpyHostToDevice));
     printf("Copied %d integers from host to device\n", n);
 
