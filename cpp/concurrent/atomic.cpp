@@ -2,6 +2,12 @@
 #include <thread>
 #include <iostream>
 
+// std::atomic<T> API:
+//   load()                        - read value atomically
+//   store(val)                    - write value atomically
+//   exchange(val)                 - swap and return old value
+//   compare_exchange_strong(exp, val) - CAS: if current==exp, set to val
+
 // test: g++ -std=c++17 -pthread concurrent/atomic.cpp -o build/atomic && ./build/atomic
 
 std::atomic<uint64_t> atomic_counter{0};
@@ -27,7 +33,7 @@ int main() {
     std::atomic<int> val{10};
     val.store(20);                              // set value
     int old = val.exchange(30);                 // swap, returns old
-    std::cout << "\nExchange: old=" << old << ", new=" << val.load() << std::endl;
+    std::cout << "\nExchange: old=" << old << ", new=" << val.load() << std::endl;  // load() reads value atomically
 
     int expected = 30;
     val.compare_exchange_strong(expected, 40);  // CAS operation
