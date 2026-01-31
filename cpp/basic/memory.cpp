@@ -9,6 +9,7 @@
 // if you want to use ptr outside of the function, have to use void** 
 
 // WRONG: Single pointer - only modifies local copy
+// this cause memory leak (we lost only reference to that memory)
 bool allocate_wrong(void* ptr, size_t size) {
     printf("  Inside function: ptr before malloc = %p\n", ptr);
     ptr = malloc(size);
