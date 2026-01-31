@@ -7,3 +7,6 @@
 `gcc <c file> -o <executable file>`
 # run executable file
 `./<executable file>`
+
+# all in one
+`g++ -o build/<exec file> <c file>.cpp && build/<exec file>`
