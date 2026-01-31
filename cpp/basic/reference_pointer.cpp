@@ -1,6 +1,18 @@
 #include<iostream>
 #include<string>
 
+// C always passes copies. To modify the original, pass its address.
+//   ┌────────────────┬──────┬───────────────────┐
+//   │ Want to modify │ Pass │ Function receives │
+//   ├────────────────┼──────┼───────────────────┤
+//   │ int x          │ &x   │ int*              │
+//   ├────────────────┼──────┼───────────────────┤
+//   │ int* p         │ &p   │ int**             │
+//   ├────────────────┼──────┼───────────────────┤
+//   │ int** pp       │ &pp  │ int***            │
+//   └────────────────┴──────┴───────────────────┘
+//   One level of indirection to modify the original.
+
 // test: g++ -o build/reference_pointer basic/reference_pointer.cpp && build/reference_pointer
 
 using namespace std;
