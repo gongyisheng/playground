@@ -125,7 +125,19 @@ public:
     }
     void sayHello() { std::cout << "Hello from Singleton!\n"; }
 private:
-    Singleton() = default;
+    // private constructor
+    // so we cannot use `Singleton s;` to create an instance outside of class
+    // equivalent to `Singleton() {}`
+    // empty constructor that does nothing special
+    // = default is compiler-optimized, recommended to use
+    Singleton() = default; 
+
+    // default destructor
+    ~Singleton() = default;
+    // cannot copy
+    Singleton(const Singleton&) = delete;
+    // cannot assign
+    Singleton& operator=(const Singleton&) = delete;
 };
 
 // Example: Output parameter uses pointer-to-pointer
