@@ -3,9 +3,6 @@
 
 // test: g++ -o build/memory basic/memory.cpp && build/memory
 
-// *: dereference, give me value at this address
-// &: reference: give address of this variable
-
 // malloc(size) returns an address
 // when ptr is passed into the function, it becomes a copy of that
 // ptr = malloc(size) does not affect the ptr outside of function

@@ -10,6 +10,14 @@
 // │ Memory address      │ Hidden                       │ Explicit with &       │
 // └─────────────────────┴──────────────────────────────┴───────────────────────┘
 
+// as op:
+// *: dereference, give me value at this address
+// &: reference: give address of this variable
+
+// as type:
+// int*: pointer type
+// int&: reference type
+
 #include <iostream>
 
 // test: g++ -o build/pointer_reference basic/pointer_reference.cpp && build/pointer_reference
