@@ -76,7 +76,19 @@ int main() {
 
     CUDA_ERROR_CHECK(cudaFree(d_data));
 
-    // 4. cudaDeviceSynchronize
+    // 4. cudaDeviceSynchronize - block CPU until all GPU operations complete
+    //    CUDA ops are async by default - CPU launches work and continues immediately
+    //    Use cases:
+    //      - Timing: ensure GPU work done before measuring time
+    //      - Before reading results from device
+    //      - Debugging: catch async errors at known point
+    //    Example without sync:
+    //      kernel<<<...>>>();      // CPU continues immediately
+    //      printf("Done!\n");      // May print before GPU finishes!
+    //    Example with sync:
+    //      kernel<<<...>>>();
+    //      cudaDeviceSynchronize(); // CPU waits here
+    //      printf("Done!\n");       // GPU is guaranteed finished
     printf("=== Device Synchronization ===\n");
     CUDA_ERROR_CHECK(cudaDeviceSynchronize());
     printf("Device synchronized successfully\n");
