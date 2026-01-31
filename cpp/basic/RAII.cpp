@@ -2,6 +2,8 @@
 // It is often considered the most powerful paradigm in C++
 // and is the simple concept that a constructor for an object
 // acquires that object's resources and the destructor releases them.
+
+// In C++, any {} creates a scope, and objects are destroyed when their scope ends. 
 #include <iostream>
 #include <fstream>
 #include <string>
