@@ -76,3 +76,7 @@ with torch.profiler.profile(activities=[
     square_3(b)
 
 print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+
+# Export trace for Chrome tracing viewer
+# open chrome://tracing in Chrome browser, drag and drop to view
+prof.export_chrome_trace("profiler_trace.json") 
