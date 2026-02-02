@@ -26,4 +26,5 @@ training_args = GRPOConfig(
         generated 64*16 rollout to calculate advantage
         update weight 64*16/64/4 = 4 times in this batch
     - note that keep weight update time between 1 to 4, avoid model drifting from policy too much
+    - small batch: add noise and variance, help training get out of local minima
 ```
