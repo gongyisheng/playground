@@ -16,3 +16,13 @@ uv pip install triton
     sudo apt update
     sudo apt install python3.12-dev
     ```
+
+## concepts
+1. tl.program_id(axis)
+    ```
+    returns the index of current program instance (thread block)
+
+    tl.program_id(0) ---> CUDA blockIdx.x
+    tl.program_id(1) ---> CUDA blockIdx.y
+    tl.program_id(2) ---> CUDA blockIdx.z
+    ```
