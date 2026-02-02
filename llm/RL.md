@@ -17,4 +17,13 @@ training_args = GRPOConfig(
     - vllm_gpu_memory_utilization: float
         control the GPU memory utilization for vLLM (only applies when mode = "colocate")
         estimate vmem usage: https://huggingface.co/spaces/trl-lib/recommend-vllm-memory
+2. batch size related
+    - train_batch_size: number of prompt sampled from training set
+    - ppo_mini_batch_size: batch size for weight update (per gpu)
+    - ppo_micro_batch_size_per_gpu: batch size for gradient accumulation
+    - eg, train: 64, n_sample: 16, ppo_mini: 64, ppo_micro: x, n_gpu=4
+        total prompt sampled from dataset is 64
+        generated 64*16 rollout to calculate advantage
+        update weight 64*16/64/4 = 4 times in this batch
+    - note that keep weight update time between 1 to 4, avoid model drifting from policy too much
 ```
