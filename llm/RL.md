@@ -27,4 +27,5 @@ training_args = GRPOConfig(
         update weight 64*16/64/4 = 4 times in this batch
     - note that keep weight update time between 1 to 4, avoid model drifting from policy too much
     - small batch: add noise and variance, help training get out of local minima
+    - batch_size <-> lr: big batch use big lr, but not linear relationship, X4 batch use X2 LR, square root relationship
 ```
