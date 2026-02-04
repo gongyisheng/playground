@@ -66,6 +66,9 @@ ref: https://docs.docker.com/engine/install/ubuntu/
 # enter docker container env
 `docker exec -it <container_name> sh`
 
+# sort by docker container size
+`docker ps -a --size --format "table {{.ID}}\t{{.Names}}\t{{.Size}}" | sort -hr -k3`
+
 # setup grafana
 ref: https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/
 
