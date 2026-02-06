@@ -10,7 +10,8 @@ torch_memory_saver.hook_mode = "torch"
 # pause: offload to cpu
 # resume: onload to cuda
 # with torch_memory_saver.disable(): create tensors in a separated mem pool, not tracked
-# known issue: torch_memory_saver uses cuMemCreate/cuMemMap, incompatible to cuda IPC
+# known issue: torch_memory_saver uses cuMemCreate/cuMemMap, incompatible to cuda IPC (cudaIpcGetMemHandle)
+# need to expose a handler through cuMemExportToShareableHandle 
 
 
 def tensor_hash(tensor: torch.Tensor) -> str:
