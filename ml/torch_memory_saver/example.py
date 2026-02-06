@@ -6,6 +6,12 @@ from torch_memory_saver import torch_memory_saver
 
 torch_memory_saver.hook_mode = "torch"
 
+# functionality: keep address & pointer, offload to cpu / reload to cuda safely
+# pause: offload to cpu
+# resume: onload to cuda
+# with torch_memory_saver.disable(): create tensors in a separated mem pool, not tracked
+# known issue: torch_memory_saver uses cuMemCreate/cuMemMap, incompatible to cuda IPC
+
 
 def tensor_hash(tensor: torch.Tensor) -> str:
     """Calculate SHA256 hash of tensor by viewing as uint8 bytes."""
