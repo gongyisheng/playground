@@ -48,6 +48,13 @@ Writing objects: 100% (5/5), 1.76 GiB | 5.67 MiB/s, done.
 `git pull --recurse-submodules`
 - set config to always pull submodule
 `git config submodule.recurse true`
+- clone other people's fork branch to my fork
+```
+git remote add <their-name> https://github.com/<their-username>/<repo>.git
+git fetch <their-name>
+git checkout -b <branch-name> <their-name>/<branch-name>
+git push origin <branch-name>
+```
 
 setup commands
 ```
