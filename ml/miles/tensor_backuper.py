@@ -6,6 +6,8 @@ from collections.abc import Callable, Iterable
 import torch
 
 # callable[args, return] — e.g. model.named_parameters
+# source getter is a callable that returns iterable of (name, tensor) of model params
+# tensors returned from source getter are expected to be on GPU
 _SourceGetter = Callable[[], Iterable[tuple[str, torch.Tensor]]]
 
 
@@ -59,6 +61,7 @@ class _TensorBackuperNormal(TensorBackuper):
 
     @torch.no_grad()
     def backup(self, tag: str) -> None:
+        """ Backup GPU tensors to pinned CPU memory"""
         backup_dict = self._backups[tag]
         for name, param in self._source_getter():
             # allocate pinned CPU buffer once, reuse on subsequent backups
@@ -69,6 +72,7 @@ class _TensorBackuperNormal(TensorBackuper):
 
     @torch.no_grad()
     def copy(self, *, src_tag: str, dst_tag: str):
+        """Copy backed-up CPU tensors from src_tag to dst_tag (e.g. for ref vs actor)"""
         for name in self._backups[dst_tag]:
             self._backups[dst_tag][name].copy_(self._backups[src_tag][name])
 
@@ -85,6 +89,8 @@ class _TensorBackuperNormal(TensorBackuper):
 class _TensorBackuperNoop(TensorBackuper):
     """Zero-copy backup: only records hashes, asserts params unchanged on restore."""
     def __init__(self, source_getter, single_tag):
+        # noop backuper only supports one tag (e.g. "actor"), since it doesn't actually store multiple snapshots
+        # backup hash dict is used to verify that tensors are unchanged between backup and restore
         super().__init__(source_getter=source_getter)
         self._single_tag = single_tag
         self._backup_hash_dict = None
