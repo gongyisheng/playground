@@ -8,6 +8,26 @@ the tensor through an operation. It's the backbone of automatic differentiation.
 import torch
 
 
+def test_detach():
+    # detach() returns a new tensor that shares the same storage
+    # but is detached from the computation graph (no gradient tracking)
+    x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    y = x * 2
+    print("y requires_grad:", y.requires_grad)  # True
+
+    z = y.detach()
+    print("z requires_grad:", z.requires_grad)  # False
+    print("z shares data with y:", z.data_ptr() == y.data_ptr())  # True
+
+    # common use: stop gradient flow in part of a network
+    # e.g. target networks in RL, frozen encoders, etc.
+    a = torch.tensor([1.0, 2.0], requires_grad=True)
+    b = a * 3
+    loss = (b - b.detach()).sum()  # gradient won't flow through detached b
+    loss.backward()
+    print("a.grad:", a.grad)  # [3., 3.] — only from the non-detached b
+
+
 def test_grad_property():
     """Demonstrate grad_fn, is_leaf, and detach properties."""
     print("=" * 50)
@@ -235,12 +255,9 @@ def test_grad_two_tensor_multiply():
 
 
 if __name__ == "__main__":
-    test_grad_property()
-    print("\n")
-    test_grad_add_sum()
-    print("\n")
-    test_grad_scale_divide()
-    print("\n")
-    test_grad_power()
-    print("\n")
-    test_grad_two_tensor_multiply()
+    test_detach()
+    # test_grad_property()
+    # test_grad_add_sum()
+    # test_grad_scale_divide()
+    # test_grad_power()
+    # test_grad_two_tensor_multiply()

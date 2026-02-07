@@ -1,13 +1,16 @@
+import hashlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 
 import torch
 
+# callable[args, return] — e.g. model.named_parameters
 _SourceGetter = Callable[[], Iterable[tuple[str, torch.Tensor]]]
 
 
 class TensorBackuper(ABC):
+    """Snapshot and restore tensors by tag. Factory picks Normal vs Noop impl."""
     @staticmethod
     def create(source_getter, single_tag):
         if single_tag is None:
@@ -40,8 +43,11 @@ class TensorBackuper(ABC):
 
 
 class _TensorBackuperNormal(TensorBackuper):
+    """Actually copies tensors to pinned CPU memory for backup."""
+
     def __init__(self, source_getter):
         super().__init__(source_getter=source_getter)
+        # tag -> {param_name -> cpu_tensor}
         self._backups: dict[str, dict[str, torch.Tensor]] = defaultdict(dict)
 
     @property
@@ -55,6 +61,7 @@ class _TensorBackuperNormal(TensorBackuper):
     def backup(self, tag: str) -> None:
         backup_dict = self._backups[tag]
         for name, param in self._source_getter():
+            # allocate pinned CPU buffer once, reuse on subsequent backups
             if name not in backup_dict:
                 backup_dict[name] = torch.empty_like(param, device=torch.device("cpu"), pin_memory=True)
             backup_dict[name].copy_(param.detach(), non_blocking=True)
@@ -67,6 +74,7 @@ class _TensorBackuperNormal(TensorBackuper):
 
     @torch.no_grad()
     def restore(self, tag: str) -> None:
+        """Copy backed-up CPU tensors back to GPU params."""
         backup_dict = self._backups[tag]
         for name, param in self._source_getter():
             assert name in backup_dict
@@ -75,6 +83,7 @@ class _TensorBackuperNormal(TensorBackuper):
 
 
 class _TensorBackuperNoop(TensorBackuper):
+    """Zero-copy backup: only records hashes, asserts params unchanged on restore."""
     def __init__(self, source_getter, single_tag):
         super().__init__(source_getter=source_getter)
         self._single_tag = single_tag
@@ -106,11 +115,9 @@ def _compute_hash_dict(tensors: dict[str, torch.Tensor]):
 
 
 def _compute_hash_tensor(x: torch.Tensor):
-    x = x.contiguous()
-    x = x.view(-1)
-    x = x.view(torch.uint32)
-    x = x.sum()
-    return x.item()
+    """Hash raw bytes of tensor via hashlib for collision resistance."""
+    x = x.contiguous().view(-1).view(torch.int8)
+    return hashlib.sha256(x.cpu().numpy().tobytes()).hexdigest()
 
 
 # --------------- helpers & tests ---------------
@@ -121,7 +128,7 @@ def _make_source_getter(params: dict[str, torch.Tensor]):
     return getter
 
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def test_normal():
