@@ -151,6 +151,49 @@ def test_empty_cache():
     print(f"  after cache():  allocated={allocated_after_cache/1e6:.0f} MB  reserved={reserved_after_cache/1e6:.0f} MB  (freed to CUDA)")
 
 
+# --- .to() ---
+# .to() is the unified API for device transfer and dtype casting.
+# Like .cuda()/.cpu(), it returns a NEW tensor (allocates) when something changes.
+# Unlike .cuda()/.cpu(), it's a no-op (returns self) when already on the target device+dtype.
+#
+#   t.to("cuda")                     # same as t.cuda()
+#   t.to("cpu")                      # same as t.cpu()
+#   t.to(torch.float16)              # dtype cast only (stays on same device)
+#   t.to("cuda", torch.bfloat16)     # move + cast in one call
+#   t.to(other_tensor)               # match device AND dtype of another tensor
+#
+# No-op behavior (returns same object, zero cost):
+#   gpu_t = t.to("cuda")
+#   gpu_t2 = gpu_t.to("cuda")       # gpu_t2 is gpu_t — no copy
+#
+# non_blocking works too:
+#   t.to("cuda", non_blocking=True)  # async transfer (needs pinned memory)
+#
+# For models, .to() moves all parameters+buffers IN-PLACE (modifies the module):
+#   model.to("cuda")                 # all params on GPU now
+#   model.to(torch.float16)          # all params cast to fp16
+
+def test_to():
+    gpu_t = torch.randn(N, device=DEVICE)
+
+    # --- device transfer (same as .cuda()/.cpu()) ---
+    cpu_t = gpu_t.to("cpu")
+    assert cpu_t.device.type == "cpu"
+    gpu_t2 = cpu_t.to("cuda")
+    assert gpu_t2.device.type == "cuda"
+
+    # --- no-op: returns SAME tensor when nothing changes ---
+    gpu_t3 = gpu_t.to("cuda")
+    assert gpu_t3.data_ptr() == gpu_t.data_ptr(), "same device → same tensor, no copy"
+
+    # --- non_blocking with pinned memory ---
+    pinned = torch.empty(N, pin_memory=True)
+    pinned.copy_(gpu_t)
+    print(".to() non_blocking (pinned CPU -> GPU):")
+    bench("blocking    ", lambda: pinned.to("cuda"))
+    bench("non_blocking", lambda: pinned.to("cuda", non_blocking=True))
+
+
 if __name__ == "__main__":
     print("=== Pinned vs Unpinned ===")
     test_pinned_vs_unpinned()
@@ -163,3 +206,6 @@ if __name__ == "__main__":
     print()
     print("=== empty_cache() ===")
     test_empty_cache()
+    print()
+    print("=== .to() ===")
+    test_to()
