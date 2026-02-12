@@ -27,7 +27,7 @@ def should_continue(state: MessagesState):
     last = state["messages"][-1]
     return "tools" if last.tool_calls else END
 
-conn = pymysql.connect(host="localhost", port=3306, user="mysql", password="mysql", database="mysql", autocommit=True)
+conn = pymysql.connect(host="localhost", port=3306, user="mysql", password="mysql", database="langgraph", autocommit=True)
 saver = PyMySQLSaver(conn)
 saver.setup()
 

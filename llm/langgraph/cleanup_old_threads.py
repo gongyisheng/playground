@@ -1,15 +1,14 @@
+import datetime
 import pymysql
 
-MYSQL_CONFIG = dict(host="localhost", port=3306, user="mysql", password="mysql", database="mysql")
-RETENTION_DAYS = 30
+MYSQL_CONFIG = dict(host="localhost", port=3306, user="mysql", password="mysql", database="langgraph")
+RETENTION_SECONDS = 30 * 24 * 60 * 60
 
-# find threads where the latest checkpoint is older than RETENTION_DAYS
+# checkpoint column has a "ts" field with ISO timestamp
 FIND_STALE_THREADS = """
 SELECT thread_id FROM checkpoints
 GROUP BY thread_id
-HAVING MAX(
-    CAST(JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.created_at')) AS DATETIME)
-) < DATE_SUB(NOW(), INTERVAL %s DAY)
+HAVING MAX(JSON_UNQUOTE(JSON_EXTRACT(checkpoint, '$.ts'))) < %s
 """
 
 DELETE_QUERIES = [
@@ -20,10 +19,12 @@ DELETE_QUERIES = [
 
 
 def cleanup():
+    cutoff_dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=RETENTION_SECONDS)
+    cutoff_str = cutoff_dt.strftime("%Y-%m-%dT%H:%M:%S")
     conn = pymysql.connect(**MYSQL_CONFIG, autocommit=False)
     try:
         with conn.cursor() as cur:
-            cur.execute(FIND_STALE_THREADS, (RETENTION_DAYS,))
+            cur.execute(FIND_STALE_THREADS, (cutoff_str,))
             stale_threads = [row[0] for row in cur.fetchall()]
 
             if not stale_threads:

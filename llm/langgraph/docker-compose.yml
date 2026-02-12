@@ -6,7 +6,7 @@ services:
     environment:
       MYSQL_USER: mysql
       MYSQL_PASSWORD: mysql
-      MYSQL_DATABASE: mysql
+      MYSQL_DATABASE: langgraph
       MYSQL_ROOT_PASSWORD: root
     volumes:
       - mysql_data:/var/lib/mysql
