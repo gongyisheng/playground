@@ -18,6 +18,17 @@ def test_init():
     print("Empty like (uninitialized):")
     print(exp_4)
 
+def test_init_shape():
+    # create tensors with explicit shape (vs *_like which copies shape from another tensor)
+    a = torch.ones(3)          # [1, 1, 1]
+    b = torch.ones(2, 4)      # 2x4 matrix of ones
+    c = torch.zeros(5)        # [0, 0, 0, 0, 0]
+    d = torch.full((2, 3), 9) # 2x3 matrix filled with 9
+    print("ones(3):", a)
+    print("ones(2,4):", b)
+    print("zeros(5):", c)
+    print("full((2,3), 9):", d)
+
 def test_property():
     x = torch.randn(3,4)
     print("Tensor x:")
