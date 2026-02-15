@@ -32,10 +32,12 @@ class RoPE(nn.Module):
         self.base = base
         self.max_seq_len = max_seq_len
 
+        # freqs: rotation frequency, geometrically spaced from fast (1.0) to slow (1/base)
+        # positions: angle at each position: angle[pos][i] = pos * freq[i]
         freqs = 1.0 / (self.base ** (torch.arange(0, self.head_dim, 2) / self.head_dim))
         positions = torch.arange(self.max_seq_len)
-        angles = positions[:, None] * freqs[None, :]
-        angles = torch.cat([angles, angles], dim=-1)
+        angles = positions[:, None] * freqs[None, :] # auto expand
+        angles = torch.cat([angles, angles], dim=-1) # duplicate
         self.register_buffer("cos", torch.cos(angles))
         self.register_buffer("sin", torch.sin(angles))
     
@@ -51,6 +53,9 @@ class RoPE(nn.Module):
         x1 = x[..., :self.head_dim//2]
         x2 = x[..., self.head_dim//2:]
 
+        # rotate: 
+        # x1' = x1*cos - x2*sin
+        # x2' = x1*cos + x2*sin
         rotated = torch.concat([-x2, x1], dim=-1)
         output = x * cos + rotated * sin
 
