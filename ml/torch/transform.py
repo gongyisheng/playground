@@ -41,6 +41,19 @@ def test_reshape():
     z = x.view(2, 12)
     print("view(2,12):", z.shape)
 
+    # -1 means "infer this dimension" from total elements and other dims
+    # only one -1 allowed per reshape call
+    w = x.reshape(-1, 4)  # 2*3*4 / 4 = 6 → [6, 4]
+    print("reshape(-1,4):", w.shape)
+
+    # common in attention: merge batch and heads, then restore
+    batch, heads, seq, dim = 2, 4, 8, 16
+    q = torch.rand(batch, heads, seq, dim)
+    q = q.reshape(-1, seq, dim)   # [batch*heads, seq, dim] = [8, 8, 16]
+    print("merged batch+heads:", q.shape)
+    q = q.reshape(batch, heads, seq, dim)  # restore
+    print("restored:", q.shape)
+
     # after transpose, view fails but reshape works
     t = x.transpose(1, 2)  # [2, 4, 3], non-contiguous
     print("transposed is contiguous:", t.is_contiguous())
