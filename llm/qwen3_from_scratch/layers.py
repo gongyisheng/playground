@@ -11,7 +11,7 @@ class RMSNorm(nn.Module):
         self.dim = dim
         self.weight = nn.Parameter(torch.ones(dim))
         self.eps = eps
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x.shape: (batch, seq_len, emb_size)
         dtype = x.dtype
@@ -36,24 +36,28 @@ class RoPE(nn.Module):
         # positions: angle at each position: angle[pos][i] = pos * freq[i]
         freqs = 1.0 / (self.base ** (torch.arange(0, self.head_dim, 2) / self.head_dim))
         positions = torch.arange(self.max_seq_len)
-        angles = positions[:, None] * freqs[None, :] # auto expand
-        angles = torch.cat([angles, angles], dim=-1) # duplicate
+        angles = positions[:, None] * freqs[None, :]  # auto expand
+        angles = torch.cat([angles, angles], dim=-1)  # duplicate
         self.register_buffer("cos", torch.cos(angles))
         self.register_buffer("sin", torch.sin(angles))
-    
+
     def forward(self, x: torch.Tensor, position_offset: int = 0) -> torch.Tensor:
         # x.shape: (batch, n_heads, seq_len, head_dim)
         seq_len = x.shape[2]
-        cos = self.cos[position_offset : position_offset + seq_len] # shape: (seq_len, 128)
-        sin = self.sin[position_offset : position_offset + seq_len] # shape: (seq_len, 128)
+        cos = self.cos[
+            position_offset : position_offset + seq_len
+        ]  # shape: (seq_len, 128)
+        sin = self.sin[
+            position_offset : position_offset + seq_len
+        ]  # shape: (seq_len, 128)
 
-        cos = cos[None, None, :, :] # shape: (1, 1, seq_len, 128)
-        sin = sin[None, None, :, :] # shape: (1, 1, seq_len, 128)
+        cos = cos[None, None, :, :]  # shape: (1, 1, seq_len, 128)
+        sin = sin[None, None, :, :]  # shape: (1, 1, seq_len, 128)
 
-        x1 = x[..., :self.head_dim//2]
-        x2 = x[..., self.head_dim//2:]
+        x1 = x[..., : self.head_dim // 2]
+        x2 = x[..., self.head_dim // 2 :]
 
-        # rotate: 
+        # rotate:
         # x1' = x1*cos - x2*sin
         # x2' = x1*cos + x2*sin
         rotated = torch.concat([-x2, x1], dim=-1)
@@ -68,7 +72,7 @@ class SwiGLUFFN(nn.Module):
         self.W_gate = nn.Linear(emb_dim, hidden_dim, bias=False)
         self.W_up = nn.Linear(emb_dim, hidden_dim, bias=False)
         self.W_down = nn.Linear(hidden_dim, emb_dim, bias=False)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x.shape: (batch, seq_len, emb_dim)
         x_gate_proj = self.W_gate(x)
@@ -86,23 +90,41 @@ class GroupQueryAttention(nn.Module):
         self.n_heads = n_heads
         self.n_kv_groups = n_kv_groups
         self.head_dim = head_dim
-        
+
         self.W_q = nn.Linear(self.emb_dim, self.n_heads * self.head_dim, bias=False)
         self.W_k = nn.Linear(self.emb_dim, self.n_kv_groups * self.head_dim, bias=False)
         self.W_v = nn.Linear(self.emb_dim, self.n_kv_groups * self.head_dim, bias=False)
         self.W_o = nn.Linear(self.n_heads * self.head_dim, self.emb_dim, bias=False)
-        
+
         self.q_norm = RMSNorm(self.head_dim)
         self.k_norm = RMSNorm(self.head_dim)
 
-    
-    def forward(self, x: torch.Tensor, rope, position_offset: int = 0, kv_cache = None) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    def forward(
+        self,
+        x: torch.Tensor,
+        rope: RoPE,
+        position_offset: int = 0,
+        kv_cache: tuple[torch.Tensor, torch.Tensor] = None,
+    ) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+
         batch, seq_len, _ = x.shape
 
         # projection + reshape to [batch, heads, seq, head_dim]
-        Q = self.W_q(x).view(batch, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
-        K = self.W_k(x).view(batch, seq_len, self.n_kv_groups, self.head_dim).transpose(1, 2)
-        V = self.W_v(x).view(batch, seq_len, self.n_kv_groups, self.head_dim).transpose(1, 2)
+        Q = (
+            self.W_q(x)
+            .view(batch, seq_len, self.n_heads, self.head_dim)
+            .transpose(1, 2)
+        )
+        K = (
+            self.W_k(x)
+            .view(batch, seq_len, self.n_kv_groups, self.head_dim)
+            .transpose(1, 2)
+        )
+        V = (
+            self.W_v(x)
+            .view(batch, seq_len, self.n_kv_groups, self.head_dim)
+            .transpose(1, 2)
+        )
 
         # Q/K norm (reshape to [batch*heads, seq, head_dim] for RMSNorm, then back)
         Q = self.q_norm(Q.reshape(-1, seq_len, self.head_dim))
@@ -125,10 +147,12 @@ class GroupQueryAttention(nn.Module):
         K = K.repeat_interleave(group_size, dim=1)
         V = V.repeat_interleave(group_size, dim=1)
 
-        scores = Q @ K.transpose(-2, -1) / (self.head_dim ** 0.5)
+        scores = Q @ K.transpose(-2, -1) / (self.head_dim**0.5)
         if kv_cache is None:
-            mask = torch.triu(torch.ones(seq_len, seq_len, device=x.device), diagonal=1).bool()
-            scores.masked_fill_(mask, float('-inf'))
+            mask = torch.triu(
+                torch.ones(seq_len, seq_len, device=x.device), diagonal=1
+            ).bool()
+            scores.masked_fill_(mask, float("-inf"))
         attn = F.softmax(scores, dim=-1)
         context = attn @ V
 
@@ -141,10 +165,12 @@ class TransformerBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.norm1 = RMSNorm(config.emb_dim)
-        self.attn = GroupQueryAttention(config.emb_dim, config.n_heads, config.n_kv_groups, config.head_dim)
+        self.attn = GroupQueryAttention(
+            config.emb_dim, config.n_heads, config.n_kv_groups, config.head_dim
+        )
         self.norm2 = RMSNorm(config.emb_dim)
         self.ffn = SwiGLUFFN(config.emb_dim, config.hidden_dim)
-    
+
     def forward(self, x, rope, position_offset=0, kv_cache=None):
         residual = x
         x = self.norm1(x)

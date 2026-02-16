@@ -4,19 +4,24 @@ from pathlib import Path
 
 import torch
 
-DTYPE_MAP = {"bfloat16": torch.bfloat16, "float16": torch.float16, "float32": torch.float32}
+DTYPE_MAP = {
+    "bfloat16": torch.bfloat16,
+    "float16": torch.float16,
+    "float32": torch.float32,
+}
+
 
 @dataclass
 class Qwen3Config:
     vocab_size: int
-    emb_dim: int         # hidden_size
-    n_heads: int         # num_attn_heads
-    n_kv_groups: int     # num_kv_heads
+    emb_dim: int  # hidden_size
+    n_heads: int  # num_attn_heads
+    n_kv_groups: int  # num_kv_heads
     head_dim: int
-    n_layers: int        # num_hidden_layers
-    hidden_dim: int      # intermediate_size
+    n_layers: int  # num_hidden_layers
+    hidden_dim: int  # intermediate_size
     context_length: int  # max_position_embedding
-    rope_base: float     # rope_theta
+    rope_base: float  # rope_theta
     rms_norm_eps: float
     tie_word_embeddings: bool
     dtype: torch.dtype
@@ -45,6 +50,7 @@ class Qwen3Config:
             eos_token_id=cfg["eos_token_id"],
             group_size=n_heads // n_kv_groups,
         )
+
 
 if __name__ == "__main__":
     config = Qwen3Config.from_model_dir("checkpoint/Qwen3-0.6B")

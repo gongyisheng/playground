@@ -1,7 +1,6 @@
 from pathlib import Path
 from safetensors.torch import load_file
 
-
 # HF key → your model's state_dict key
 KEY_MAP = {
     "model.embed_tokens.weight": "tok_emb.weight",
@@ -31,7 +30,9 @@ def rename_hf_key(hf_key: str) -> str | None:
 
     # model.layers.{i}.{suffix} → layers.{i}.{suffix}
     if hf_key.startswith("model.layers."):
-        parts = hf_key.split(".", 3)  # ["model", "layers", "0", "self_attn.q_proj.weight"]
+        parts = hf_key.split(
+            ".", 3
+        )  # ["model", "layers", "0", "self_attn.q_proj.weight"]
         layer_idx = parts[2]
         hf_suffix = parts[3]
         if hf_suffix in LAYER_KEY_MAP:

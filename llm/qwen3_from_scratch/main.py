@@ -48,4 +48,6 @@ elapsed = time.time() - start
 output_text = tokenizer.decode(output_ids)
 new_tokens = len(output_ids) - len(token_ids)
 print(output_text)
-print(f"\n--- {new_tokens} tokens in {elapsed:.2f}s ({new_tokens/elapsed:.1f} tok/s) ---")
+print(
+    f"\n--- {new_tokens} tokens in {elapsed:.2f}s ({new_tokens/elapsed:.1f} tok/s) ---"
+)

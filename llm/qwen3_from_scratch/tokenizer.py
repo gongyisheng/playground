@@ -20,7 +20,9 @@ class Qwen3Tokenizer:
         chat_template = Template(template_str)
         return cls(tokenizer, chat_template)
 
-    def apply_chat_template(self, messages: list[dict], enable_thinking: bool = False) -> str:
+    def apply_chat_template(
+        self, messages: list[dict], enable_thinking: bool = False
+    ) -> str:
         return self.chat_template.render(
             messages=messages,
             add_generation_prompt=True,

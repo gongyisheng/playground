@@ -2,15 +2,16 @@ import torch
 
 from model import Qwen3Model
 
+
 def sample(logits, temperature=1.0, top_k=-1):
     if temperature == 0 or top_k == 1:
         next_token = torch.argmax(logits, dim=-1)
         return next_token
-    
+
     # topk filter
     if top_k > 0:
         values, indices = torch.topk(logits, k=top_k)
-        logits = torch.full_like(logits, -float('inf'))
+        logits = torch.full_like(logits, -float("inf"))
         logits.scatter_(1, indices, values)
 
     # softmax, temperature sampling
@@ -21,7 +22,15 @@ def sample(logits, temperature=1.0, top_k=-1):
 
     return next_token
 
-def generate(model: Qwen3Model, prompt_token_ids, max_new_tokens, temperature=1.0, top_k=-1, eos_token_id=None):
+
+def generate(
+    model: Qwen3Model,
+    prompt_token_ids,
+    max_new_tokens,
+    temperature=1.0,
+    top_k=-1,
+    eos_token_id=None,
+):
     # add batch dim: [seq] -> [1, seq]
     input_ids = prompt_token_ids.unsqueeze(0)
     prompt_len = input_ids.shape[1]
@@ -41,5 +50,3 @@ def generate(model: Qwen3Model, prompt_token_ids, max_new_tokens, temperature=1.
             break
 
     return prompt_token_ids.tolist() + generated
-
-
