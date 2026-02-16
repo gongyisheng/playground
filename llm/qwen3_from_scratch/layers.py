@@ -44,12 +44,8 @@ class RoPE(nn.Module):
     def forward(self, x: torch.Tensor, position_offset: int = 0) -> torch.Tensor:
         # x.shape: (batch, n_heads, seq_len, head_dim)
         seq_len = x.shape[2]
-        cos = self.cos[
-            position_offset : position_offset + seq_len
-        ]  # shape: (seq_len, 128)
-        sin = self.sin[
-            position_offset : position_offset + seq_len
-        ]  # shape: (seq_len, 128)
+        cos = self.cos[position_offset : position_offset + seq_len]  # shape: (seq_len, 128)
+        sin = self.sin[position_offset : position_offset + seq_len]  # shape: (seq_len, 128)
 
         cos = cos[None, None, :, :]  # shape: (1, 1, seq_len, 128)
         sin = sin[None, None, :, :]  # shape: (1, 1, seq_len, 128)
@@ -110,23 +106,12 @@ class GroupQueryAttention(nn.Module):
         batch, seq_len, _ = x.shape
 
         # projection + reshape to [batch, heads, seq, head_dim]
-        Q = (
-            self.W_q(x)
-            .view(batch, seq_len, self.n_heads, self.head_dim)
-            .transpose(1, 2)
-        )
-        K = (
-            self.W_k(x)
-            .view(batch, seq_len, self.n_kv_groups, self.head_dim)
-            .transpose(1, 2)
-        )
-        V = (
-            self.W_v(x)
-            .view(batch, seq_len, self.n_kv_groups, self.head_dim)
-            .transpose(1, 2)
-        )
+        Q = self.W_q(x).view(batch, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
+        K = self.W_k(x).view(batch, seq_len, self.n_kv_groups, self.head_dim).transpose(1, 2)
+        V = self.W_v(x).view(batch, seq_len, self.n_kv_groups, self.head_dim).transpose(1, 2)
 
         # Q/K norm (reshape to [batch*heads, seq, head_dim] for RMSNorm, then back)
+        # attention logits can explode, need norm
         Q = self.q_norm(Q.reshape(-1, seq_len, self.head_dim))
         Q = Q.view(batch, self.n_heads, seq_len, self.head_dim)
 
@@ -139,6 +124,8 @@ class GroupQueryAttention(nn.Module):
 
         if kv_cache is not None:
             past_k, past_v = kv_cache
+            # q shape: (batch, n_head, seq_len(prompt_len or 1), head_dim)
+            # kv shape: (batch, n_kv_groups, seq_len_so_far, head_dim)
             K = torch.concat([past_k, K], dim=2)
             V = torch.concat([past_v, V], dim=2)
         new_kv_cache = (K, V)
@@ -147,12 +134,11 @@ class GroupQueryAttention(nn.Module):
         K = K.repeat_interleave(group_size, dim=1)
         V = V.repeat_interleave(group_size, dim=1)
 
+        # attn score, Q attends to all past tokens via kv cache
         scores = Q @ K.transpose(-2, -1) / (self.head_dim**0.5)
         if kv_cache is None:
-            mask = torch.triu(
-                torch.ones(seq_len, seq_len, device=x.device), diagonal=1
-            ).bool()
-            scores.masked_fill_(mask, float("-inf"))
+            mask = torch.triu(torch.ones(seq_len, seq_len, device=x.device), diagonal=1).bool()
+            scores.masked_fill_(mask, float("-inf")) # fill -inf to make it's 0 after softmax
         attn = F.softmax(scores, dim=-1)
         context = attn @ V
 
@@ -165,13 +151,20 @@ class TransformerBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.norm1 = RMSNorm(config.emb_dim)
-        self.attn = GroupQueryAttention(
-            config.emb_dim, config.n_heads, config.n_kv_groups, config.head_dim
-        )
+        self.attn = GroupQueryAttention(config.emb_dim, config.n_heads, config.n_kv_groups, config.head_dim)
         self.norm2 = RMSNorm(config.emb_dim)
         self.ffn = SwiGLUFFN(config.emb_dim, config.hidden_dim)
 
     def forward(self, x, rope, position_offset=0, kv_cache=None):
+        # residual connection:
+        # each layer computes a delta (change), not new representation
+        # separates contribution between different modules (attn and ffn)
+
+        # norm before sub-layer (pre-norm): 
+        # stabilize input of each layer
+        # make residual a clean highway carries full signals
+        # post-norm has residual as input, hard to train and fragile
+
         residual = x
         x = self.norm1(x)
         x, new_kv_cache = self.attn(x, rope, position_offset, kv_cache)
