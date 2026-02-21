@@ -49,7 +49,7 @@ Writing objects: 100% (5/5), 1.76 GiB | 5.67 MiB/s, done.
 - pull along with submodule
 `git pull --recurse-submodules`
 - set config to always pull submodule
-`git config submodule.recurse true`
+`git config --global submodule.recurse true`
 - clone other people's fork branch to my fork
 ```
 git remote add <their-name> https://github.com/<their-username>/<repo>.git
@@ -63,4 +63,5 @@ setup commands
 git config --global user.name gongyisheng
 git config --global user.email yishenggong9437@gmail.com
 git config --global credential.helper store
+git config --global submodule.recurse true
 ```
