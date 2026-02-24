@@ -1,0 +1,32 @@
+name: Sync Submodules
+
+on:
+  schedule:
+    # runs daily at 00:00 UTC
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          submodules: true
+          fetch-depth: 0
+
+      - name: Update submodules to latest
+        run: git submodule update --remote --merge
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet && exit 0
+          git add -A
+          git commit -m "sync submodule"
+          git push
