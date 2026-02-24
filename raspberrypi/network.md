@@ -38,6 +38,11 @@ ref: https://droidyue.com/blog/2020/05/01/set-dns-server-on-reaspberry-pi/
 connect with ssh:  
 `ssh pi@<ip>`  
 
+# find process by port
+lsof: list open files
+ti: terse output, filter on internet port
+`lsof -ti :8000`
+
 # firewall
 install ufw:  
 `sudo apt-get install ufw`  

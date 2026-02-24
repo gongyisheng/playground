@@ -1,5 +1,8 @@
 #include <string>
 #include <iostream>
+
+// test: g++ -o build/condition basic/condition.cpp && build/condition
+
 using namespace std;
 
 int main() {

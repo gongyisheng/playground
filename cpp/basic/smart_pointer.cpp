@@ -8,6 +8,8 @@
 #include <iostream>
 #include <memory>
 
+// test: g++ -o build/smart_pointer basic/smart_pointer.cpp && build/smart_pointer
+
 class Dog {
 public:
     Dog() { std::cout << "Dog is created" << std::endl; }

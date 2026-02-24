@@ -1,6 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+
+// test: g++ -o build/avoid_crash basic/avoid_crash.cpp && build/avoid_crash
+
 using namespace std;
 
 int main(){

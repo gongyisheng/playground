@@ -4,6 +4,9 @@
 // There are two basic types of macros: object-like macros, and function-like macros.
 
 #include <iostream>
+
+// test: g++ -o build/define basic/define.cpp && build/define
+
 // object-like macros
 #define E             // any further occurrence of the identifier is removed and replaced by nothing!
 #define PI 3.14159265 // replace PI with 3.14159265

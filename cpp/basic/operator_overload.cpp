@@ -1,4 +1,7 @@
 #include <iostream>
+
+// test: g++ -o build/operator_overload basic/operator_overload.cpp && build/operator_overload
+
 using namespace std;
 
 // operators can be overloaded:

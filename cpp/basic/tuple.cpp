@@ -1,5 +1,8 @@
 #include <tuple>
 #include <iostream>
+
+// test: g++ -o build/tuple basic/tuple.cpp && build/tuple
+
 using namespace std;
 
 

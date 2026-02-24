@@ -1,6 +1,11 @@
 # Code Style
 
-- Prefer minimal comments: use simple single-line comments (e.g., `# example 1: xxx`) instead of decorative box-style or separator lines                          
+- Minimal code: only necessary logic, no over-engineering
+- Minimal comments: simple single-line, no decorative separators
+
+# Dev Rules
+
+- Verify new runnable code executes without errors (e.g., `python3 xxx.py`, `g++ && ./a.out`, `npm run build`)
 
 # Writing Style
 

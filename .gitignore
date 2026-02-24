@@ -31,6 +31,12 @@ node_modules
 # nohup
 nohup.out
 
+# c/cpp build
+build
+
+# env
+.env
+
 # machine learning related
 *.train
 *.valid
@@ -41,6 +47,4 @@ unsloth_compiled_cache
 outputs
 log
 .deepeval
-
-.env
 test.ipynb

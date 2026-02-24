@@ -1,5 +1,8 @@
 #include <cmath>
 #include <iostream>
+
+// test: g++ -o build/math basic/math.cpp && build/math
+
 using namespace std;
 
 int main() {

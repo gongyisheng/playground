@@ -15,6 +15,8 @@ flush existing swap
 `sudo swapoff -a`  
 add new swap files (bs=size per file, count=file count, bs*count=swap size)  
 `sudo dd if=/dev/zero of=/var/swap bs=4M count=1024`  
+update permission
+`sudo chmod 0600 /var/swap`
 initalize(format) swap files  
 `sudo mkswap /var/swap`  
 get partition uuid   
@@ -23,6 +25,8 @@ turn on swap
 `sudo swapon /var/swap` or `sudo swapon -U <UUID>`  
 edit `/etc/fstab` file, start swap after boot  
 `UUID=<UUID> none swap sw 0 0`  
+or
+`/var/swap none swap sw 0 0`
 reboot
 `sudo reboot`
 

@@ -1,4 +1,7 @@
 #include <iostream>
+
+// test: g++ -o build/function basic/function.cpp && build/function
+
 using namespace std;
 
 // Best Practice:

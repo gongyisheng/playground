@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream> // file stream, a combination of ofstream and ifstream
 
+// test: g++ -o build/file basic/file.cpp && build/file
+
 using namespace std;
 
 int main() {

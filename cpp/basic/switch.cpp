@@ -1,5 +1,8 @@
 #include<string>
 #include<iostream>
+
+// test: g++ -o build/switch basic/switch.cpp && build/switch
+
 using namespace std;
 
 int main() {

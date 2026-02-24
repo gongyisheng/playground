@@ -1,4 +1,7 @@
 #include <iostream>
+
+// test: g++ -o build/input basic/input.cpp && build/input
+
 using namespace std;
 
 int main() {

@@ -1,5 +1,9 @@
 #include <string>
 #include <iostream>
+#include <cstring>
+
+// test: g++ -o build/string basic/string.cpp && build/string
+
 using namespace std;
 
 int main() {

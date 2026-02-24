@@ -1,0 +1,3 @@
+[submodule "llm/llm_from_scratch"]
+	path = llm/llm_from_scratch
+	url = https://github.com/gongyisheng/llm-from-scratch.git

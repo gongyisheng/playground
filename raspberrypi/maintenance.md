@@ -49,8 +49,8 @@ bash
 
 # add to sudoers (method1)
 visudo /etc/sudoers
-# Allow members of group sudo to execute any command
-%sudo   ALL=(ALL:ALL) ALL
+# Allow members of group sudo to execute any command, no password
+%sudo   ALL=(ALL:ALL) NOPASSWD:ALL
 
 # add to sudoers(method 2, add to sudo group):
 sudo adduser <USER> sudo

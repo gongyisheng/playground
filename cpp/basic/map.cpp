@@ -1,6 +1,9 @@
 #include<map>
 #include<iostream>
 #include<unordered_map>
+
+// test: g++ -o build/map basic/map.cpp && build/map
+
 using namespace std;
 
 int main(){

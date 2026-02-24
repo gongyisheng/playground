@@ -44,14 +44,24 @@ Writing objects: 100% (5/5), 1.76 GiB | 5.67 MiB/s, done.
 `git submodule add <repo-url> <path/to/submodule>`
 - pull submodule 
 `git submodule update --init --recursive`
+- pull latest changes for submodules
+`git submodule update --remote --merge`
 - pull along with submodule
 `git pull --recurse-submodules`
 - set config to always pull submodule
-`git config submodule.recurse true`
+`git config --global submodule.recurse true`
+- clone other people's fork branch to my fork
+```
+git remote add <their-name> https://github.com/<their-username>/<repo>.git
+git fetch <their-name>
+git checkout -b <branch-name> <their-name>/<branch-name>
+git push origin <branch-name>
+```
 
 setup commands
 ```
 git config --global user.name gongyisheng
 git config --global user.email yishenggong9437@gmail.com
 git config --global credential.helper store
+git config --global submodule.recurse true
 ```
