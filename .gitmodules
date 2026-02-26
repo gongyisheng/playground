@@ -1,3 +1,6 @@
 [submodule "llm/llm_from_scratch"]
 	path = llm/llm_from_scratch
 	url = https://github.com/gongyisheng/llm-from-scratch.git
+[submodule "oss"]
+	path = oss
+	url = https://github.com/gongyisheng/oss-workspace.git
