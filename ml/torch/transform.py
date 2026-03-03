@@ -117,6 +117,95 @@ def test_bool():
     print("float mask dtype:", float_mask.dtype)
     print("bool mask dtype:", bool_mask.dtype)
 
+def test_interleaved_slice():
+    # ::2 and 1::2: split interleaved data into even/odd elements
+    # used in SwiGLU where gate and up projections are fused as [g0,u0,g1,u1,...]
+    x = torch.tensor([10, 20, 30, 40, 50, 60, 70, 80])
+
+    gate = x[::2]    # start=0, step=2 → even indices
+    up = x[1::2]     # start=1, step=2 → odd indices
+    print("original:", x)
+    print("x[::2] (even):", gate)   # [10, 30, 50, 70]
+    print("x[1::2] (odd):", up)     # [20, 40, 60, 80]
+
+    # with ... (ellipsis): slice last dim, keep all preceding dims
+    y = torch.arange(24).reshape(2, 3, 4)
+    print("y[..., ::2] shape:", y[..., ::2].shape)    # (2, 3, 2)
+    print("y[..., 1::2] shape:", y[..., 1::2].shape)  # (2, 3, 2)
+
+def test_unsqueeze():
+    # unsqueeze: add a dimension of size 1 at the specified position
+    # critical for correct broadcasting in element-wise multiply
+    weights = torch.tensor([0.6, 0.7, 0.5])           # (3,)
+    h = torch.randn(3, 8)                              # (3, 8)
+
+    # without unsqueeze: (3,) broadcasts against dim=-1 (wrong!)
+    # with unsqueeze(-1): (3, 1) * (3, 8) → (3, 8) (correct)
+    weighted = weights.unsqueeze(-1) * h
+    print("weights shape:", weights.shape)              # (3,)
+    print("unsqueezed shape:", weights.unsqueeze(-1).shape)  # (3, 1)
+    print("result shape:", weighted.shape)              # (3, 8)
+
+    # unsqueeze(0) vs unsqueeze(-1)
+    x = torch.tensor([1, 2, 3])
+    print("unsqueeze(0):", x.unsqueeze(0).shape)   # (1, 3)
+    print("unsqueeze(-1):", x.unsqueeze(-1).shape) # (3, 1)
+
+def test_advanced_indexing():
+    batch_size = 4
+    log_probs_example = torch.tensor([
+        [-2.1, -1.5, -0.8, -3.2, -2.7, -1.2],  # Sample 0
+        [-1.3, -2.4, -0.5, -1.8, -2.1, -3.0],  # Sample 1
+        [-0.9, -1.7, -2.3, -0.6, -1.1, -2.8],  # Sample 2
+        [-2.5, -0.7, -1.9, -2.2, -1.4, -3.1],  # Sample 3
+    ])
+    targets_example = torch.tensor([2, 2, 3, 1])
+
+    row_indices = torch.arange(batch_size)
+    print(f"Row indices: {row_indices}")
+    print(f"Column indices: {targets_example}")
+
+    # advanced indexing
+    target_log_probs_example = log_probs_example[row_indices, targets_example]
+    print(f"Result: {target_log_probs_example}")
+
+def test_fancy_indexing_shapes():
+    # tensor index vs scalar index: tensor preserves dim, scalar removes it
+    x = torch.randn(5, 3)
+
+    # scalar index: removes dim 0
+    row = x[0]
+    print("x[0] shape:", row.shape)  # (3,)
+
+    # tensor index: preserves dims, selects multiple rows
+    idx = torch.tensor([0, 2, 4])
+    rows = x[idx]
+    print("x[tensor([0,2,4])] shape:", rows.shape)  # (3, 3)
+
+    # 3D example: scalar removes the indexed dim
+    y = torch.randn(8, 4, 16)
+    print("y[2] shape:", y[2].shape)                    # (4, 16) — dim 0 removed
+    print("y[tensor([2,5])] shape:", y[torch.tensor([2,5])].shape)  # (2, 4, 16) — dim 0 preserved
+
+def test_torch_where():
+    # torch.where on boolean matrix: returns (row_indices, col_indices)
+    # used in MoE to find which tokens are routed to each expert
+    selected_experts = torch.tensor([[3, 7],
+                                     [1, 3],
+                                     [3, 5],
+                                     [0, 2]])
+    token_idx, slot_idx = torch.where(selected_experts == 3)
+    print("token_idx:", token_idx)  # [0, 1, 2] — which tokens chose expert 3
+    print("slot_idx:", slot_idx)    # [0, 1, 0] — which slot (1st or 2nd choice)
+
+    # use both indices to fetch the correct routing weight
+    routing_weights = torch.tensor([[0.6, 0.4],
+                                    [0.3, 0.7],
+                                    [0.5, 0.5],
+                                    [0.8, 0.2]])
+    weights = routing_weights[token_idx, slot_idx]
+    print("weights for expert 3:", weights)  # [0.6, 0.7, 0.5]
+
 if __name__ == "__main__":
     test_transpose()
     # test_contiguous()
@@ -125,3 +214,5 @@ if __name__ == "__main__":
     # test_masked_fill()
     # test_scatter()
     # test_bool()
+    # test_interleaved_slice()
+    # test_unsqueeze()
