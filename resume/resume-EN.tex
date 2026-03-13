@@ -134,12 +134,11 @@
 \section{Technical Skills}
  \begin{itemize}[leftmargin=0.15in, label={}]
     \small{\item{
-     \textbf{Languages}{: Python, Java, SQL, Javascript} \\
-     \textbf{Software}{: Databricks, Spark, Kubernetes, Grafana, Prometheus} \\
-     \textbf{Database}{: MySql, PostgreSQL, Redis, MongoDB, ElasticSearch} \\
-     \textbf{Cloud}{: AWS EC2/S3/RDS/Elasticcache/Lambda} \\
-     \textbf{AI/LLM}{: SFT, RL, LLM-as-a-Judge, LLM agent} \\
-     \textbf{ML Libs}{: pytorch, Huggingface transformers, trl, peft, faiss, langgraph, vllm, sglang, veRL (contributor) } \\
+     \textbf{Languages}{: Python, Go, Bash} \\
+     \textbf{Infra}{: Kubernetes, Docker, Prometheus, Grafana, CI/CD} \\
+     \textbf{AI/LLM}{: LLM inference optimization, KV Cache, SFT, RL, model serving} \\
+     \textbf{ML Frameworks}{: PyTorch, vLLM, SGLang, Huggingface Transformers, veRL (contributor), miles (contributor)} \\
+     \textbf{Cloud}{: AWS (EC2/S3)} \\
     }}
  \end{itemize}
 
@@ -148,26 +147,27 @@
 \section{Professional Experience}
   \resumeSubHeadingListStart
     \resumeSubheading
+      {Open Source Contributor}{Dec 2025 -- }
+      {Miles / SGLang}{}
+      \resumeItemListStart
+        \resumeItem{Participated in LoRA support for the Megatron backend in the Miles framework, including MoE layer LoRA support for GPT-OSS model. Implemented LoRA weights synchronization to the SGLang inference engine and colocate model feature with train/rollout offloading, enabling efficient adapter serving and GPU resource sharing in distributed training-inference pipelines.}
+        \resumeItem{Fixed a kernel bug in SGLang that caused garbage output in the batch invariant operation kernel on Ada/Ampere GPUs.}
+      \resumeItemListEnd
+    \resumeSubheading
       {Software Engineer, Machine Learning}{June 2022 -- }
       {Yipitdata, Edison Platform Team}{Mountain View, CA, US}
       \resumeItemListStart
-      \resumeItem{Built a state-of-the-art vendor match system using a dual-encoder + reranker pipeline for routine cases and a LLM agent with KB search for complex queries. Enhanced vendor metadata quality using an LLM-as-a-judge KB cleaning pipeline and enriched vendor descriptions via an LLM agent with web search tools. Now processes 2M+ records/day, delivers 98\%+ accuracy, and reduces manual workload by 75\% in production.}
-      \resumeItem{Developed an multi-turn SFT + Agentic RL post-training pipeline for a 14B LLM. Use GPT-5-mini reasoning traces for SFT and a repeated rollout sampling strategy to remove overly hard or low-variance cases that weaken reward gradients. Model trained on 4xL40S instance. Delivered a 30\% (60\% to 90\%) accuracy jump on identifying ambiguous case, surpassing GPT-5 class baselines in the vendor match task. Deployed to production using vllm, now processes 200k+ records/day.}
-      \resumeItem{Maintained a TB-scale ETL pipeline and migrated it from AWS EMR to Databricks; optimized weekly Spark refresh jobs, achieving 60\% faster runtime and 40\% lower cost, with automated data-quality checks to ensure reliable delivery.}
-      \resumeItem{Developed and optimized core infra components for Edison Mail's internal service, using profiling and network packet capture to identify bottlenecks. Achieved 55\% higher throughput, 70\% lower cost, and latency reductions. Designed and developed redis client cache component (-90\% I/O) and event-driven MySQL binlog to Redis Streams sync system for real-time change data delivery.}
+      \resumeItem{Designed and implemented an automated AI tagging agent for vendor matching. Optimized agent performance with context engineering, including dynamic context onload/offload, majority-k voting for stability, and model routing for cost reduction. Achieved 95\% accuracy at \$5k per 1M data records, slightly surpassing human taggers while saving 7 headcounts.}
+      \resumeItem{Developed a multi-turn SFT + search-R1 like Agentic RL post-training pipeline for a 14B LLM. Use GPT-5-mini reasoning traces for SFT and a repeated rollout sampling strategy to remove overly hard or low-variance cases that weaken reward gradients. Model trained on 4xL40S instance. Delivered a 30\% (60\% to 90\%) accuracy jump on identifying ambiguous case, got same performance as GPT-5 class baselines.}
+      \resumeItem{Optimized core service infrastructure using profiling and network packet capture to identify bottlenecks. Achieved 55\% higher throughput, 70\% lower cost, and latency reductions. Designed redis client cache component (-90\% I/O) and event-driven MySQL binlog to Redis Streams sync system for real-time data delivery.}
+      \resumeItem{Worked with DevOps team to design and implement an HPA (Horizontal Pod Autoscaler) system based on KEDA, enabling auto-scaling of services based on custom metrics.}
       \resumeItemListEnd
     \resumeSubheading
       {Software Engineer, Part Time}{Jan 2022 -- May 2022}
       {Massachusetts Institute of Technology, ChemE, CRIPT Team}{Remote, US}
-      \resumeItemListStart
-        \resumeItem{Designed and Developed an open-source, semi-automated data ingestion tool based on excel spreadsheet and CRIPT sdk for chemists to upload experiment data to CRIPT database using python. Designed the tool with a compiler-like structure. Assisted early users to upload about 100 thousand data points to database.}
-      \resumeItemListEnd
     \resumeSubheading
       {Data Engineer Intern}{Jan 2021 -- May 2021}
       {Bytedance(TikTok), Group of Douyin E-commerce, Commercialization Division}{Beijing, China}
-      \resumeItemListStart
-        \resumeItem{Developed ETL pipeline with 30+ dependencies to process collected raw data and store in Hbase using HiveSQL. Developed 4 DM tables with different aggregation degrees to satisfy needs. Separated DW data from business logic. Supported the data needs of 200+ colleagues from data science team and operation team.}
-      \resumeItemListEnd
   \resumeSubHeadingListEnd
 %-------------------------------------------
 \end{document}
