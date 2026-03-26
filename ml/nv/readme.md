@@ -13,10 +13,10 @@ sudo apt remove --purge '^nvidia-.*570'
 sudo apt autoremove
 sudo apt autoclean
 
-## install 580
+## install 590
 sudo apt update
-sudo apt install nvidia-driver-pinning-580
-sudo apt install nvidia-driver-580
+sudo apt install nvidia-driver-pinning-590
+sudo apt install nvidia-driver-590
 
 sudo reboot
 ```
