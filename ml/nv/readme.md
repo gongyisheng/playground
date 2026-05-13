@@ -1,32 +1,27 @@
 # cuda/cuDNN/nccl
 
 ## install driver
-use upgrade from 570 to 580 as an example
+need to check if cuda needs specific driver flavor (eg, open)
 ```
 ## network repo
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt update
 
-## remove 570
-sudo apt remove --purge '^nvidia-.*570'
-sudo apt autoremove
-sudo apt autoclean
-
-## install 590
+## install open kernel module flavor
 sudo apt update
-sudo apt install nvidia-driver-pinning-590
-sudo apt install nvidia-driver-590
+sudo apt-get install -y nvidia-open
 
 sudo reboot
 ```
+
 ref: https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/ubuntu.html  
 ref: https://www.nvidia.com/en-in/drivers/  
 
 ## install cuda
-cuda 12.8
+cuda 13.0
 ```
-check https://developer.nvidia.com/cuda-12-8-0-download-archive
+check https://developer.nvidia.com/cuda-13-0-0-download-archive
 
 ## add to ~/.bashrc:
 export CUDA_HOME=/usr/local/cuda
