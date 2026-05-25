@@ -95,11 +95,12 @@ sudo mv /var/lib/docker /new_dir_structure
     "data-root": "/new_dir_structure/docker",
 }
 
-4. validate new docker root location
-docker info -f '{{ .DockerRootDir}}'
-
-5. restart docker
+4. restart docker
 sudo systemctl start docker
+sudo systemctl daemon-reload
+
+5. validate new docker root location
+sudo docker info -f '{{ .DockerRootDir}}'
 ```
 ref: https://www.ibm.com/docs/en/z-logdata-analytics/5.1.0?topic=software-relocating-docker-root-directory
 note: some apps may fail after moving docker (eg, mlflow, monica)
