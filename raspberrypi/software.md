@@ -88,12 +88,22 @@ sudo systemctl stop docker.socket
 sudo systemctl stop containerd
 
 2. move data to new dir
-sudo mv /var/lib/docker /new_dir_structure
+sudo mv /var/lib/docker /new_dir_structure/docker
+sudo mv /var/lib/containerd /new_dir_structure/containerd
 
-3. edit configuration file (/etc/docker/daemon.json)
+3. edit configuration file 
+3.1 /etc/docker/daemon.json
 {
     "data-root": "/new_dir_structure/docker",
+    "runtimes": {
+        "nvidia": {
+            "args": [],
+            "path": "nvidia-container-runtime"
+        }
+    }
 }
+3.2 /etc/containerd/config.toml
+root = "/new_dir_structure/containerd"
 
 4. restart docker
 sudo systemctl start docker
