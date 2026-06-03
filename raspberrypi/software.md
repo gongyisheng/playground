@@ -88,8 +88,8 @@ sudo systemctl stop docker.socket
 sudo systemctl stop containerd
 
 2. move data to new dir
-sudo mv /var/lib/docker /new_dir_structure/docker
-sudo mv /var/lib/containerd /new_dir_structure/containerd
+sudo mv /var/lib/docker /new_dir_structure
+sudo mv /var/lib/containerd /new_dir_structure
 
 3. edit configuration file 
 3.1 /etc/docker/daemon.json
