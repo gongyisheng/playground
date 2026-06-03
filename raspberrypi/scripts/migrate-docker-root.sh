@@ -3,7 +3,7 @@
 # Usage: sudo ./migrate-docker-root.sh /new_dir_structure
 set -euo pipefail
 
-NEW_BASE="${1:-/new_dir_structure}"
+NEW_BASE="${1:-/home/yisheng/Documents}"
 NEW_DOCKER_ROOT="$NEW_BASE/docker"
 NEW_CONTAINERD_ROOT="$NEW_BASE/containerd"
 DAEMON_JSON="/etc/docker/daemon.json"
