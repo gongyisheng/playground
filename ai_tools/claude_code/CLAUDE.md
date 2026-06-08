@@ -1,7 +1,9 @@
 # Code Style
 
 - Minimal code: only necessary logic, no over-engineering
-- Minimal comments: simple single-line, no decorative separators
+- Inline functions used by only one caller into that caller
+- Comment only when necessary; keep comments and docstrings short — let the code carry the logic
+- Prefer readable names over terse abbreviations: `chunk` not `ck`, `chunk_id` not `cid`
 
 # Dev Rules
 
@@ -9,7 +11,8 @@
 
 # Writing Style
 
-- Be concise and accurate, focus on the big picture
+- Concise, dense, and accurate — tight bullets over paragraphs, focus on the big picture, no padding
+- When uncertain, say so and give your best read instead of hedging
 - Only include examples when necessary
 - All visualizations (graphs, charts, diagrams) must use valid Markdown syntax
 
