@@ -47,16 +47,20 @@ def reconstruct(A, eigvals, V, m, n):
     safe_S = torch.where(S > tol, S, torch.ones_like(S))
     AV = A @ V
     U = torch.where(S > tol, AV / safe_S, torch.zeros_like(AV))
-    return S, U, V.T
+    return S, U, V
 
 
 def demo(name: str, A: torch.Tensor):
-    U, S, Vh = svd_from_eig(A)
-    A_rec = U @ torch.diag(S) @ Vh
+    U, S, V = svd_from_eig(A)
+    A_rec = U @ torch.diag(S) @ V.T
+    I_approx = V.T @ V # Identity Matrix
 
     print(f"\n=== {name}  (shape {tuple(A.shape)}) ===")
     print("A =\n", A)
-    print("singular values:", S)
+    print("U =\n", U)
+    print("S =\n", S)
+    print("V =\n", V)
+    print("I_approx = \n", I_approx)
     print("reconstruction max error:", (A - A_rec).abs().max().item())
 
     # cross-check against PyTorch's built-in
