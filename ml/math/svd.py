@@ -17,19 +17,8 @@ def svd_from_eig(A: torch.Tensor):
     """
     m, n = A.shape
 
-    # eigh on the symmetric Gram matrix A^T A (n x n).
-    # eigvals are ascending and >= 0 (up to tiny numerical error).
     eigvals, V = torch.linalg.eigh(A.T @ A)
 
-    # TODO(you): turn (eigvals, V) into descending singular values + ordered U.
-    #   1. eigh gives eigvals ASCENDING; SVD wants σ DESCENDING. Reorder both
-    #      eigvals and the columns of V.
-    #   2. Clamp tiny negative eigvals (numerical noise) to 0 before sqrt:  σ = sqrt(eigvals).
-    #   3. Build U column-by-column:  u_i = A @ v_i / σ_i.
-    #      Decide what to do when σ_i ≈ 0 (division blows up). A common choice:
-    #      treat anything below a tolerance (e.g. 1e-10) as zero and set that
-    #      column of U to 0 (those directions carry no energy anyway).
-    #   Return U (m x k), S (k,), Vh (k x n) with k = min(m, n).
     S, U, Vh = reconstruct(A, eigvals, V, m, n)
     return U, S, Vh
 
