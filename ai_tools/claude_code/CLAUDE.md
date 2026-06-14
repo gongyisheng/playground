@@ -25,12 +25,12 @@ This governs EVERY reply — explanations, answers, and chat, not just docs.
 # Git Commit Messages
 
 Use these prefixes:
-- `[feat]`: new feature
-- `[fix]`: bug fix
-- `[chore]`: routine tasks, maintenance, or refactor
-- `[docs]`: documentation only
-- `[style]`: code formatting (no logic changes)
-- `[perf]`: performance improvement
-- `[test]`: adding or fixing tests
-- `[build]`: build system or external dependencies
-- `[ci]`: CI/CD configuration or scripts
+- `feat:` new feature
+- `fix:` bug fix
+- `chore:` routine tasks, maintenance, or refactor
+- `docs:` documentation only
+- `style:` code formatting (no logic changes)
+- `perf:` performance improvement
+- `test:` adding or fixing tests
+- `build:` build system or external dependencies
+- `ci:` CI/CD configuration or scripts
