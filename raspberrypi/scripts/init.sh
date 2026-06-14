@@ -3,7 +3,7 @@
 
 cd ~
 git config --global user.name "gongyisheng"
-git config --global user.email "yisheng_gong@onmail.com"
+git config --global user.email "yishenggong9437@gmail.com"
 git config --global credential.helper store
 
 sudo apt-get update
