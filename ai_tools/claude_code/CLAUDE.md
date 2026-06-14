@@ -20,6 +20,7 @@ This governs EVERY reply — explanations, answers, and chat, not just docs.
 # Dev Rules
 
 - Verify new runnable code executes without errors (e.g., `python3 xxx.py`, `g++ && ./a.out`, `npm run build`)
+- When running GPU code (Python or CUDA), check GPU usage first (e.g., `nvidia-smi`) and prefer a free device
 
 # Git Commit Messages
 
