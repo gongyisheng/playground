@@ -1,63 +1,63 @@
 #!/usr/bin/env bash
-# Migrate Docker + containerd root directory to a new location.
-# Usage: sudo ./migrate-docker-root.sh /new_dir_structure
+# Move Docker + containerd data dirs. Run with sudo.
 set -euo pipefail
 
-NEW_BASE="${1:-/home/yisheng/Documents}"
-NEW_DOCKER_ROOT="$NEW_BASE/docker"
-NEW_CONTAINERD_ROOT="$NEW_BASE/containerd"
-DAEMON_JSON="/etc/docker/daemon.json"
-CONTAINERD_CONF="/etc/containerd/config.toml"
+DOCKER_DST="/home/yisheng/docker"
+CONTAINERD_DST="/home/yisheng/containerd"
+DOCKER_SRC="/var/lib/docker"
+CONTAINERD_SRC="/var/lib/containerd"
 
-if [[ $EUID -ne 0 ]]; then
-    echo "Must run as root (use sudo)." >&2
-    exit 1
-fi
+[[ $EUID -eq 0 ]] || { echo "Run as root (sudo)."; exit 1; }
 
-# Set "data-root" in daemon.json without clobbering existing keys
-# (the file may hold an nvidia runtime block we must preserve).
-# Args: $1 = path to daemon.json, $2 = new data-root path
-update_daemon_json() {
-    local file="$1" root="$2"
-    command -v jq >/dev/null || { echo "jq required: apt install jq" >&2; exit 1; }
-    mkdir -p "$(dirname "$file")"
-    local existing="{}"
-    [[ -f "$file" ]] && existing="$(cat "$file")"
-    jq --arg root "$root" '.["data-root"] = $root' <<<"$existing" > "$file"
-}
-
-echo "==> Target base directory: $NEW_BASE"
-mkdir -p "$NEW_BASE"
-
-echo "==> 1. Stopping docker + containerd services"
+echo "==> Stopping services"
 systemctl stop docker docker.socket containerd
 
-echo "==> 2. Moving data directories"
-if [[ -d /var/lib/docker && ! -d "$NEW_DOCKER_ROOT" ]]; then
-    mv /var/lib/docker "$NEW_DOCKER_ROOT"
-else
-    echo "    skip docker move (source missing or target exists)"
-fi
-if [[ -d /var/lib/containerd && ! -d "$NEW_CONTAINERD_ROOT" ]]; then
-    mv /var/lib/containerd "$NEW_CONTAINERD_ROOT"
-else
-    echo "    skip containerd move (source missing or target exists)"
-fi
+echo "==> Copying data (preserving ownership/perms)"
+mkdir -p "$DOCKER_DST" "$CONTAINERD_DST"
+rsync -aP "$DOCKER_SRC/"     "$DOCKER_DST/"
+rsync -aP "$CONTAINERD_SRC/" "$CONTAINERD_DST/"
 
-echo "==> 3.1 Updating $DAEMON_JSON"
-update_daemon_json "$DAEMON_JSON" "$NEW_DOCKER_ROOT"
-
-echo "==> 3.2 Updating $CONTAINERD_CONF"
-# Set/replace the top-level `root = "..."` line, append if absent.
-if [[ -f "$CONTAINERD_CONF" ]] && grep -qE '^\s*root\s*=' "$CONTAINERD_CONF"; then
-    sed -i -E "s|^\s*root\s*=.*|root = \"$NEW_CONTAINERD_ROOT\"|" "$CONTAINERD_CONF"
+echo "==> Updating /etc/docker/daemon.json"
+mkdir -p /etc/docker
+if [[ -f /etc/docker/daemon.json ]]; then
+  cp /etc/docker/daemon.json /etc/docker/daemon.json.bak
+  # set/replace data-root, requires jq
+  if command -v jq >/dev/null; then
+    jq --arg p "$DOCKER_DST" '."data-root"=$p' /etc/docker/daemon.json.bak > /etc/docker/daemon.json
+  else
+    echo "!! jq not found and daemon.json exists. Edit it manually:"
+    echo '   add  "data-root": "'"$DOCKER_DST"'"'
+    exit 1
+  fi
 else
-    echo "root = \"$NEW_CONTAINERD_ROOT\"" >> "$CONTAINERD_CONF"
+  printf '{\n  "data-root": "%s"\n}\n' "$DOCKER_DST" > /etc/docker/daemon.json
 fi
 
-echo "==> 4. Reloading systemd and starting services"
-systemctl daemon-reload
+echo "==> Updating /etc/containerd/config.toml"
+mkdir -p /etc/containerd
+[[ -f /etc/containerd/config.toml ]] || containerd config default > /etc/containerd/config.toml
+cp /etc/containerd/config.toml /etc/containerd/config.toml.bak
+if grep -qE '^\s*root\s*=' /etc/containerd/config.toml; then
+  # active root line -> replace value
+  sed -i -E "s|^(\s*root\s*=).*|\1 \"$CONTAINERD_DST\"|" /etc/containerd/config.toml
+elif grep -qE '^\s*#\s*root\s*=' /etc/containerd/config.toml; then
+  # commented root line -> uncomment and set value
+  sed -i -E "s|^\s*#\s*root\s*=.*|root = \"$CONTAINERD_DST\"|" /etc/containerd/config.toml
+else
+  # no root line at all -> append as top-level key
+  printf '\nroot = "%s"\n' "$CONTAINERD_DST" >> /etc/containerd/config.toml
+fi
+
+echo "==> Restarting services"
 systemctl start containerd docker
 
-echo "==> 5. Validating new Docker root"
-docker info -f '{{ .DockerRootDir }}'
+echo "==> Verifying"
+docker info 2>/dev/null | grep "Docker Root Dir"
+echo "containerd root -> $(grep -E '^\s*root\s*=' /etc/containerd/config.toml)"
+
+cat <<EOF
+
+Done. Verify your containers/images look right, then reclaim old space:
+  sudo mv $DOCKER_SRC ${DOCKER_SRC}.old
+  sudo mv $CONTAINERD_SRC ${CONTAINERD_SRC}.old
+  # delete the .old dirs after a few days of stable operation
