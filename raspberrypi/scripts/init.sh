@@ -3,7 +3,7 @@
 
 cd ~
 git config --global user.name "gongyisheng"
-git config --global user.email "yisheng_gong@onmail.com"
+git config --global user.email "yishenggong9437@gmail.com"
 git config --global credential.helper store
 
 sudo apt-get update
@@ -79,11 +79,11 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 # claude
 curl -fsSL https://claude.ai/install.sh | bash
 echo 'alias yolo="claude --dangerously-skip-permissions"' >> ~/.bashrc && source ~/.bashrc
+mkdir -p ~/.claude && curl -fsSL https://raw.githubusercontent.com/gongyisheng/playground/dev/ai_tools/claude_code/CLAUDE.md -o ~/.claude/CLAUDE.md
 # uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 cd ~
-uv venv ~/.venv/3.12 --python 3.12
-echo 'alias "3.12"="source ~/.venv/3.12/bin/activate"' >> ~/.bashrc && source ~/.bashrc
+
 # node.js
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
 \. "$HOME/.nvm/nvm.sh"

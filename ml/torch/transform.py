@@ -187,6 +187,20 @@ def test_fancy_indexing_shapes():
     print("y[2] shape:", y[2].shape)                    # (4, 16) — dim 0 removed
     print("y[tensor([2,5])] shape:", y[torch.tensor([2,5])].shape)  # (2, 4, 16) — dim 0 preserved
 
+def test_pick_vector():
+    # pick a vector along a dim with plain indexing
+    # the fixed integer index marks which dim you slice; ':' keeps the other
+    x = torch.tensor([[1, 2],
+                      [3, 4]])
+
+    # pick row 0: fix dim-0, keep all of dim-1
+    row = x[0, :]
+    print("x[0, :] row vector:", row, row.shape)  # [1, 2] (2,)
+
+    # pick column 1: keep all of dim-0, fix dim-1
+    col = x[:, 1]
+    print("x[:, 1] col vector:", col, col.shape)  # [2, 4] (2,)
+
 def test_torch_where():
     # torch.where on boolean matrix: returns (row_indices, col_indices)
     # used in MoE to find which tokens are routed to each expert
@@ -216,3 +230,4 @@ if __name__ == "__main__":
     # test_bool()
     # test_interleaved_slice()
     # test_unsqueeze()
+    # test_pick_vector()
