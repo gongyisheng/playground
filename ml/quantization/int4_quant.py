@@ -43,6 +43,6 @@ def report(name: str, x: torch.Tensor) -> None:
 
 if __name__ == "__main__":
     torch.manual_seed(42)
-    base = torch.randn(256, 256) * 2 + 10  # off-center, mimics a real activation/weight tensor
+    base = torch.randn(256, 256)
     for name, dtype in [("bf16", torch.bfloat16), ("fp16", torch.float16), ("fp32", torch.float32)]:
         report(name, base.to(dtype))
