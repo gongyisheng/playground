@@ -96,6 +96,57 @@ def test_argsort():
     batch = torch.tensor([[1.0, 5.0, 2.0], [4.0, 1.0, 3.0]])
     print("batch argsort:", torch.argsort(batch, dim=-1))  # [[0, 2, 1], [1, 2, 0]]
 
+def test_sort():
+    # sort returns (values, indices); argsort is just sort(...).indices
+    a = torch.tensor([[3.0, 1.0, 2.0], [0.0, 5.0, 4.0]])
+
+    values, indices = torch.sort(a, dim=1)   # sort across each row (default dim=-1)
+    print("sorted values:", values)          # [[1, 2, 3], [0, 4, 5]]
+    print("sorted indices:", indices)        # [[1, 2, 0], [0, 2, 1]]
+    print("argsort matches:", torch.equal(indices, torch.argsort(a, dim=1)))  # True
+
+    # dim = the axis that gets reordered; shape is preserved (unlike argmax)
+    print("dim=0 (down columns):", torch.sort(a, dim=0).values)  # each column sorted
+    print("descending:", torch.sort(a, dim=1, descending=True).values)
+
+def test_gather():
+    # gather: apply an index tensor along one dim; out[i,j] = a[i, idx[i,j]] for dim=1
+    a = torch.tensor([[3.0, 1.0, 2.0], [0.0, 5.0, 4.0]])
+    idx = torch.argsort(a, dim=1)               # dim MUST match the gather dim
+    print("gather == sort.values:",
+          torch.equal(torch.gather(a, 1, idx), torch.sort(a, dim=1).values))  # True
+
+    # the real use case: reorder tensor B by tensor A's ranking
+    scores = torch.tensor([[0.2, 0.9, 0.5], [0.7, 0.1, 0.8]])
+    data   = torch.tensor([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]])
+    order = torch.argsort(scores, dim=1, descending=True)
+    print("data by score rank:", torch.gather(data, 1, order))  # [[11,12,10],[22,20,21]]
+
+def test_bincount():
+    # bincount: count occurrences per value; output[i] = how many times i appears
+    # value IS the index, so needs non-negative ints; output length = max+1
+    ids = torch.tensor([0, 2, 1, 2, 2])
+    print("bincount:", torch.bincount(ids))  # [1, 1, 3] (one 0, one 1, three 2s)
+
+    # order-independent (it's a histogram): [3,2,1,0] and [0,1,2,3] give same result
+    print("unsorted:", torch.bincount(torch.tensor([3, 2, 1, 0])))  # [1, 1, 1, 1]
+
+    # minlength: pad output so every category has a slot (MoE: one per expert)
+    expert_ids = torch.tensor([0, 0, 0, 2, 2])  # expert 1, 3 got nothing
+    print("no minlength:", torch.bincount(expert_ids))              # [3, 0, 2]
+    print("minlength=4: ", torch.bincount(expert_ids, minlength=4)) # [3, 0, 2, 0]
+
+def test_cumsum():
+    # cumsum: running total; output[i] = sum of inputs[0..i]
+    counts = torch.tensor([3, 1, 5, 2])
+    print("cumsum:", torch.cumsum(counts, dim=0))  # [3, 4, 9, 11]
+
+    # MoE token dispatch: bincount + cumsum turn counts into block end-offsets.
+    # After sorting tokens by expert, offs[e] = end index of expert e's block.
+    expert_ids = torch.tensor([0, 0, 0, 1, 2, 2, 2, 2, 2, 3, 3])  # already sorted
+    offs = torch.bincount(expert_ids, minlength=4).cumsum(0)
+    print("offsets:", offs)  # [3, 4, 9, 11] → expert 0=[0:3], 1=[3:4], 2=[4:9], 3=[9:11]
+
 def test_clamp():
     # clamp: bound values into [min, max] — gradient clipping, logit flooring
     x = torch.tensor([-2.0, -0.5, 0.5, 3.0])
@@ -200,6 +251,10 @@ if __name__ == "__main__":
     # test_trig()
     # test_argmax()
     # test_argsort()
+    # test_sort()
+    # test_gather()
+    # test_bincount()
+    # test_cumsum()
     # test_clamp()
     # test_safe_divide()
     # test_topk()
