@@ -21,7 +21,9 @@ class DenseGatedMLP(nn.Module):
         return x
 
 
-# x -> gate -> top-k -> softmax
+# input: x [B*S, D]
+# output: top_experts [B*S, topk], weights [B*S, topk]
+# process: x -> gate -> topk
 class MoERouter(nn.Module):
 
     def __init__(self, d_model: int, num_experts: int, top_k: int):
@@ -37,9 +39,21 @@ class MoERouter(nn.Module):
         return topk_idx, weights, logits
 
 
-# x -> reshape -> router, get topk and weight -> for loop traverse + acc -> reshape back
-# for loop: get token_idx+slot_idx -> stack hidden state -> expert forward -> get weights -> accum
-# auxloss: 
+# for each token:
+# e_out_i = e_i.forward(token_logit) (1, D)
+# token_out = sum(w_i*e_out_i)
+
+# for loop
+# x: [B, S, D]
+# x -> moerouter.forward(x) -> topk_idx, topk_weights [B*S, topk]
+# acc: [B*S, D]
+# loop over experts
+#   token_id, slot_id = x where topk_idx == e_i, # [e,]
+#   picked_x = x[token_id]                       # [e, D]
+#   e_out = e_i.forward(picked_x)                # [e, D]
+#   picked_w = weight[token_id, slot_id]         # [e,]
+#   e_out = e_out @ weight[:,None]               # [e, D]
+#   index_add_(0, token_idx, e_out)              # [B*S, D]
 class SparseMoEBlockV1(nn.Module):
 
     def __init__(self, d_model: int, intermediate_size: int, n_expert: int, top_k: int):
@@ -89,6 +103,23 @@ def grouped_mm(a, b, offs):
         return out
 
 
+# grouped gemm
+# x: [B, S, D]
+# x_flat: [B*S, D]
+# x -> moerouter.forward(x) -> topk_idx, topk_weights [B*S, topk]
+# flatten:
+# topk_idx -> expert_ids                        # [B*S*topk]
+# token_ids = arange(BS).repeat_interleave(k)   # [B*S*topk]
+# sort
+# order = argsort(expert_idx)                   # [B*S*topk]
+# token_ids_sorted = token_ids[sorted]          # [B*S*topk]
+# x_sorted = x_flat[token_ids_sorted]           # [B*S*topk, D]
+# off = token_ids.bincount.cumsum               # [E,]
+# grouped gemm
+# gate_up = group_mm(x_sorted, gate_up_proj, off)
+# activate
+# out = group_mm(hidden, down_proj, off)
+# unsort, sum
 class SparseMoEBlockV2(nn.Module):
 
     def __init__(self, d_model: int, intermediate_size: int, n_expert: int, top_k: int):
