@@ -96,6 +96,112 @@ def test_argsort():
     batch = torch.tensor([[1.0, 5.0, 2.0], [4.0, 1.0, 3.0]])
     print("batch argsort:", torch.argsort(batch, dim=-1))  # [[0, 2, 1], [1, 2, 0]]
 
+def test_sort():
+    # sort returns (values, indices); argsort is just sort(...).indices
+    a = torch.tensor([[3.0, 1.0, 2.0], [0.0, 5.0, 4.0]])
+
+    values, indices = torch.sort(a, dim=1)   # sort across each row (default dim=-1)
+    print("sorted values:", values)          # [[1, 2, 3], [0, 4, 5]]
+    print("sorted indices:", indices)        # [[1, 2, 0], [0, 2, 1]]
+    print("argsort matches:", torch.equal(indices, torch.argsort(a, dim=1)))  # True
+
+    # dim = the axis that gets reordered; shape is preserved (unlike argmax)
+    print("dim=0 (down columns):", torch.sort(a, dim=0).values)  # each column sorted
+    print("descending:", torch.sort(a, dim=1, descending=True).values)
+
+def test_gather():
+    # gather: apply an index tensor along one dim; out[i,j] = a[i, idx[i,j]] for dim=1
+    a = torch.tensor([[3.0, 1.0, 2.0], [0.0, 5.0, 4.0]])
+    idx = torch.argsort(a, dim=1)               # dim MUST match the gather dim
+    print("gather == sort.values:",
+          torch.equal(torch.gather(a, 1, idx), torch.sort(a, dim=1).values))  # True
+
+    # the real use case: reorder tensor B by tensor A's ranking
+    scores = torch.tensor([[0.2, 0.9, 0.5], [0.7, 0.1, 0.8]])
+    data   = torch.tensor([[10.0, 11.0, 12.0], [20.0, 21.0, 22.0]])
+    order = torch.argsort(scores, dim=1, descending=True)
+    print("data by score rank:", torch.gather(data, 1, order))  # [[11,12,10],[22,20,21]]
+
+def test_index_select():
+    # index_select: pick whole slices along one dim with a 1-D index tensor
+    a = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+    print("rows 0,2:", torch.index_select(a, 0, torch.tensor([0, 2])))     # [[1,2,3],[7,8,9]]
+    print("cols 1,1,0:", torch.index_select(a, 1, torch.tensor([1, 1, 0])))  # dups allowed
+
+    # vs gather: index is 1-D and picks slices, so out.shape[dim] = len(index).
+    # gather's index must match the output shape and picks per element.
+    print("out shape:", torch.index_select(a, 1, torch.tensor([1, 1, 0])).shape)  # (3, 3)
+
+    # it always copies, unlike basic slicing which returns a view
+    print("select copies:", torch.index_select(a, 0, torch.tensor([0])).data_ptr() != a.data_ptr())  # True
+    print("slice views:  ", a[0:1].data_ptr() == a.data_ptr())  # True
+
+def test_index_reduce():
+    # index_reduce_: write source slices into slots, folding duplicate targets
+    # with reduce ("prod" | "mean" | "amax" | "amin" — NOT "sum", that's index_add_)
+    src = torch.tensor([[1.0, 9.0], [5.0, 2.0], [3.0, 4.0]])
+    idx = torch.tensor([0, 0, 1])  # 1-D, len == src.size(dim); rows 0,1 both hit slot 0
+
+    out = torch.zeros(2, 2)
+    out.index_reduce_(0, idx, src, "amax", include_self=False)
+    print("amax:", out)  # [[5, 9], [3, 4]]
+
+    # include_self=True folds the destination's existing value into the reduce too
+    out = torch.full((2, 2), 7.0)
+    out.index_reduce_(0, idx, src, "amax", include_self=True)
+    print("include_self=True:", out)  # [[7, 9], [7, 7]] — the 7s win
+
+    # the footgun: "prod" over a zeros destination annihilates everything
+    print("prod, self=True: ", torch.zeros(2, 2).index_reduce_(0, idx, src, "prod", include_self=True))   # all 0
+    print("prod, self=False:", torch.zeros(2, 2).index_reduce_(0, idx, src, "prod", include_self=False))  # [[5,18],[3,4]]
+
+def test_bincount():
+    # bincount: count occurrences per value; output[i] = how many times i appears
+    # value IS the index, so needs non-negative ints; output length = max+1
+    ids = torch.tensor([0, 2, 1, 2, 2])
+    print("bincount:", torch.bincount(ids))  # [1, 1, 3] (one 0, one 1, three 2s)
+
+    # order-independent (it's a histogram): [3,2,1,0] and [0,1,2,3] give same result
+    print("unsorted:", torch.bincount(torch.tensor([3, 2, 1, 0])))  # [1, 1, 1, 1]
+
+    # minlength: pad output so every category has a slot (MoE: one per expert)
+    expert_ids = torch.tensor([0, 0, 0, 2, 2])  # expert 1, 3 got nothing
+    print("no minlength:", torch.bincount(expert_ids))              # [3, 0, 2]
+    print("minlength=4: ", torch.bincount(expert_ids, minlength=4)) # [3, 0, 2, 0]
+
+def test_cumsum():
+    # cumsum: running total; output[i] = sum of inputs[0..i]
+    counts = torch.tensor([3, 1, 5, 2])
+    print("cumsum:", torch.cumsum(counts, dim=0))  # [3, 4, 9, 11]
+
+    # MoE token dispatch: bincount + cumsum turn counts into block end-offsets.
+    # After sorting tokens by expert, offs[e] = end index of expert e's block.
+    expert_ids = torch.tensor([0, 0, 0, 1, 2, 2, 2, 2, 2, 3, 3])  # already sorted
+    offs = torch.bincount(expert_ids, minlength=4).cumsum(0)
+    print("offsets:", offs)  # [3, 4, 9, 11] → expert 0=[0:3], 1=[3:4], 2=[4:9], 3=[9:11]
+
+def test_searchsorted():
+    # searchsorted: binary search a SORTED sequence for insertion positions.
+    # value -> bucket, i.e. the inverse of the bincount+cumsum boundary build above.
+    offs = torch.tensor([3, 4, 9, 11])  # expert block ends from test_cumsum
+    tokens = torch.tensor([0, 2, 3, 8, 10])
+
+    # right=True: ties land AFTER an equal boundary, so token 3 is expert 1 (block [3:4])
+    print("expert per token:", torch.searchsorted(offs, tokens, right=True))   # [0, 0, 1, 2, 3]
+    # right=False puts token 3 back in expert 0 — off-by-one on every boundary
+    print("right=False:     ", torch.searchsorted(offs, tokens, right=False))  # [0, 0, 0, 2, 3]
+
+    # CDF sampling: cumsum the probs, then map uniform draws through the boundaries
+    torch.manual_seed(0)
+    probs = torch.tensor([0.1, 0.2, 0.7])
+    picks = torch.searchsorted(probs.cumsum(0), torch.rand(10000), right=True)
+    print("empirical:", torch.bincount(picks, minlength=3) / 10000)  # ~[0.1, 0.2, 0.7]
+
+    # O(log n) per query; the broadcast form is O(n*m) and allocates an n x m intermediate
+    print("matches broadcast:",
+          torch.equal(torch.searchsorted(offs, tokens, right=True),
+                      (tokens[:, None] >= offs).sum(1)))  # True
+
 def test_clamp():
     # clamp: bound values into [min, max] — gradient clipping, logit flooring
     x = torch.tensor([-2.0, -0.5, 0.5, 3.0])
@@ -200,6 +306,13 @@ if __name__ == "__main__":
     # test_trig()
     # test_argmax()
     # test_argsort()
+    # test_sort()
+    # test_gather()
+    # test_index_select()
+    # test_index_reduce()
+    # test_bincount()
+    # test_cumsum()
+    # test_searchsorted()
     # test_clamp()
     # test_safe_divide()
     # test_topk()

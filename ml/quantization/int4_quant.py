@@ -1,13 +1,17 @@
-"""Asymmetric per-tensor int8 quantization (bf16 / fp16 / fp32 -> int8)."""
-
 import torch
 
-QMIN, QMAX = -128, 127  # int8 range
+QMIN, QMAX = -8, 7
+
+# [v_min, v_max] -> [q_min, q_max]
+# q = v/scale + zero_point
+# v = (q - zero_point) * scale
+# scale = (v_max-v_min)/(q_max-q_min) (float)
+# zero_point = q - v/scale (int)
 
 
 def compute_qparams(x: torch.Tensor) -> tuple[float, int]:
-    x_min = x.min().item()
     x_max = x.max().item()
+    x_min = x.min().item()
     scale = (x_max - x_min) / (QMAX - QMIN)
     if scale == 0:
         scale = 1.0
@@ -16,15 +20,15 @@ def compute_qparams(x: torch.Tensor) -> tuple[float, int]:
     return scale, zero_point
 
 
-def quantize(x: torch.Tensor) -> tuple[torch.Tensor, float, int]:
-    x = x.to(torch.float32)  # upcast so scale math isn't polluted by bf16/fp16 rounding
+def quantize(x: torch.Tensor):
+    x = x.to(torch.float32)
     scale, zero_point = compute_qparams(x)
-    q = torch.clamp(torch.round(x / scale) + zero_point, QMIN, QMAX)
-    return q.to(torch.int8), scale, zero_point
+    q = torch.clamp(torch.round(x/scale)+ zero_point, QMIN, QMAX)
+    return q, scale, zero_point
 
 
-def dequantize(q: torch.Tensor, scale: float, zero_point: int) -> torch.Tensor:
-    return (q.to(torch.float32) - zero_point) * scale
+def dequantize(x: torch.Tensor, scale: float, zero_point: int):
+    return (x.to(torch.float32) - zero_point) * scale
 
 
 def report(name: str, x: torch.Tensor) -> None:
