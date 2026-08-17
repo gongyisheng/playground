@@ -19,9 +19,9 @@ ref: https://docs.nvidia.com/datacenter/tesla/driver-installation-guide/ubuntu.h
 ref: https://www.nvidia.com/en-in/drivers/  
 
 ## install cuda
-cuda 13.0
+cuda 13.2
 ```
-check https://developer.nvidia.com/cuda-13-0-0-download-archive
+check https://developer.nvidia.com/cuda-13-2-2-download-archive
 
 ## add to ~/.bashrc:
 export CUDA_HOME=/usr/local/cuda
@@ -30,7 +30,15 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 
 ## switch cuda version:
 sudo rm /usr/local/cuda
-sudo ln -s /usr/local/cuda-12.8 /usr/local/cuda
+sudo ln -s /usr/local/cuda-13.2 /usr/local/cuda
+sudo ln -s /usr/local/cuda-13.2 /usr/local/cuda-13
+
+## uninstall old version
+mapfile -t cuda_130_packages < <(
+    dpkg-query -W -f='${Package} ${db:Status-Abbrev}\n' |
+    awk '$2 == "ii" && $1 ~ /-13-0($|-)/ {print $1}'
+)
+sudo apt purge "${cuda_130_packages[@]}"
 ```
 
 output
