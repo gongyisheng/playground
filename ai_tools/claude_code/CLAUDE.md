@@ -16,6 +16,7 @@ This governs EVERY reply — explanations, answers, and chat, not just docs.
 - Inline functions used by only one caller into that caller
 - Comment only when necessary; keep comments and docstrings short — let the code carry the logic
 - Prefer readable names over terse abbreviations: `chunk` not `ck`, `chunk_id` not `cid`
+- Do not use bare `*`, `*args`, or `**kwargs` in function signatures. Declare every parameter explicitly.
 
 # Dev Rules
 
