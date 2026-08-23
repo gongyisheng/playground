@@ -49,5 +49,10 @@ export PI_PERMISSION_LEVEL=bypassed
         "~/.codex/skills",
     ]
 }
-# recommend to install anthropic-skills(https://github.com/anthropics/skills) 
+# recommend to install anthropic-skills(https://github.com/anthropics/skills)
+```
+
+5. copy AGENTS.md
+```
+mkdir -p ~/.pi/agent && curl -fsSL https://raw.githubusercontent.com/gongyisheng/playground/dev/ai_tools/pi_agent/AGENTS.md -o ~/.pi/agent/AGENTS.md
 ```
