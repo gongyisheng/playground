@@ -15,6 +15,7 @@ This governs EVERY reply — explanations, answers, and chat, not just docs.
 - Minimal code: only necessary logic, no over-engineering
 - Inline functions used by only one caller into that caller
 - Comment only when necessary; keep comments and docstrings short — let the code carry the logic
+- No module-level docstrings
 - Prefer readable names over terse abbreviations: `chunk` not `ck`, `chunk_id` not `cid`
 - Do not use bare `*`, `*args`, or `**kwargs` in function signatures. Declare every parameter explicitly.
 
