@@ -128,7 +128,7 @@ def _fmt_sqnr(
     and the result is rotated back before comparing against the original x."""
     xt = rht(x, signs) if signs is not None else x
     xq, scale = quantize(xt, fmt, block_shape, rounding)
-    xhat = dequantize(xq, scale, xt.shape)
+    xhat = dequantize(xq, scale, (xt.shape[0], xt.shape[1]))
     return sqnr(x, irht(xhat, signs) if signs is not None else xhat)
 
 
