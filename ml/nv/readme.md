@@ -66,6 +66,7 @@ cuda: `nvcc -V`
 cuDNN: `dpkg -l | grep cudnn`
 
 # nvidia-smi
+- real monitoring command: `nvidia-smi dmon -i 0 -s u --gpm-metrics=2,3,5,10 -d 1 -o T`
 - `watch nvidia-smi`: check gpu health 
     ```
     +---------------------------------------------------------------------------------------+
