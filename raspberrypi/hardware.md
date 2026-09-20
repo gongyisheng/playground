@@ -37,8 +37,7 @@ reboot
 `sudo systemctl disable swapfile.swap` on ubuntu  
 
 # set swappiness
-set up swap but only use when needed
-(swap is not recommended to setup for database instances)
+set up swap but only use when needed (swap is not recommended to setup for database instances)
 ```
 echo "vm.swappiness=1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
