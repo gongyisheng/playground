@@ -31,10 +31,10 @@ reboot
 `sudo reboot`
 
 # turn off swap
-`sudo dphys-swapfile swapoff` on raspberrypi os
-`sudo dphys-swapfile uninstall` on raspberrypi os, disable auto start after reboot
-`sudo update-rc.d dphys-swapfile remove` on raspberrypi os, disable upgrade
-`sudo systemctl disable swapfile.swap` on ubuntu
+`sudo dphys-swapfile swapoff` on raspberrypi os  
+`sudo dphys-swapfile uninstall` on raspberrypi os, disable auto start after reboot  
+`sudo update-rc.d dphys-swapfile remove` on raspberrypi os, disable upgrade  
+`sudo systemctl disable swapfile.swap` on ubuntu  
 
 # set swappiness
 set up swap but only use when needed
