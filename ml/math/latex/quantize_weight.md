@@ -1,4 +1,8 @@
-# weight quantization 1d vs 2d
+# weight quantization analysis
+consider linear transform
+$$
+Y=WX
+$$
 
 ## forward  
 $$
@@ -54,4 +58,61 @@ $$
 \frac{\partial L}{\partial W}= GX^\top \qquad (m\times n)(n\times k)=(m\times k)
 $$
 
-## blockwise1d
+## quantization error
+assume quantization cause error E:
+$$
+\widehat Y=\widehat WX=(W+E)X \\
+\Delta Y=\widehat Y-Y=EX
+$$
+if we use 2d blockwise quantization:
+$$
+\boxed{E_{\mathrm{bwd}}=E_{\mathrm{fwd}}^\top}
+$$
+if we use 1d blockwise quantization:
+$$
+\boxed{E_{\mathrm{bwd}}\neq E_{\mathrm{fwd}}^\top}
+$$
+
+forward:
+$$
+Y=(W+E_{\mathrm{fwd}})X
+$$
+
+backward:
+$$
+\frac{\partial L}{\partial X}=(W^\top+E_{\mathrm{bwd}}) G
+$$
+
+for gradient
+$$
+G=\left.\frac{\partial L}{\partial Y}\right|_{Y=WX},\quad \widehat G=\left.\frac{\partial L}{\partial Y}\right|_{Y=(W+E_\mathrm{fwd})X}
+$$
+
+define
+$$
+G=L'(Y), \quad \widehat G=L'(Y+\Delta Y), \\
+\Delta G=\widehat G-G
+$$
+
+## error in weight update
+define
+$$
+D_W=GX^\top, \quad \widehat D_W=\widehat GX^\top \\
+\Delta D_W=\Delta GX^\top
+$$
+
+with learning rate $\eta_W$, the two SGD updates are 
+$$
+W_{\mathrm{next}}=W-\eta_W D_W,
+\qquad
+\widehat W_{\mathrm{next}}=W-\eta_W\widehat D_W. \\
+\widehat W_{\mathrm{next}}-W_{\mathrm{next}}
+=-\eta_W\Delta G\,X^\top.
+$$
+
+## error in the input update
+define
+$$
+D_X=W^\top G, \quad \widehat D_X=(W^\top+E_{\mathrm{bwd}})\widehat G \\
+\Delta D_X=W^\top\Delta G + E_{\mathrm{bwd}}G+E_{\mathrm{bwd}}\Delta G
+$$
