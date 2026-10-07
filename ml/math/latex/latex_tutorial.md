@@ -33,7 +33,7 @@ $$
 
 ## geek letters
 $$
-\alpha, \beta, \theta, \epsilon, \mu, \sigma, \lambda, \delta, \nabla
+\alpha, \beta, \theta, \epsilon, \mu, \sigma, \lambda, \delta, \nabla, \eta
 $$
 
 ## calculus
