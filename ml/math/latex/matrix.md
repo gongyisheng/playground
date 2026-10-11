@@ -47,6 +47,15 @@ $$
 
 Every term has total degree $2$, hence the name "quadratic form" (二次型).
 
+**Geometry (symmetric $A$, 2D).**
+
+- **Positive definite (正定):** both eigenvalues positive → upward bowl (开口向上的碗形); positive level curves are ellipses.
+- **Negative definite (负定):** both eigenvalues negative → downward bowl (开口向下的碗形); negative level curves are ellipses.
+- **Indefinite (不定):** eigenvalues have opposite signs → saddle (马鞍面); nonzero level curves are hyperbolas.
+- **Singular semidefinite (奇异半定):** one eigenvalue zero → trough or ridge (槽形或脊形) with a flat direction; both zero → flat plane.
+
+Eigenvectors give the principal directions; larger eigenvalue magnitudes mean steeper curvature.
+
 ## Positive definite 正定
 
 assume $A\in\mathbb{R}^{n\times n}$ is symmetric: $A=A^T$.
