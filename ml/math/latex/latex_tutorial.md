@@ -31,6 +31,11 @@ $$
 \sqrt{2}
 $$
 
+## dots
+$$
+\ldots, \cdots, \vdots, \ddots
+$$
+
 ## geek letters
 $$
 \alpha, \beta, \theta, \epsilon, \mu, \sigma, \lambda, \delta, \nabla, \eta
