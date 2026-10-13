@@ -134,3 +134,33 @@ $$
 $$
 
 These are exactly the conditions $\det(A_1)>0$ and $\det(A_2)>0$.
+
+## First moment 一阶矩
+
+For a random vector $z\in\mathbb{R}^n$ with finite first moments, the first moment is its mean vector:
+
+$$
+\mu=\mathbb{E}[z],\qquad
+\widehat\mu=\frac1N\sum_{i=1}^N z_i.
+$$
+
+- **Mean:** $\mu$ is the true average; $\widehat\mu$ estimates it from samples.
+- **Linearity:** for fixed $B$ and $b$, $\mathbb{E}[Bz+b]=B\mu+b$.
+- **Centering:** subtracting $\mu$ gives zero mean, but values can still vary.
+
+## Second moment 二阶矩
+
+For a random vector $z\in\mathbb{R}^n$ with finite second moments, define
+
+$$
+A=\mathbb{E}[zz^T],\qquad
+\widehat A=\frac1N\sum_{i=1}^N z_i z_i^T=\frac1NZZ^T,
+$$
+
+where $Z=[z_1,\ldots,z_N]$ contains the observed samples.
+
+- **Symmetry and positivity:** $A=A^T$ and $v^TAv=\mathbb{E}[(v^Tz)^2]\ge0$.
+- **Covariance:** $A=\operatorname{Cov}(z)+\mu\mu^T$, so they are equal when $\mu=0$.
+- **Directions:** each eigenvalue measures the mean squared projection along its unit eigenvector. $A=cI$ means equal strength in all directions.
+- **Invertibility:** $\widehat A$ is invertible exactly when the samples span $\mathbb{R}^n$.
+- **Preconditioning:** for $A\succ0$, $A^{-1}$ scales each eigenvector direction by $1/\lambda_i$. Using $(A+\gamma I)^{-1}$ with $\gamma>0$ avoids dividing by tiny or zero eigenvalues.
