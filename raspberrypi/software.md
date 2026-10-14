@@ -214,3 +214,19 @@ export PATH=~/.npm-global/bin:$PATH
 source ~/.bashrc
 npm install -g <package-name>
 ```
+
+# sshfs
+```
+# install
+sudo apt update
+sudo apt install sshfs
+
+# mount
+sudo mkdir -p /mnt/data
+sudo chown "$USER":"$USER" /mnt/data
+
+sshfs <user>@<host>:<path> /mnt/data
+
+# unmount
+fusermount3 -u /mnt/data
+```

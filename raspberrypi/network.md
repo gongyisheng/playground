@@ -23,6 +23,26 @@ TCP window size:  128 KByte (default)
 client side configs
 `iperf3 -c <server_ip> -P 3 -t 30` set concurrency=3, time=30
 
+# limit download speed to 100 Mbps (Linux)
+Find the network interface with `ip route get 1.1.1.1`. 
+eg, The interface on this machine is `enp7s0`
+
+```bash
+sudo modprobe ifb numifbs=1
+sudo ip link set ifb0 up
+sudo tc qdisc replace dev ifb0 root tbf rate 100mbit burst 125000b latency 50ms
+sudo tc qdisc replace dev enp7s0 handle ffff: ingress
+sudo tc filter replace dev enp7s0 parent ffff: protocol all prio 10 matchall action mirred egress redirect dev ifb0
+```
+
+This limits total incoming traffic on that interface to 100 Mbps (about 12.5 MB/s), including container downloads. Uploads are unaffected. Check statistics with `tc -s qdisc show dev ifb0`. The limit does not persist after a reboot.
+
+Remove the limit with:
+
+```bash
+sudo tc qdisc del dev enp7s0 ingress
+```
+
 # static ip address
 update static ip address, router, dns:  
 `sudo vim /etc/dhcpcd.conf`  
