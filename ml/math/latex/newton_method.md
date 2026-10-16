@@ -12,6 +12,18 @@ $$
 
 Here, $f'(w)$ is the gradient and $f''(w)$ is the curvature. Dividing by curvature corrects the scale of the gradient.
 
+**Derivation** Assume we have $f(x)$, point $w$, we know $g=f'(w)$, $h=f''(w)$  
+
+We move it by a small scalar $s$ and then we get $f'(w+s) \approx g+hs$  
+
+We want after moving it reaches a minimum, so gradent will be 0, assume h>0, let the approx model's gradient be 0:  
+
+$$
+g+hs=0 \\
+s=-\frac{g}{h} \\
+w_{new}=w+s=w-\frac{g}{h} \\
+$$
+
 **Example:** For $f(w)=w^2$, starting at $w=3$:
 
 $$
