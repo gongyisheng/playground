@@ -137,7 +137,7 @@ These are exactly the conditions $\det(A_1)>0$ and $\det(A_2)>0$.
 
 ## First moment 一阶矩
 
-For a random vector $z\in\mathbb{R}^n$ with finite first moments, the first moment is its mean vector:
+For a random vector $z\in\mathbb{R}^n$ (shape: [n, 1]) with finite first moments, the first moment is its mean vector (shape: [n, 1]):
 
 $$
 \mu=\mathbb{E}[z],\qquad
@@ -150,7 +150,7 @@ $$
 
 ## Second moment 二阶矩
 
-For a random vector $z\in\mathbb{R}^n$ with finite second moments, define
+For a random vector $z\in\mathbb{R}^n$ with finite second moments, the second moments (shape: [n, n]) defined as:
 
 $$
 A=\mathbb{E}[zz^T],\qquad
@@ -158,6 +158,12 @@ A=\mathbb{E}[zz^T],\qquad
 $$
 
 where $Z=[z_1,\ldots,z_N]$ contains the observed samples.
+
+for each element $\widehat A_{ab}$ we have
+
+$$
+\widehat A_{ab} = \frac1n\sum_{i=1}^nZ_{ai}Z_{bi}
+$$
 
 - **Symmetry and positivity:** $A=A^T$ and $v^TAv=\mathbb{E}[(v^Tz)^2]\ge0$.
 - **Covariance:** $A=\operatorname{Cov}(z)+\mu\mu^T$, so they are equal when $\mu=0$.
