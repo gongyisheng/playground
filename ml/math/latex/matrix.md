@@ -4,30 +4,30 @@
 
 Every real symmetric matrix $A\in\mathbb{R}^{n\times n}$ has an orthonormal basis of eigenvectors $q_1,\ldots,q_n$ with real eigenvalues $\lambda_1,\ldots,\lambda_n$. Equivalently,
 
-$$
+```math
 \boxed{A=Q\Lambda Q^T,\qquad Q^TQ=QQ^T=I.}
-$$
+```
 
 where $Q=\begin{bmatrix}q_1&\cdots&q_n\end{bmatrix}$ and $\Lambda=\operatorname{diag}(\lambda_1,\ldots,\lambda_n)$.
 
 **Derivation.** Each eigenvector satisfies $Aq_i=\lambda_iq_i$. Combining these equations column by column gives
 
-$$
+```math
 AQ
 =\begin{bmatrix}Aq_1&\cdots&Aq_n\end{bmatrix}
 =\begin{bmatrix}\lambda_1q_1&\cdots&\lambda_nq_n\end{bmatrix}
 =Q\Lambda.
-$$
+```
 
 Since the eigenvectors are mutually orthogonal and have unit length,
 
-$$
+```math
 (Q^TQ)_{ij}=q_i^Tq_j=
 \begin{cases}
 1,&i=j,\\
 0,&i\ne j.
 \end{cases}
-$$
+```
 
 Thus $Q^TQ=I$, so $Q^{-1}=Q^T$. Multiplying $AQ=Q\Lambda$ on the right by $Q^T$ yields $A=Q\Lambda Q^T$.
 
@@ -40,10 +40,10 @@ A quadratic form maps a vector $x\in\mathbb{R}^n$ to the scalar $q(x)=x^TAx$, wh
 **Example.** For $x=(x_1,x_2)^T$ and
 $A=\begin{pmatrix}3&2\\2&2\end{pmatrix}$,
 
-$$
+```math
 x^TAx=3x_1^2+4x_1x_2+2x_2^2
 =x_1^2+2(x_1+x_2)^2.
-$$
+```
 
 Every term has total degree $2$, hence the name "quadratic form" (二次型).
 
@@ -62,76 +62,76 @@ assume $A\in\mathbb{R}^{n\times n}$ is symmetric: $A=A^T$.
 
 $A$ is **positive definite**, written $A\succ 0$, if its quadratic form(二次型) is strictly positive for every nonzero vector:
 
-$$
+```math
 A\succ 0\quad\Longleftrightarrow\quad x^TAx>0\quad\text{for all }x\in\mathbb{R}^n\setminus\{0\}
-$$
+```
 
 This extends scalar positivity:
 
-$$
+```math
 a>0\quad\Longleftrightarrow\quad ax^2>0\quad\text{for all }x\in\mathbb{R}\setminus\{0\}
-$$
+```
 
 ### Theorem 1: Eigenvalue criterion
 
 A real symmetric matrix is positive definite if and only if all its eigenvalues are positive:
 
-$$
+```math
 \boxed{A\succ 0\quad\Longleftrightarrow\quad\lambda_i>0\quad\text{for all }i.}
-$$
+```
 
 **Derivation.** By the spectral theorem,
 
-$$
+```math
 A=Q\Lambda Q^T,\qquad Q^TQ=I,\qquad
 \Lambda=\operatorname{diag}(\lambda_1,\ldots,\lambda_n).
-$$
+```
 
 Set $z=Q^Tx$. Since $Q$ is invertible, $x\ne 0$ if and only if $z\ne 0$, and
 
-$$
+```math
 x^TAx=x^TQ\Lambda Q^Tx=z^T\Lambda z
 =\sum_{i=1}^n\lambda_i z_i^2.
-$$
+```
 
 If every $\lambda_i>0$, this sum is positive for every nonzero $z$, so $A\succ 0$.
 
 Conversely, if $A\succ 0$, taking $x=q_i$, the unit eigenvector for $\lambda_i$, gives
 
-$$
+```math
 0<q_i^TAq_i=\lambda_i q_i^Tq_i=\lambda_i.
-$$
+```
 
 ### Theorem 2: Sylvester's criterion
 
 A real symmetric matrix is positive definite if and only if all its leading principal minors are positive:
 
-$$
+```math
 \boxed{A\succ 0\quad\Longleftrightarrow\quad
 \det(A_k)>0,\quad k=1,\ldots,n.}
-$$
+```
 
 Here $A_k$ is the upper-left $k\times k$ submatrix of $A$.
 
 **Derivation.** for the $2\times 2$ case, Let
 
-$$
+```math
 A=\begin{pmatrix}a&b\\b&c\end{pmatrix}.
-$$
+```
 
 Positive definiteness requires $a>0$, by taking $x=(1,0)^T$. For $a>0$, completing the square gives
 
-$$
+```math
 x^TAx=ax_1^2+2bx_1x_2+cx_2^2
 =a\left(x_1+\frac{b}{a}x_2\right)^2
 +\frac{ac-b^2}{a}x_2^2.
-$$
+```
 
 If $ac-b^2>0$, the expression is positive for every nonzero $x$. Conversely, choosing $x=(-b/a,1)^T$ shows that positive definiteness requires $ac-b^2>0$. Thus,
 
-$$
+```math
 \boxed{A\succ 0\quad\Longleftrightarrow\quad a>0\quad\text{and}\quad ac-b^2>0.}
-$$
+```
 
 These are exactly the conditions $\det(A_1)>0$ and $\det(A_2)>0$.
 
@@ -139,10 +139,10 @@ These are exactly the conditions $\det(A_1)>0$ and $\det(A_2)>0$.
 
 For a random vector $z\in\mathbb{R}^n$ (shape: [n, 1]) with finite first moments, the first moment is its mean vector (shape: [n, 1]):
 
-$$
+```math
 \mu=\mathbb{E}[z],\qquad
 \widehat\mu=\frac1N\sum_{i=1}^N z_i.
-$$
+```
 
 - **Mean:** $\mu$ is the true average; $\widehat\mu$ estimates it from samples.
 - **Linearity:** for fixed $B$ and $b$, $\mathbb{E}[Bz+b]=B\mu+b$.
@@ -152,18 +152,18 @@ $$
 
 For a random vector $z\in\mathbb{R}^n$ with finite second moments, the second moments (shape: [n, n]) defined as:
 
-$$
+```math
 A=\mathbb{E}[zz^T],\qquad
 \widehat A=\frac1N\sum_{i=1}^N z_i z_i^T=\frac1NZZ^T,
-$$
+```
 
 where $Z=[z_1,\ldots,z_N]$ contains the observed samples.
 
 for each element $\widehat A_{ab}$ we have
 
-$$
+```math
 \widehat A_{ab} = \frac1n\sum_{i=1}^nZ_{ai}Z_{bi}
-$$
+```
 
 - **Symmetry and positivity:** $A=A^T$ and $v^TAv=\mathbb{E}[(v^Tz)^2]\ge0$.
 - **Covariance:** $A=\operatorname{Cov}(z)+\mu\mu^T$, so they are equal when $\mu=0$.
