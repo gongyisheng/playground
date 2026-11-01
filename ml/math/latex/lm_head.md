@@ -80,10 +80,12 @@ write as a matrix form:
 g_h = W^T g_z
 ```
 
-differentiate to transformer model weight $\theta$:
+Differentiating with respect to the transformer parameters $\theta$ gives:
 
 ```math
-\nabla_{\theta}L=(\frac{\partial h}{\partial \theta})^{T} g_h
+\begin{aligned}
+\nabla_{\theta} L &= \left(\frac{\partial h}{\partial \theta}\right)^{\top} g_h
+\end{aligned}
 ```
 
 now lets talk about how lm_head becomes a gradient bottleneck, the gradient passed to lm_head is 
