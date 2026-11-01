@@ -7,7 +7,7 @@ assume we have hidden state $h$ which will be passed to lm_head, where $x$ is th
 h=F_{\theta}(x), h \in \mathbb R^{D}
 ```
 
-then pass it to lm head, which is a linear layer. The shape of W is $\mathbb R^{V*D}$
+then pass it to lm head, which is a linear layer. The shape of W is $\mathbb{R}^{V\times D}$
 
 ```math
 z = Wh, z \in \mathbb R^{V}
@@ -58,20 +58,20 @@ write as a matrix form:
 \nabla_W L = g_z h^T
 ```
 
-where as its shape is $(V*1)(1*D)=V*D$  
+where as its shape is $(V\times 1)(1\times D)=V\times D$
 
 if we make $h$ fixed, with the help of optimizer, the projection of correct token weight in lm_head $w_t$ onto the direction of $h$ increases, thereby increasing the dot product of $w_th$, which is its score  
 
 then let's look at the gradient passed to transformer
 
 ```math
-\frac{z_i}{h_j} = W_{ij}
+\frac{\partial z_i}{\partial h_j} = W_{ij}
 ```
 
 since every logit depends on $h_j$, need to sum up all paths
 
 ```math
-\frac{L}{h_j} = \sum_i \frac{\partial L}{\partial z_i} \frac{\partial z_i}{\partial h_j} = \sum_i (g_z)_iW_{ij}
+\frac{\partial L}{\partial h_j} = \sum_i \frac{\partial L}{\partial z_i} \frac{\partial z_i}{\partial h_j} = \sum_i (g_z)_iW_{ij}
 ```
 
 write as a matrix form:
@@ -100,7 +100,7 @@ the gradient passed to hidden state and the rest of the network is
 g_h=W^\top(p-y)
 ```
 
-whereas $W^\top \in \mathbb R^{D*V}$, and $(p-y) \in \mathbb R^{V*1}$, so here back propagation maps V-dim signal into D-dim feedback. 
+whereas $W^\top \in \mathbb{R}^{D\times V}$, and $(p-y) \in \mathbb{R}^{V\times 1}$, so here back propagation maps V-dim signal into D-dim feedback.
 
 when $D \lt V$, the linear map cannot preserve all directions. there must exist a nonzero vector $q \in \mathbb R^{V}$, let $W^{T} q=0$, which means two different grad diffs by $q$ will get same result:
 
