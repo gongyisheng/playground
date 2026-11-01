@@ -107,7 +107,7 @@ If every $\lambda_i>0$, this sum is positive for every nonzero $z$, so $A\succ 0
 Conversely, if $A\succ 0$, taking $x=q_i$, the unit eigenvector for $\lambda_i$, gives
 
 ```math
-0<q_i^TAq_i=\lambda_i q_i^Tq_i=\lambda_i.
+0\lt q_i^TAq_i=\lambda_i q_i^Tq_i=\lambda_i.
 ```
 
 ### Theorem 2: Sylvester's criterion
