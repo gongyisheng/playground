@@ -2,9 +2,11 @@
 ref: https://arxiv.org/pdf/2609.20807
 
 ```math
-p_\theta(v\mid h) \\
-q(v\mid h) \\
-s_v=\nabla_\theta\log p_\theta(v\mid h)
+\begin{aligned}
+&p_\theta(v\mid h) \\
+&q(v\mid h) \\
+&s_v=\nabla_\theta\log p_\theta(v\mid h)
+\end{aligned}
 ```
 
 if on-policy:

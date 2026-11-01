@@ -19,9 +19,11 @@ We move it by a small scalar $s$ and then we get $f'(w+s) \approx g+hs$
 We want after moving it reaches a minimum, so gradent will be 0, assume h>0, let the approx model's gradient be 0:  
 
 ```math
-g+hs=0 \\
-s=-\frac{g}{h} \\
-w_{new}=w+s=w-\frac{g}{h} \\
+\begin{aligned}
+g+hs&=0 \\
+s&=-\frac{g}{h} \\
+w_{new}&=w+s=w-\frac{g}{h}
+\end{aligned}
 ```
 
 **Example:** For $f(w)=w^2$, starting at $w=3$:

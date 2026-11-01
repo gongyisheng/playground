@@ -28,7 +28,7 @@ thus we have the gradient
 
 for llm, log proba of a sequence is sum of log proba of its tokens
 ```math
-\log\pi_\theta(y|x)=\sum_{t=1}^{T}\log\pi_\theta(y_t|x,y_{<t})
+\log\pi_\theta(y|x)=\sum_{t=1}^{T}\log\pi_\theta(y_t|x,y_{\lt t})
 ```
 
 thus, 

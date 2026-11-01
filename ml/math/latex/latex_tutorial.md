@@ -7,7 +7,9 @@ y=2x+1
 
 ## ^
 ```math
+\begin{aligned}
 x^2
+\end{aligned}
 ```
 
 ## _
@@ -59,15 +61,21 @@ y = \frac{x^2 + 1 }{3}
 ```
 
 ```math
+\begin{aligned}
 \frac{\mathrm{d}y}{\mathrm{d}x}
+\end{aligned}
 ```
 
 ```math
+\begin{aligned}
 \frac{\mathrm{d}^2 y}{\mathrm{d}^2 x}
+\end{aligned}
 ```
 
 ```math
+\begin{aligned}
 \frac{\partial f}{\partial x}
+\end{aligned}
 ```
 
 ## special lettering
@@ -89,7 +97,9 @@ y = \frac{x^2 + 1 }{3}
 ```
 
 ```math
+\begin{aligned}
 \mathbf{x} \in \mathbb{R}^{n}
+\end{aligned}
 ```
 
 ## comparison and relationships
@@ -125,7 +135,9 @@ X \sim \mathcal{N}(\mu, \sigma^2)
 ```
 
 ```math
+\begin{aligned}
 \frac{\partial L}{\partial \theta}
+\end{aligned}
 ```
 
 ## brackets
@@ -161,7 +173,7 @@ A = \begin{bmatrix}
 p(y \mid x), % condition probability
 p(x, y), % joint probability
 \mathbb{E}_{x \sim p}[f(x)], % average of f(x) when x follows p
-\operatorname{Var}(X), \sigma^2(x), % variance
+\mathrm{Var}(X), \sigma^2(x), % variance
 x_i \overset{\mathrm{iid}}{\sim} p % independent samples with the same distribution
 ```
 

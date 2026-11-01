@@ -36,9 +36,11 @@ Lagrangian function:
 
 The stationary equations (驻点方程) are 
 ```math
-2x+\lambda=0,\\
-2y+\lambda=0,\\
-x+y-10=0
+\begin{aligned}
+2x+\lambda&=0,\\
+2y+\lambda&=0,\\
+x+y-10&=0
+\end{aligned}
 ```
 
 They give $x=y=5$. Since $x+y=10$ implies $x^2+y^2=50+\frac{1}{2}(x-y)^2\ge 50$, this point is a minimum, with value $50$.

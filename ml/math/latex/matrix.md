@@ -8,7 +8,12 @@ Every real symmetric matrix $A\in\mathbb{R}^{n\times n}$ has an orthonormal basi
 \boxed{A=Q\Lambda Q^T,\qquad Q^TQ=QQ^T=I.}
 ```
 
-where $Q=\begin{bmatrix}q_1&\cdots&q_n\end{bmatrix}$ and $\Lambda=\operatorname{diag}(\lambda_1,\ldots,\lambda_n)$.
+where
+
+```math
+Q=\begin{bmatrix}q_1&\cdots&q_n\end{bmatrix},\qquad
+\Lambda=\mathrm{diag}(\lambda_1,\ldots,\lambda_n).
+```
 
 **Derivation.** Each eigenvector satisfies $Aq_i=\lambda_iq_i$. Combining these equations column by column gives
 
@@ -38,7 +43,10 @@ Geometrically, $Q^Tx$ expresses $x$ in the eigenvector basis, $\Lambda$ scales e
 A quadratic form maps a vector $x\in\mathbb{R}^n$ to the scalar $q(x)=x^TAx$, where $A\in\mathbb{R}^{n\times n}$.
 
 **Example.** For $x=(x_1,x_2)^T$ and
-$A=\begin{pmatrix}3&2\\2&2\end{pmatrix}$,
+
+```math
+A=\begin{pmatrix}3&2\\2&2\end{pmatrix},
+```
 
 ```math
 x^TAx=3x_1^2+4x_1x_2+2x_2^2
@@ -84,7 +92,7 @@ A real symmetric matrix is positive definite if and only if all its eigenvalues 
 
 ```math
 A=Q\Lambda Q^T,\qquad Q^TQ=I,\qquad
-\Lambda=\operatorname{diag}(\lambda_1,\ldots,\lambda_n).
+\Lambda=\mathrm{diag}(\lambda_1,\ldots,\lambda_n).
 ```
 
 Set $z=Q^Tx$. Since $Q$ is invertible, $x\ne 0$ if and only if $z\ne 0$, and
@@ -122,15 +130,19 @@ A=\begin{pmatrix}a&b\\b&c\end{pmatrix}.
 Positive definiteness requires $a>0$, by taking $x=(1,0)^T$. For $a>0$, completing the square gives
 
 ```math
-x^TAx=ax_1^2+2bx_1x_2+cx_2^2
-=a\left(x_1+\frac{b}{a}x_2\right)^2
+\begin{aligned}
+x^TAx&=ax_1^2+2bx_1x_2+cx_2^2 \\
+&=a\left(x_1+\frac{b}{a}x_2\right)^2
 +\frac{ac-b^2}{a}x_2^2.
+\end{aligned}
 ```
 
 If $ac-b^2>0$, the expression is positive for every nonzero $x$. Conversely, choosing $x=(-b/a,1)^T$ shows that positive definiteness requires $ac-b^2>0$. Thus,
 
 ```math
+\begin{aligned}
 \boxed{A\succ 0\quad\Longleftrightarrow\quad a>0\quad\text{and}\quad ac-b^2>0.}
+\end{aligned}
 ```
 
 These are exactly the conditions $\det(A_1)>0$ and $\det(A_2)>0$.
@@ -166,7 +178,7 @@ for each element $\widehat A_{ab}$ we have
 ```
 
 - **Symmetry and positivity:** $A=A^T$ and $v^TAv=\mathbb{E}[(v^Tz)^2]\ge0$.
-- **Covariance:** $A=\operatorname{Cov}(z)+\mu\mu^T$, so they are equal when $\mu=0$.
+- **Covariance:** $A=\mathrm{Cov}(z)+\mu\mu^T$, so they are equal when $\mu=0$.
 - **Directions:** each eigenvalue measures the mean squared projection along its unit eigenvector. $A=cI$ means equal strength in all directions.
 - **Invertibility:** $\widehat A$ is invertible exactly when the samples span $\mathbb{R}^n$.
 - **Preconditioning:** for $A\succ0$, $A^{-1}$ scales each eigenvector direction by $1/\lambda_i$. Using $(A+\gamma I)^{-1}$ with $\gamma>0$ avoids dividing by tiny or zero eigenvalues.

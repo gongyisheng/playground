@@ -10,7 +10,9 @@ where $f'(a)h$ is first order change, $\frac12f''(a)h$ is second order change.
 a generalized version is 
 
 ```math
+\begin{aligned}
 T_n(a+h)=\sum_{k=0}^{n}\frac{f^{(k)}(a)}{k!}h^k.
+\end{aligned}
 ```
 
 then we generalize it to vector inputs:

@@ -23,7 +23,9 @@ since
 
 thus
 ```math
+\begin{aligned}
 \frac{\partial L(cW)}{dc} = \langle \nabla L(cW), W\rangle = 0
+\end{aligned}
 ```
 
 set c=1:

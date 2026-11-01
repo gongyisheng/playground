@@ -5,8 +5,10 @@ Let $g(t)=f(u(t),v(t))$, where t is scalar.
 so gradient is  
 
 ```math
+\begin{aligned}
 g'(t)=
 \frac{\partial f}{\partial u}(u(t),v(t))\,u'(t)
 +\frac{\partial f}{\partial v}(u(t),v(t))\,v'(t).
+\end{aligned}
 ```
 
