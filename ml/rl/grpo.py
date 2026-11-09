@@ -23,6 +23,22 @@ def grpo_advantage(rewards: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
     assert torch.isfinite(advantages).all(), "nonfinite advantages"
     return advantages
 
+# IS: r = \pi_{curr} / \pi_{old}, corrects the possibility sampled from old policy. 
+# clip: min(rA, clip(r, 0.8, 1.2)A)
+# if A>0, r > 1.2, clip to 1.2; r<0.8, no clip; increase the correct posibility, but not too much
+# if A<0, r > 1.2, no clip; r<0.8, clip to 0.8; decrease the wrong posibility, as much as possible
+
+# truncated IS: r^{\star} = min(r, C), avoid big r anyway
+# implementation: !!! important, detach weight
+# ratio = (curr_log_probs - old_log_probs.detach()).exp()
+# weight = ratio.clamp(max=C).detach()
+# token_loss = -weight * A * curr_log_probs 
+
+# policy gradient:
+# for gradient, follow the path from the trainable value to the loss and ask: 
+# what is the slope of each operation along that path?
+# IS: curr_log_probs -> log_ratio -> ratio -> clipped_ratio -> token_loss, each clip will make gradient 0
+# truncated IS: ratio -> curr_log_probs -> (ratio, then constant weight) -> token_loss, will not make gradient 0
 
 def grpo_loss(
     curr_log_probs: torch.Tensor,
