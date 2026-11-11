@@ -40,6 +40,9 @@ def grpo_advantage(rewards: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
 # IS: curr_log_probs -> log_ratio -> ratio -> clipped_ratio -> token_loss, each clip will make gradient 0
 # truncated IS: ratio -> curr_log_probs -> (ratio, then constant weight) -> token_loss, will not make gradient 0
 
+# log derivative trick: 
+# \nabla_{\theta} S_i(\theta) = S_i(\theta) \nabla_{\theta} \log S_i(\theta)
+
 def grpo_loss(
     curr_log_probs: torch.Tensor,
     old_log_probs: torch.Tensor,
