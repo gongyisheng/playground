@@ -86,3 +86,6 @@ reward = torch.Tensor([
     [0.0, 1e-7],
 ])
 print(grpo_advantage(reward))
+
+a = torch.tensor([0,1,2,3], dtype=torch.bfloat16)
+print(a.mean(dim=-1))
