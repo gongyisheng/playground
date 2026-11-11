@@ -77,7 +77,6 @@ def grpo_loss(
         # D_{KL}(P||Q) = \sum_a P(a)\log \frac{P(a)}{Q(a)}, P is the \pi_ref, Q is \pi_cur
         # D = \sum_a P(a)\log P(a) - \sum_a P(a)\log Q(a)
         # D = 1 - \sum_a P(a)\log Q(a)
-
         assert ref_log_probs is not None
         assert curr_log_probs.shape == ref_log_probs.shape
         masked_ref_log_probs = (ref_log_probs.detach().float().masked_fill(~response_mask, 0.0))
